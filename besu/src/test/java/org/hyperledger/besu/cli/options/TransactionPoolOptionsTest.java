@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.hyperledger.besu.cli.options.unstable.TransactionPoolOptions;
 import org.hyperledger.besu.ethereum.eth.transactions.ImmutableTransactionPoolConfiguration;
+import org.hyperledger.besu.ethereum.eth.transactions.TransactionPool;
 import org.hyperledger.besu.ethereum.eth.transactions.TransactionPoolConfiguration;
 
 import java.time.Duration;
@@ -59,6 +60,30 @@ public class TransactionPoolOptionsTest
 
     assertThat(commandOutput.toString()).isEmpty();
     assertThat(commandErrorOutput.toString()).isEmpty();
+  }
+
+  @Test
+  public void numTransactionsInPool() {
+    //test getting from cmd, env, and conf file
+    super.setEnvironmentVariable("BESU_MAX_PENDING_TX", "1024");
+    final TransactionPoolOptions envOpts = getOptionsFromBesuCommand(parseCommand());
+    final TransactionPoolConfiguration envConfig = envOpts.toDomainObject().build();
+    assertThat(envConfig.getTxPoolMaxSize()).isEqualTo(1024L);
+
+
+    final long transactionPoolSize = 2048;
+    final TestBesuCommand cmd = parseCommand("--max-pending-tx", String.valueOf(transactionPoolSize));
+    final TransactionPoolOptions commandLineOpts = getOptionsFromBesuCommand(cmd);
+    final TransactionPoolConfiguration cliConfig = commandLineOpts.toDomainObject().build();
+
+    assertThat(cliConfig.getTxPoolMaxSize()).isEqualTo(transactionPoolSize);
+    //assert that hashes and tx count same?
+  }
+
+  @Test
+  public void secondsForTxMaxKeepalive() {
+
+
   }
 
   @Override

@@ -33,6 +33,8 @@ public class TransactionPoolOptions
   private static final String ETH65_TX_ANNOUNCED_BUFFERING_PERIOD_FLAG =
       "--Xeth65-tx-announced-buffering-period-milliseconds";
 
+  private static final String MAX_PENDING_TX = "--max-pending-tx";
+
   @CommandLine.Option(
       names = {TX_MESSAGE_KEEP_ALIVE_SEC_FLAG},
       paramLabel = "<INTEGER>",
@@ -53,6 +55,16 @@ public class TransactionPoolOptions
   private long eth65TrxAnnouncedBufferingPeriod =
       TransactionPoolConfiguration.ETH65_TRX_ANNOUNCED_BUFFERING_PERIOD.toMillis();
 
+
+  @CommandLine.Option(
+          names = {MAX_PENDING_TX},
+          paramLabel = "<INTEGER>",
+          hidden = false,
+          description = "Maximum number of transactions to retain in the pool",
+          arity = "1"
+  )
+  private int maxPendingTx = TransactionPoolConfiguration.MAX_PENDING_TRANSACTIONS;
+
   private TransactionPoolOptions() {}
 
   public static TransactionPoolOptions create() {
@@ -64,6 +76,7 @@ public class TransactionPoolOptions
     options.txMessageKeepAliveSeconds = config.getTxMessageKeepAliveSeconds();
     options.eth65TrxAnnouncedBufferingPeriod =
         config.getEth65TrxAnnouncedBufferingPeriod().toMillis();
+    options.maxPendingTx = config.getTxPoolMaxSize();
     return options;
   }
 
@@ -71,7 +84,8 @@ public class TransactionPoolOptions
   public ImmutableTransactionPoolConfiguration.Builder toDomainObject() {
     return ImmutableTransactionPoolConfiguration.builder()
         .txMessageKeepAliveSeconds(txMessageKeepAliveSeconds)
-        .eth65TrxAnnouncedBufferingPeriod(Duration.ofMillis(eth65TrxAnnouncedBufferingPeriod));
+        .eth65TrxAnnouncedBufferingPeriod(Duration.ofMillis(eth65TrxAnnouncedBufferingPeriod))
+        .txPoolMaxSize(maxPendingTx);
   }
 
   @Override
@@ -80,6 +94,8 @@ public class TransactionPoolOptions
         TX_MESSAGE_KEEP_ALIVE_SEC_FLAG,
         OptionParser.format(txMessageKeepAliveSeconds),
         ETH65_TX_ANNOUNCED_BUFFERING_PERIOD_FLAG,
-        OptionParser.format(eth65TrxAnnouncedBufferingPeriod));
+        OptionParser.format(eth65TrxAnnouncedBufferingPeriod),
+        MAX_PENDING_TX,
+        OptionParser.format(maxPendingTx));
   }
 }
