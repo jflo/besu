@@ -714,11 +714,9 @@ public class PendingTransactionsTest {
     //create maxtx transaction with valid addresses/nonces
       //all addresses should be unique, chained txs will be checked in another test.
     List<Transaction> toValidate = new ArrayList<Transaction>((int) transactions.maxSize());
-    Map<Address, KeyPair> keyIndex = new HashMap<Address, KeyPair>();
     for(int entries = 1; entries <= transactions.maxSize(); entries++) {
       KeyPair kp = SIGNATURE_ALGORITHM.get().generateKeyPair();
       Address a = Util.publicKeyToAddress(kp.getPublicKey());
-      keyIndex.put(a, kp);
       Transaction t = new TransactionTestFixture()
               .sender(a)
               .value(Wei.of(1))
@@ -727,21 +725,24 @@ public class PendingTransactionsTest {
       transactions.addRemoteTransaction(t);
       toValidate.add(t);
     }
-    //assert that worked and pool is full
+    //assert that worked and pool is full, and contains all added txs
     assertThat(transactions.size()).isEqualTo(transactions.maxSize());
     toValidate.stream().forEach( t -> {
       Optional<Transaction> inPool = transactions.getTransactionByHash(t.getHash());
       assertThat(inPool).isNotEmpty();
     });
     //create maxtx transaction with same valid addresses and nonces in the future (how far in the future?)
-    toValidate.stream().forEach( t -> {
-      Transaction futured = new TransactionTestFixture()
-              .sender(t.getSender())
+    for(int entries = 1; entries <= transactions.maxSize(); entries++) {
+      KeyPair attackerKp = SIGNATURE_ALGORITHM.get().generateKeyPair();
+      Address attackerA = Util.publicKeyToAddress(attackerKp.getPublicKey());
+      //keyIndex.put(a, kp);
+      Transaction t = new TransactionTestFixture()
+              .sender(attackerA)
               .value(Wei.of(1))
-              .nonce(1024)
-              .createTransaction(keyIndex.get(t.getSender()));
-      transactions.addRemoteTransaction(futured);
-    });
+              .nonce(1024+entries)
+              .createTransaction(attackerKp);
+      transactions.addRemoteTransaction(t);
+    }
 
     assertThat(transactions.size()).isEqualTo(transactions.maxSize());
     toValidate.stream().forEach( t -> {
