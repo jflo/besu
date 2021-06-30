@@ -303,6 +303,7 @@ public abstract class BesuControllerBuilder {
     } else {
       eip1559 = Optional.empty();
     }
+
     final TransactionPool transactionPool =
         TransactionPoolFactory.createTransactionPool(
             protocolSchedule,
@@ -313,7 +314,8 @@ public abstract class BesuControllerBuilder {
             syncState,
             miningParameters.getMinTransactionGasPrice(),
             transactionPoolConfiguration,
-            eip1559);
+            eip1559,
+            worldStateArchive.getMutable());
 
     final EthProtocolManager ethProtocolManager =
         createEthProtocolManager(

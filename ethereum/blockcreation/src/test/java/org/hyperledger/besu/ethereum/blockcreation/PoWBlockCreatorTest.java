@@ -95,7 +95,8 @@ public class PoWBlockCreatorTest {
             TestClock.fixed(),
             metricsSystem,
             executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
-            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldState);
 
     final PoWBlockCreator blockCreator =
         new PoWBlockCreator(
@@ -154,7 +155,8 @@ public class PoWBlockCreatorTest {
             TestClock.fixed(),
             metricsSystem,
             executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
-            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldState);
 
     final PoWBlockCreator blockCreator =
         new PoWBlockCreator(
@@ -208,7 +210,8 @@ public class PoWBlockCreatorTest {
             TestClock.fixed(),
             metricsSystem,
             executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
-            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldState);
 
     final PoWBlockCreator blockCreator =
         new PoWBlockCreator(
@@ -278,7 +281,8 @@ public class PoWBlockCreatorTest {
             TestClock.fixed(),
             metricsSystem,
             executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
-            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldState);
 
     final PoWBlockCreator blockCreator =
         new PoWBlockCreator(

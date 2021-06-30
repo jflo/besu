@@ -80,7 +80,8 @@ public class BlockTransactionSelectorTest {
           TestClock.fixed(),
           metricsSystem,
           BlockTransactionSelectorTest::mockBlockHeader,
-          TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+          TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+          worldState);
   private final MutableWorldState worldState =
       InMemoryKeyValueStorageProvider.createInMemoryWorldState();
   private final MainnetTransactionProcessor transactionProcessor =
@@ -330,7 +331,8 @@ public class BlockTransactionSelectorTest {
               when(mockBlockHeader.getBaseFee()).thenReturn(Optional.of(1L));
               return mockBlockHeader;
             },
-            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldState);
     final BlockTransactionSelector selector =
         new BlockTransactionSelector(
             transactionProcessor,

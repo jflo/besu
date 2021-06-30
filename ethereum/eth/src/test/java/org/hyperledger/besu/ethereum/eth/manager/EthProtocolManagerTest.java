@@ -1010,7 +1010,8 @@ public final class EthProtocolManagerTest {
           mock(SyncState.class),
           Wei.ZERO,
           TransactionPoolConfiguration.DEFAULT,
-          Optional.empty());
+          Optional.empty(),
+          null);
 
       // Send just a transaction message.
       final PeerConnection peer = setupPeer(ethManager, (cap, msg, connection) -> {});

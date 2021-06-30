@@ -15,6 +15,7 @@
 package org.hyperledger.besu.ethereum.eth.transactions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -24,23 +25,23 @@ import static org.mockito.Mockito.when;
 import org.hyperledger.besu.crypto.KeyPair;
 import org.hyperledger.besu.crypto.SignatureAlgorithm;
 import org.hyperledger.besu.crypto.SignatureAlgorithmFactory;
+import org.hyperledger.besu.ethereum.core.Account;
 import org.hyperledger.besu.ethereum.core.Address;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.Hash;
 import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.TransactionTestFixture;
+import org.hyperledger.besu.ethereum.core.UpdateTrackingAccount;
 import org.hyperledger.besu.ethereum.core.Util;
 import org.hyperledger.besu.ethereum.core.Wei;
+import org.hyperledger.besu.ethereum.core.WorldView;
 import org.hyperledger.besu.ethereum.eth.transactions.PendingTransactions.TransactionAddedStatus;
 import org.hyperledger.besu.metrics.StubMetricsSystem;
 import org.hyperledger.besu.testutil.TestClock;
 
-import java.security.Key;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.stream.Collectors;
@@ -49,8 +50,9 @@ import java.util.stream.IntStream;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
+import org.junit.Before;
 import org.junit.Test;
-
+import org.mockito.stubbing.Answer;
 
 public class PendingTransactionsTest {
 
@@ -68,15 +70,9 @@ public class PendingTransactionsTest {
 
   private final TestClock clock = new TestClock();
   private final StubMetricsSystem metricsSystem = new StubMetricsSystem();
-  private final PendingTransactions transactions =
-      new PendingTransactions(
-          TransactionPoolConfiguration.DEFAULT_TX_RETENTION_HOURS,
-          MAX_TRANSACTIONS,
-          MAX_TRANSACTION_HASHES,
-          TestClock.fixed(),
-          metricsSystem,
-          PendingTransactionsTest::mockBlockHeader,
-          TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+
+  private PendingTransactions transactions;
+
   private final Transaction transaction1 = createTransaction(2);
   private final Transaction transaction2 = createTransaction(1);
 
@@ -85,6 +81,30 @@ public class PendingTransactionsTest {
       mock(PendingTransactionDroppedListener.class);
   private static final Address SENDER1 = Util.publicKeyToAddress(KEYS1.getPublicKey());
   private static final Address SENDER2 = Util.publicKeyToAddress(KEYS2.getPublicKey());
+
+  @Before
+  public void setup() {
+    WorldView worldView = mock(WorldView.class);
+    when(worldView.get(any(Address.class)))
+        .thenAnswer(
+            (Answer<Account>)
+                invocation -> {
+                  Address from = invocation.getArgument(0);
+                  Account retval = new UpdateTrackingAccount<Account>(from);
+                  return retval;
+                });
+
+    this.transactions =
+        new PendingTransactions(
+            TransactionPoolConfiguration.DEFAULT_TX_RETENTION_HOURS,
+            MAX_TRANSACTIONS,
+            MAX_TRANSACTION_HASHES,
+            TestClock.fixed(),
+            metricsSystem,
+            PendingTransactionsTest::mockBlockHeader,
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldView);
+  }
 
   @Test
   public void shouldReturnExclusivelyLocalTransactionsWhenAppropriate() {
@@ -592,6 +612,15 @@ public class PendingTransactionsTest {
   @Test
   public void shouldEvictMultipleOldTransactions() {
     final int maxTransactionRetentionHours = 1;
+    WorldView worldView = mock(WorldView.class);
+    when(worldView.get(any(Address.class)))
+        .thenAnswer(
+            (Answer<Account>)
+                invocation -> {
+                  Address from = invocation.getArgument(0);
+                  Account retval = new UpdateTrackingAccount<Account>(from);
+                  return retval;
+                });
     final PendingTransactions transactions =
         new PendingTransactions(
             maxTransactionRetentionHours,
@@ -600,7 +629,8 @@ public class PendingTransactionsTest {
             clock,
             metricsSystem,
             PendingTransactionsTest::mockBlockHeader,
-            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldView);
 
     transactions.addRemoteTransaction(transaction1);
     assertThat(transactions.size()).isEqualTo(1);
@@ -616,6 +646,15 @@ public class PendingTransactionsTest {
   @Test
   public void shouldEvictSingleOldTransaction() {
     final int maxTransactionRetentionHours = 1;
+    WorldView worldView = mock(WorldView.class);
+    when(worldView.get(any(Address.class)))
+        .thenAnswer(
+            (Answer<Account>)
+                invocation -> {
+                  Address from = invocation.getArgument(0);
+                  Account retval = new UpdateTrackingAccount<Account>(from);
+                  return retval;
+                });
     final PendingTransactions transactions =
         new PendingTransactions(
             maxTransactionRetentionHours,
@@ -624,7 +663,8 @@ public class PendingTransactionsTest {
             clock,
             metricsSystem,
             PendingTransactionsTest::mockBlockHeader,
-            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldView);
     transactions.addRemoteTransaction(transaction1);
     assertThat(transactions.size()).isEqualTo(1);
     clock.step(2L, ChronoUnit.HOURS);
@@ -636,6 +676,15 @@ public class PendingTransactionsTest {
   @Test
   public void shouldEvictExclusivelyOldTransactions() {
     final int maxTransactionRetentionHours = 2;
+    WorldView worldView = mock(WorldView.class);
+    when(worldView.get(any(Address.class)))
+        .thenAnswer(
+            (Answer<Account>)
+                invocation -> {
+                  Address from = invocation.getArgument(0);
+                  Account retval = new UpdateTrackingAccount<Account>(from);
+                  return retval;
+                });
     final PendingTransactions transactions =
         new PendingTransactions(
             maxTransactionRetentionHours,
@@ -644,7 +693,8 @@ public class PendingTransactionsTest {
             clock,
             metricsSystem,
             PendingTransactionsTest::mockBlockHeader,
-            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldView);
     transactions.addRemoteTransaction(transaction1);
     assertThat(transactions.size()).isEqualTo(1);
     clock.step(3L, ChronoUnit.HOURS);
@@ -711,46 +761,52 @@ public class PendingTransactionsTest {
 
   @Test
   public void shouldIgnoreFutureNoncedTxs() {
-    //create maxtx transaction with valid addresses/nonces
-      //all addresses should be unique, chained txs will be checked in another test.
+    // create maxtx transaction with valid addresses/nonces
+    // all addresses should be unique, chained txs will be checked in another test.
+    // TODO: how to set correct nonces?
+    // TODO: how do we test around reorgs? do we?
     List<Transaction> toValidate = new ArrayList<Transaction>((int) transactions.maxSize());
-    for(int entries = 1; entries <= transactions.maxSize(); entries++) {
+    for (int entries = 1; entries < transactions.maxSize(); entries++) {
       KeyPair kp = SIGNATURE_ALGORITHM.get().generateKeyPair();
       Address a = Util.publicKeyToAddress(kp.getPublicKey());
-      Transaction t = new TransactionTestFixture()
-              .sender(a)
-              .value(Wei.of(1))
-              .nonce(1)
-              .createTransaction(kp);
+      Transaction t =
+          new TransactionTestFixture().sender(a).value(Wei.of(1)).nonce(2).createTransaction(kp);
       transactions.addRemoteTransaction(t);
       toValidate.add(t);
     }
-    //assert that worked and pool is full, and contains all added txs
+    // assert that worked and pool is full, and contains all added txs
     assertThat(transactions.size()).isEqualTo(transactions.maxSize());
-    toValidate.stream().forEach( t -> {
-      Optional<Transaction> inPool = transactions.getTransactionByHash(t.getHash());
-      assertThat(inPool).isNotEmpty();
-    });
-    //create maxtx transaction with same valid addresses and nonces in the future (how far in the future?)
-    for(int entries = 1; entries <= transactions.maxSize(); entries++) {
+    toValidate.stream()
+        .forEach(
+            t -> {
+              Optional<Transaction> inPool = transactions.getTransactionByHash(t.getHash());
+              assertThat(inPool).isNotEmpty();
+            });
+    // create maxtx transaction with same valid addresses and nonces in the future (how far in the
+    // future?)
+    for (int entries = 1; entries < transactions.maxSize() + 1; entries++) {
       KeyPair attackerKp = SIGNATURE_ALGORITHM.get().generateKeyPair();
       Address attackerA = Util.publicKeyToAddress(attackerKp.getPublicKey());
-      //keyIndex.put(a, kp);
-      Transaction t = new TransactionTestFixture()
+      // keyIndex.put(a, kp);
+      Transaction t =
+          new TransactionTestFixture()
               .sender(attackerA)
-              .value(Wei.of(1))
-              .nonce(1024+entries)
+              .value(Wei.of(1)) // cheaper than the valid ones
+              .nonce(entries)
               .createTransaction(attackerKp);
       transactions.addRemoteTransaction(t);
     }
 
     assertThat(transactions.size()).isEqualTo(transactions.maxSize());
-    toValidate.stream().forEach( t -> {
-      Optional<Transaction> inPool = transactions.getTransactionByHash(t.getHash());
-      assertThat(inPool).isNotEmpty();
-    });
-
+    toValidate.stream()
+        .forEach(
+            t -> {
+              Optional<Transaction> inPool = transactions.getTransactionByHash(t.getHash());
+              assertThat(inPool).isNotEmpty();
+            });
   }
+
+  // TODO add test case for legit but out of order txs
 
   @Test
   public void assertThatCorrectNonceIsReturnedWithRepeatedTXes() {

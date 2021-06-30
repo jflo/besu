@@ -206,7 +206,8 @@ public class RetestethContext {
             jsonGenesisConfigOptions.getEIP1559BlockNumber().isPresent()
                 ? Optional.of(
                     new EIP1559(jsonGenesisConfigOptions.getEIP1559BlockNumber().getAsLong()))
-                : Optional.empty());
+                : Optional.empty(),
+            worldStateArchive.getMutable());
 
     LOG.trace("Genesis Block {} ", genesisState::getBlock);
 

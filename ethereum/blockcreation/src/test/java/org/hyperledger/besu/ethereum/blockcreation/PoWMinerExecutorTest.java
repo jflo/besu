@@ -49,7 +49,8 @@ public class PoWMinerExecutorTest {
             TestClock.fixed(),
             metricsSystem,
             PoWMinerExecutorTest::mockBlockHeader,
-            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldState);
 
     final PoWMinerExecutor executor =
         new PoWMinerExecutor(
@@ -78,7 +79,8 @@ public class PoWMinerExecutorTest {
             TestClock.fixed(),
             metricsSystem,
             PoWMinerExecutorTest::mockBlockHeader,
-            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldState);
 
     final PoWMinerExecutor executor =
         new PoWMinerExecutor(

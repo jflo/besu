@@ -138,7 +138,8 @@ public class TestNode implements Closeable {
             syncState,
             Wei.ZERO,
             TransactionPoolConfiguration.DEFAULT,
-            Optional.empty());
+            Optional.empty(),
+            worldStateArchive.getMutable());
 
     final EthProtocolManager ethProtocolManager =
         new EthProtocolManager(

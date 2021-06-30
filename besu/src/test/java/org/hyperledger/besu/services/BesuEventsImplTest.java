@@ -151,7 +151,8 @@ public class BesuEventsImplTest {
             syncState,
             Wei.ZERO,
             txPoolConfig,
-            Optional.of(new EIP1559(0)));
+            Optional.of(new EIP1559(0)),
+            worldStateArchive.getMutable());
 
     serviceImpl = new BesuEventsImpl(blockchain, blockBroadcaster, transactionPool, syncState);
   }

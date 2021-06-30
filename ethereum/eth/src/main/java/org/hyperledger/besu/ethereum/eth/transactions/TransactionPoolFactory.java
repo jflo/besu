@@ -16,6 +16,7 @@ package org.hyperledger.besu.ethereum.eth.transactions;
 
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.core.Wei;
+import org.hyperledger.besu.ethereum.core.WorldView;
 import org.hyperledger.besu.ethereum.core.fees.EIP1559;
 import org.hyperledger.besu.ethereum.eth.manager.EthContext;
 import org.hyperledger.besu.ethereum.eth.messages.EthPV62;
@@ -39,7 +40,8 @@ public class TransactionPoolFactory {
       final SyncState syncState,
       final Wei minTransactionGasPrice,
       final TransactionPoolConfiguration transactionPoolConfiguration,
-      final Optional<EIP1559> eip1559) {
+      final Optional<EIP1559> eip1559,
+      final WorldView worldView) {
 
     final PendingTransactions pendingTransactions =
         new PendingTransactions(
@@ -49,7 +51,8 @@ public class TransactionPoolFactory {
             clock,
             metricsSystem,
             protocolContext.getBlockchain()::getChainHeadHeader,
-            transactionPoolConfiguration.getPriceBump());
+            transactionPoolConfiguration.getPriceBump(),
+            worldView);
 
     final PeerTransactionTracker transactionTracker = new PeerTransactionTracker();
     final TransactionsMessageSender transactionsMessageSender =

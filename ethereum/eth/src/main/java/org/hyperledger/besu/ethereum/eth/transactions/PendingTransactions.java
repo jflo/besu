@@ -26,6 +26,7 @@ import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.Hash;
 import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.Wei;
+import org.hyperledger.besu.ethereum.core.WorldView;
 import org.hyperledger.besu.ethereum.transaction.TransactionInvalidReason;
 import org.hyperledger.besu.metrics.BesuMetricCategory;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
@@ -93,6 +94,7 @@ public class PendingTransactions {
                           .getValue()
                           .longValue())
               .thenComparing(TransactionInfo::getSequence)
+              .thenComparing(TransactionInfo::getDistFromAccountNonce)
               .reversed());
 
   private final NavigableSet<TransactionInfo> prioritizedTransactionsDynamicRange =
@@ -106,6 +108,7 @@ public class PendingTransactions {
                           .map(maxFeePerGas -> maxFeePerGas.getValue().longValue())
                           .orElse(transactionInfo.getGasPrice().toLong()))
               .thenComparing(TransactionInfo::getSequence)
+              .thenComparing(TransactionInfo::getDistFromAccountNonce)
               .reversed());
   private Optional<Long> baseFee;
   private final Map<Address, TransactionsForSenderInfo> transactionsBySender =
@@ -125,6 +128,7 @@ public class PendingTransactions {
   private final long maxPendingTransactions;
   private final TransactionPoolReplacementHandler transactionReplacementHandler;
   private final Supplier<BlockHeader> chainHeadHeaderSupplier;
+  private final WorldView worldView;
 
   public PendingTransactions(
       final int maxTransactionRetentionHours,
@@ -133,13 +137,16 @@ public class PendingTransactions {
       final Clock clock,
       final MetricsSystem metricsSystem,
       final Supplier<BlockHeader> chainHeadHeaderSupplier,
-      final Percentage priceBump) {
+      final Percentage priceBump,
+      final WorldView worldView) {
+
     this.maxTransactionRetentionHours = maxTransactionRetentionHours;
     this.maxPendingTransactions = maxPendingTransactions;
     this.clock = clock;
     this.newPooledHashes = EvictingQueue.create(maxPooledTransactionHashes);
     this.chainHeadHeaderSupplier = chainHeadHeaderSupplier;
     this.baseFee = chainHeadHeaderSupplier.get().getBaseFee();
+    this.worldView = worldView;
     this.transactionReplacementHandler = new TransactionPoolReplacementHandler(priceBump);
     final LabelledMetric<Counter> transactionAddedCounter =
         metricsSystem.createLabelledCounter(
@@ -187,14 +194,19 @@ public class PendingTransactions {
   }
 
   public boolean addRemoteTransaction(final Transaction transaction) {
+    final long nonceDistance = transaction.getNonce() - getAccountNonce(transaction.getSender());
     final TransactionInfo transactionInfo =
-        new TransactionInfo(transaction, false, clock.instant());
+        new TransactionInfo(transaction, false, clock.instant(), nonceDistance);
     final TransactionAddedStatus transactionAddedStatus = addTransaction(transactionInfo);
     final boolean added = transactionAddedStatus.equals(ADDED);
     if (added) {
       remoteTransactionAddedCounter.inc();
     }
     return added;
+  }
+
+  private long getAccountNonce(final Address sender) {
+    return this.worldView.get(sender).getNonce();
   }
 
   boolean addTransactionHash(final Hash transactionHash) {
@@ -210,8 +222,9 @@ public class PendingTransactions {
 
   @VisibleForTesting
   public TransactionAddedStatus addLocalTransaction(final Transaction transaction) {
+    final long nonceDistance = transaction.getNonce() - getAccountNonce(transaction.getSender());
     final TransactionAddedStatus transactionAdded =
-        addTransaction(new TransactionInfo(transaction, true, clock.instant()));
+        addTransaction(new TransactionInfo(transaction, true, clock.instant(), nonceDistance));
     if (transactionAdded.equals(ADDED)) {
       localTransactionAddedCounter.inc();
     }
@@ -388,10 +401,12 @@ public class PendingTransactions {
 
       if (pendingTransactions.size() > maxPendingTransactions) {
         final Stream.Builder<TransactionInfo> removalCandidates = Stream.builder();
-        if (!prioritizedTransactionsDynamicRange.isEmpty())
+        if (!prioritizedTransactionsDynamicRange.isEmpty()) {
           removalCandidates.add(prioritizedTransactionsDynamicRange.last());
-        if (!prioritizedTransactionsStaticRange.isEmpty())
+        }
+        if (!prioritizedTransactionsStaticRange.isEmpty()) {
           removalCandidates.add(prioritizedTransactionsStaticRange.last());
+        }
         final TransactionInfo toRemove =
             removalCandidates
                 .build()
@@ -574,15 +589,18 @@ public class PendingTransactions {
     private final boolean receivedFromLocalSource;
     private final Instant addedToPoolAt;
     private final long sequence; // Allows prioritization based on order transactions are added
+    private final long distFromAccountNonce;
 
     public TransactionInfo(
         final Transaction transaction,
         final boolean receivedFromLocalSource,
-        final Instant addedToPoolAt) {
+        final Instant addedToPoolAt,
+        final long distFromAccountNonce) {
       this.transaction = transaction;
       this.receivedFromLocalSource = receivedFromLocalSource;
       this.addedToPoolAt = addedToPoolAt;
       this.sequence = TRANSACTIONS_ADDED.getAndIncrement();
+      this.distFromAccountNonce = distFromAccountNonce;
     }
 
     public Transaction getTransaction() {
@@ -616,6 +634,10 @@ public class PendingTransactions {
     public Instant getAddedToPoolAt() {
       return addedToPoolAt;
     }
+
+    public long getDistFromAccountNonce() {
+      return distFromAccountNonce;
+    }
   }
 
   public enum TransactionSelectionResult {
@@ -633,6 +655,7 @@ public class PendingTransactions {
   public enum TransactionAddedStatus {
     ALREADY_KNOWN(TransactionInvalidReason.TRANSACTION_ALREADY_KNOWN),
     REJECTED_UNDERPRICED_REPLACEMENT(TransactionInvalidReason.TRANSACTION_REPLACEMENT_UNDERPRICED),
+    REJECTED_TOO_FAR_AHEAD(TransactionInvalidReason.INCORRECT_NONCE),
     ADDED();
 
     private final Optional<TransactionInvalidReason> invalidReason;

@@ -98,7 +98,8 @@ public class BftBlockCreatorTest {
             TestClock.fixed(),
             metricsSystem,
             blockchain::getChainHeadHeader,
-            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+            TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+            worldState);
 
     final BftBlockCreator blockCreator =
         new BftBlockCreator(

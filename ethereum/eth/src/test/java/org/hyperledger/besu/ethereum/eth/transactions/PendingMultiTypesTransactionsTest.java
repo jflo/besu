@@ -61,7 +61,8 @@ public class PendingMultiTypesTransactionsTest {
           TestClock.fixed(),
           metricsSystem,
           () -> mockBlockHeader(7),
-          TransactionPoolConfiguration.DEFAULT_PRICE_BUMP);
+          TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
+          null);
 
   @Test
   public void shouldReturnExclusivelyLocal1559TransactionsWhenAppropriate() {
