@@ -35,9 +35,12 @@ import org.hyperledger.besu.ethereum.eth.transactions.PendingTransactions.Transa
 import org.hyperledger.besu.metrics.StubMetricsSystem;
 import org.hyperledger.besu.testutil.TestClock;
 
+import java.security.Key;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.stream.Collectors;
@@ -47,6 +50,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import org.junit.Test;
+
 
 public class PendingTransactionsTest {
 
@@ -703,6 +707,48 @@ public class PendingTransactionsTest {
         .isPresent()
         .hasValue(3);
     addLocalTransactions(3);
+  }
+
+  @Test
+  public void shouldIgnoreFutureNoncedTxs() {
+    //create maxtx transaction with valid addresses/nonces
+      //all addresses should be unique, chained txs will be checked in another test.
+    List<Transaction> toValidate = new ArrayList<Transaction>((int) transactions.maxSize());
+    Map<Address, KeyPair> keyIndex = new HashMap<Address, KeyPair>();
+    for(int entries = 1; entries <= transactions.maxSize(); entries++) {
+      KeyPair kp = SIGNATURE_ALGORITHM.get().generateKeyPair();
+      Address a = Util.publicKeyToAddress(kp.getPublicKey());
+      keyIndex.put(a, kp);
+      Transaction t = new TransactionTestFixture()
+              .sender(a)
+              .value(Wei.of(1))
+              .nonce(1)
+              .createTransaction(kp);
+      transactions.addRemoteTransaction(t);
+      toValidate.add(t);
+    }
+    //assert that worked and pool is full
+    assertThat(transactions.size()).isEqualTo(transactions.maxSize());
+    toValidate.stream().forEach( t -> {
+      Optional<Transaction> inPool = transactions.getTransactionByHash(t.getHash());
+      assertThat(inPool).isNotEmpty();
+    });
+    //create maxtx transaction with same valid addresses and nonces in the future (how far in the future?)
+    toValidate.stream().forEach( t -> {
+      Transaction futured = new TransactionTestFixture()
+              .sender(t.getSender())
+              .value(Wei.of(1))
+              .nonce(1024)
+              .createTransaction(keyIndex.get(t.getSender()));
+      transactions.addRemoteTransaction(futured);
+    });
+
+    assertThat(transactions.size()).isEqualTo(transactions.maxSize());
+    toValidate.stream().forEach( t -> {
+      Optional<Transaction> inPool = transactions.getTransactionByHash(t.getHash());
+      assertThat(inPool).isNotEmpty();
+    });
+
   }
 
   @Test
