@@ -15,9 +15,13 @@
 package org.hyperledger.besu.ethereum.blockcreation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import org.hyperledger.besu.config.GenesisConfigFile;
 import org.hyperledger.besu.config.GenesisConfigOptions;
+import org.hyperledger.besu.ethereum.core.Account;
 import org.hyperledger.besu.ethereum.core.Address;
 import org.hyperledger.besu.ethereum.core.Block;
 import org.hyperledger.besu.ethereum.core.BlockHeaderBuilder;
@@ -27,7 +31,9 @@ import org.hyperledger.besu.ethereum.core.Hash;
 import org.hyperledger.besu.ethereum.core.MutableWorldState;
 import org.hyperledger.besu.ethereum.core.PrivacyParameters;
 import org.hyperledger.besu.ethereum.core.ProcessableBlockHeader;
+import org.hyperledger.besu.ethereum.core.UpdateTrackingAccount;
 import org.hyperledger.besu.ethereum.core.Wei;
+import org.hyperledger.besu.ethereum.core.WorldView;
 import org.hyperledger.besu.ethereum.eth.transactions.PendingTransactions;
 import org.hyperledger.besu.ethereum.eth.transactions.TransactionPoolConfiguration;
 import org.hyperledger.besu.ethereum.mainnet.EpochCalculator;
@@ -49,6 +55,7 @@ import java.util.function.Function;
 import com.google.common.collect.Lists;
 import org.apache.tuweni.bytes.Bytes;
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 public class PoWBlockCreatorTest {
 
@@ -96,7 +103,7 @@ public class PoWBlockCreatorTest {
             metricsSystem,
             executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
             TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-            worldState);
+            getWorldView());
 
     final PoWBlockCreator blockCreator =
         new PoWBlockCreator(
@@ -156,7 +163,7 @@ public class PoWBlockCreatorTest {
             metricsSystem,
             executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
             TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-            worldState);
+            getWorldView());
 
     final PoWBlockCreator blockCreator =
         new PoWBlockCreator(
@@ -211,7 +218,7 @@ public class PoWBlockCreatorTest {
             metricsSystem,
             executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
             TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-            worldState);
+            getWorldView());
 
     final PoWBlockCreator blockCreator =
         new PoWBlockCreator(
@@ -282,7 +289,7 @@ public class PoWBlockCreatorTest {
             metricsSystem,
             executionContextTestFixture.getProtocolContext().getBlockchain()::getChainHeadHeader,
             TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-            worldState);
+            getWorldView());
 
     final PoWBlockCreator blockCreator =
         new PoWBlockCreator(
@@ -315,5 +322,18 @@ public class PoWBlockCreatorTest {
         mutableWorldState, header, Collections.emptyList(), Wei.ZERO, true);
 
     assertThat(mutableWorldState.get(BLOCK_1_COINBASE)).isNull();
+  }
+
+  private WorldView getWorldView() {
+    WorldView worldView = mock(WorldView.class);
+    when(worldView.get(any(Address.class)))
+        .thenAnswer(
+            (Answer<Account>)
+                invocation -> {
+                  Address from = invocation.getArgument(0);
+                  Account retval = new UpdateTrackingAccount<Account>(from);
+                  return retval;
+                });
+    return worldView;
   }
 }

@@ -15,16 +15,21 @@
 package org.hyperledger.besu.ethereum.eth.transactions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.hyperledger.besu.crypto.KeyPair;
 import org.hyperledger.besu.crypto.SignatureAlgorithm;
 import org.hyperledger.besu.crypto.SignatureAlgorithmFactory;
+import org.hyperledger.besu.ethereum.core.Account;
+import org.hyperledger.besu.ethereum.core.Address;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.TransactionTestFixture;
+import org.hyperledger.besu.ethereum.core.UpdateTrackingAccount;
 import org.hyperledger.besu.ethereum.core.Wei;
+import org.hyperledger.besu.ethereum.core.WorldView;
 import org.hyperledger.besu.metrics.StubMetricsSystem;
 import org.hyperledger.besu.plugin.data.TransactionType;
 import org.hyperledger.besu.testutil.TestClock;
@@ -36,6 +41,7 @@ import java.util.function.Supplier;
 
 import com.google.common.base.Suppliers;
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 public class PendingMultiTypesTransactionsTest {
 
@@ -62,7 +68,7 @@ public class PendingMultiTypesTransactionsTest {
           metricsSystem,
           () -> mockBlockHeader(7),
           TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-          null);
+          getWorldView());
 
   @Test
   public void shouldReturnExclusivelyLocal1559TransactionsWhenAppropriate() {
@@ -371,5 +377,18 @@ public class PendingMultiTypesTransactionsTest {
   private BlockHeader mockBlockHeader(final long baseFee) {
     when(blockHeader.getBaseFee()).thenReturn(Optional.of(baseFee));
     return blockHeader;
+  }
+
+  private WorldView getWorldView() {
+    WorldView worldView = mock(WorldView.class);
+    when(worldView.get(any(Address.class)))
+        .thenAnswer(
+            (Answer<Account>)
+                invocation -> {
+                  Address from = invocation.getArgument(0);
+                  Account retval = new UpdateTrackingAccount<Account>(from);
+                  return retval;
+                });
+    return worldView;
   }
 }

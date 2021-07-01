@@ -15,12 +15,17 @@
 package org.hyperledger.besu.ethereum.blockcreation;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.hyperledger.besu.ethereum.core.Account;
+import org.hyperledger.besu.ethereum.core.Address;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.MiningParameters;
 import org.hyperledger.besu.ethereum.core.MiningParametersTestBuilder;
+import org.hyperledger.besu.ethereum.core.UpdateTrackingAccount;
+import org.hyperledger.besu.ethereum.core.WorldView;
 import org.hyperledger.besu.ethereum.eth.transactions.PendingTransactions;
 import org.hyperledger.besu.ethereum.eth.transactions.TransactionPoolConfiguration;
 import org.hyperledger.besu.ethereum.mainnet.EpochCalculator;
@@ -32,6 +37,7 @@ import org.hyperledger.besu.util.Subscribers;
 import java.util.Optional;
 
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 public class PoWMinerExecutorTest {
   private final MetricsSystem metricsSystem = new NoOpMetricsSystem();
@@ -50,7 +56,7 @@ public class PoWMinerExecutorTest {
             metricsSystem,
             PoWMinerExecutorTest::mockBlockHeader,
             TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-            worldState);
+            getWorldView());
 
     final PoWMinerExecutor executor =
         new PoWMinerExecutor(
@@ -80,7 +86,7 @@ public class PoWMinerExecutorTest {
             metricsSystem,
             PoWMinerExecutorTest::mockBlockHeader,
             TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-            worldState);
+            getWorldView());
 
     final PoWMinerExecutor executor =
         new PoWMinerExecutor(
@@ -101,5 +107,18 @@ public class PoWMinerExecutorTest {
     final BlockHeader blockHeader = mock(BlockHeader.class);
     when(blockHeader.getBaseFee()).thenReturn(Optional.empty());
     return blockHeader;
+  }
+
+  private WorldView getWorldView() {
+    WorldView worldView = mock(WorldView.class);
+    when(worldView.get(any(Address.class)))
+        .thenAnswer(
+            (Answer<Account>)
+                invocation -> {
+                  Address from = invocation.getArgument(0);
+                  Account retval = new UpdateTrackingAccount<Account>(from);
+                  return retval;
+                });
+    return worldView;
   }
 }

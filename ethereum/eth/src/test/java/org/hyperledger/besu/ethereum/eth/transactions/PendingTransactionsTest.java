@@ -19,7 +19,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import org.hyperledger.besu.crypto.KeyPair;
@@ -84,16 +83,6 @@ public class PendingTransactionsTest {
 
   @Before
   public void setup() {
-    WorldView worldView = mock(WorldView.class);
-    when(worldView.get(any(Address.class)))
-        .thenAnswer(
-            (Answer<Account>)
-                invocation -> {
-                  Address from = invocation.getArgument(0);
-                  Account retval = new UpdateTrackingAccount<Account>(from);
-                  return retval;
-                });
-
     this.transactions =
         new PendingTransactions(
             TransactionPoolConfiguration.DEFAULT_TX_RETENTION_HOURS,
@@ -103,7 +92,7 @@ public class PendingTransactionsTest {
             metricsSystem,
             PendingTransactionsTest::mockBlockHeader,
             TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-            worldView);
+            getWorldView());
   }
 
   @Test
@@ -241,7 +230,7 @@ public class PendingTransactionsTest {
 
     transactions.addRemoteTransaction(transaction2);
 
-    verifyZeroInteractions(listener);
+    verifyNoMoreInteractions(listener);
   }
 
   @Test
@@ -301,7 +290,7 @@ public class PendingTransactionsTest {
 
     transactions.transactionAddedToBlock(transaction1);
 
-    verifyZeroInteractions(droppedListener);
+    verifyNoMoreInteractions(droppedListener);
   }
 
   @Test
@@ -497,7 +486,7 @@ public class PendingTransactionsTest {
     assertTransactionNotPending(transaction1b);
     assertTransactionPending(transaction1);
     assertThat(transactions.size()).isEqualTo(1);
-    verifyZeroInteractions(listener);
+    verifyNoMoreInteractions(listener);
   }
 
   @Test
@@ -612,15 +601,6 @@ public class PendingTransactionsTest {
   @Test
   public void shouldEvictMultipleOldTransactions() {
     final int maxTransactionRetentionHours = 1;
-    WorldView worldView = mock(WorldView.class);
-    when(worldView.get(any(Address.class)))
-        .thenAnswer(
-            (Answer<Account>)
-                invocation -> {
-                  Address from = invocation.getArgument(0);
-                  Account retval = new UpdateTrackingAccount<Account>(from);
-                  return retval;
-                });
     final PendingTransactions transactions =
         new PendingTransactions(
             maxTransactionRetentionHours,
@@ -630,7 +610,7 @@ public class PendingTransactionsTest {
             metricsSystem,
             PendingTransactionsTest::mockBlockHeader,
             TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-            worldView);
+            getWorldView());
 
     transactions.addRemoteTransaction(transaction1);
     assertThat(transactions.size()).isEqualTo(1);
@@ -646,15 +626,7 @@ public class PendingTransactionsTest {
   @Test
   public void shouldEvictSingleOldTransaction() {
     final int maxTransactionRetentionHours = 1;
-    WorldView worldView = mock(WorldView.class);
-    when(worldView.get(any(Address.class)))
-        .thenAnswer(
-            (Answer<Account>)
-                invocation -> {
-                  Address from = invocation.getArgument(0);
-                  Account retval = new UpdateTrackingAccount<Account>(from);
-                  return retval;
-                });
+
     final PendingTransactions transactions =
         new PendingTransactions(
             maxTransactionRetentionHours,
@@ -664,7 +636,7 @@ public class PendingTransactionsTest {
             metricsSystem,
             PendingTransactionsTest::mockBlockHeader,
             TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-            worldView);
+            getWorldView());
     transactions.addRemoteTransaction(transaction1);
     assertThat(transactions.size()).isEqualTo(1);
     clock.step(2L, ChronoUnit.HOURS);
@@ -676,15 +648,7 @@ public class PendingTransactionsTest {
   @Test
   public void shouldEvictExclusivelyOldTransactions() {
     final int maxTransactionRetentionHours = 2;
-    WorldView worldView = mock(WorldView.class);
-    when(worldView.get(any(Address.class)))
-        .thenAnswer(
-            (Answer<Account>)
-                invocation -> {
-                  Address from = invocation.getArgument(0);
-                  Account retval = new UpdateTrackingAccount<Account>(from);
-                  return retval;
-                });
+
     final PendingTransactions transactions =
         new PendingTransactions(
             maxTransactionRetentionHours,
@@ -694,7 +658,8 @@ public class PendingTransactionsTest {
             metricsSystem,
             PendingTransactionsTest::mockBlockHeader,
             TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-            worldView);
+            getWorldView());
+
     transactions.addRemoteTransaction(transaction1);
     assertThat(transactions.size()).isEqualTo(1);
     clock.step(3L, ChronoUnit.HOURS);
@@ -774,8 +739,6 @@ public class PendingTransactionsTest {
       transactions.addRemoteTransaction(t);
       toValidate.add(t);
     }
-    // assert that worked and pool is full, and contains all added txs
-    assertThat(transactions.size()).isEqualTo(transactions.maxSize());
     toValidate.stream()
         .forEach(
             t -> {
@@ -802,7 +765,9 @@ public class PendingTransactionsTest {
         .forEach(
             t -> {
               Optional<Transaction> inPool = transactions.getTransactionByHash(t.getHash());
-              assertThat(inPool).isNotEmpty();
+              assertThat(inPool)
+                  .isNotEmpty()
+                  .describedAs("expected transaction from " + t.getSender().toHexString());
             });
   }
 
@@ -828,5 +793,18 @@ public class PendingTransactionsTest {
     final BlockHeader blockHeader = mock(BlockHeader.class);
     when(blockHeader.getBaseFee()).thenReturn(Optional.empty());
     return blockHeader;
+  }
+
+  private WorldView getWorldView() {
+    WorldView worldView = mock(WorldView.class);
+    when(worldView.get(any(Address.class)))
+        .thenAnswer(
+            (Answer<Account>)
+                invocation -> {
+                  Address from = invocation.getArgument(0);
+                  Account retval = new UpdateTrackingAccount<>(from);
+                  return retval;
+                });
+    return worldView;
   }
 }

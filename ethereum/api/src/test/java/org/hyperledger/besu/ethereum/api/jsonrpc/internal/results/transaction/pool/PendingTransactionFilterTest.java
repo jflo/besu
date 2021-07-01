@@ -141,7 +141,7 @@ public class PendingTransactionFilterTest {
       }
       transactionInfoList.add(
           new PendingTransactions.TransactionInfo(
-              transaction, true, Instant.ofEpochSecond(Integer.MAX_VALUE)));
+              transaction, true, Instant.ofEpochSecond(Integer.MAX_VALUE), 1L));
     }
     return new LinkedHashSet<>(transactionInfoList);
   }

@@ -30,12 +30,15 @@ import org.hyperledger.besu.consensus.ibft.IbftBlockHeaderValidationRulesetFacto
 import org.hyperledger.besu.consensus.ibft.IbftExtraDataCodec;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.chain.MutableBlockchain;
+import org.hyperledger.besu.ethereum.core.Account;
 import org.hyperledger.besu.ethereum.core.Address;
 import org.hyperledger.besu.ethereum.core.AddressHelpers;
 import org.hyperledger.besu.ethereum.core.Block;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.BlockHeaderTestFixture;
+import org.hyperledger.besu.ethereum.core.UpdateTrackingAccount;
 import org.hyperledger.besu.ethereum.core.Wei;
+import org.hyperledger.besu.ethereum.core.WorldView;
 import org.hyperledger.besu.ethereum.eth.transactions.PendingTransactions;
 import org.hyperledger.besu.ethereum.eth.transactions.TransactionPoolConfiguration;
 import org.hyperledger.besu.ethereum.mainnet.BlockHeaderValidator;
@@ -52,6 +55,7 @@ import java.util.Optional;
 import com.google.common.collect.Lists;
 import org.apache.tuweni.bytes.Bytes;
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 public class BftBlockCreatorTest {
   private final MetricsSystem metricsSystem = new NoOpMetricsSystem();
@@ -99,7 +103,7 @@ public class BftBlockCreatorTest {
             metricsSystem,
             blockchain::getChainHeadHeader,
             TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-            worldState);
+            getWorldView());
 
     final BftBlockCreator blockCreator =
         new BftBlockCreator(
@@ -141,5 +145,18 @@ public class BftBlockCreatorTest {
         .isEqualTo(
             new BftBlockHashing(bftExtraDataEncoder)
                 .calculateDataHashForCommittedSeal(header, extraData));
+  }
+
+  private WorldView getWorldView() {
+    WorldView worldView = mock(WorldView.class);
+    when(worldView.get(any(Address.class)))
+        .thenAnswer(
+            (Answer<Account>)
+                invocation -> {
+                  Address from = invocation.getArgument(0);
+                  Account retval = new UpdateTrackingAccount<Account>(from);
+                  return retval;
+                });
+    return worldView;
   }
 }

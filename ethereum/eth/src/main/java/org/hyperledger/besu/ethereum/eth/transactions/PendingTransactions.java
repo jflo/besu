@@ -20,6 +20,7 @@ import static org.hyperledger.besu.ethereum.eth.transactions.PendingTransactions
 import static org.hyperledger.besu.ethereum.eth.transactions.PendingTransactions.TransactionAddedStatus.ALREADY_KNOWN;
 import static org.hyperledger.besu.ethereum.eth.transactions.PendingTransactions.TransactionAddedStatus.REJECTED_UNDERPRICED_REPLACEMENT;
 
+import org.hyperledger.besu.ethereum.core.Account;
 import org.hyperledger.besu.ethereum.core.AccountTransactionOrder;
 import org.hyperledger.besu.ethereum.core.Address;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
@@ -95,6 +96,7 @@ public class PendingTransactions {
                           .longValue())
               .thenComparing(TransactionInfo::getSequence)
               .thenComparing(TransactionInfo::getDistFromAccountNonce)
+              .reversed()
               .reversed());
 
   private final NavigableSet<TransactionInfo> prioritizedTransactionsDynamicRange =
@@ -109,6 +111,7 @@ public class PendingTransactions {
                           .orElse(transactionInfo.getGasPrice().toLong()))
               .thenComparing(TransactionInfo::getSequence)
               .thenComparing(TransactionInfo::getDistFromAccountNonce)
+              .reversed()
               .reversed());
   private Optional<Long> baseFee;
   private final Map<Address, TransactionsForSenderInfo> transactionsBySender =
@@ -206,7 +209,12 @@ public class PendingTransactions {
   }
 
   private long getAccountNonce(final Address sender) {
-    return this.worldView.get(sender).getNonce();
+    if (this.worldView.get(sender) == null) { // TODO: WorldView could return an Optional
+      return Account
+          .DEFAULT_NONCE; // intentionally not creating the account when discovering it missing.
+    } else {
+      return this.worldView.get(sender).getNonce();
+    }
   }
 
   boolean addTransactionHash(final Hash transactionHash) {

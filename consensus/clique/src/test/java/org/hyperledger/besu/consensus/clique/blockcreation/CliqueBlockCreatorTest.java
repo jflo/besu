@@ -39,13 +39,16 @@ import org.hyperledger.besu.crypto.SignatureAlgorithmFactory;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.chain.GenesisState;
 import org.hyperledger.besu.ethereum.chain.MutableBlockchain;
+import org.hyperledger.besu.ethereum.core.Account;
 import org.hyperledger.besu.ethereum.core.Address;
 import org.hyperledger.besu.ethereum.core.AddressHelpers;
 import org.hyperledger.besu.ethereum.core.Block;
 import org.hyperledger.besu.ethereum.core.BlockBody;
 import org.hyperledger.besu.ethereum.core.BlockHeaderTestFixture;
+import org.hyperledger.besu.ethereum.core.UpdateTrackingAccount;
 import org.hyperledger.besu.ethereum.core.Util;
 import org.hyperledger.besu.ethereum.core.Wei;
+import org.hyperledger.besu.ethereum.core.WorldView;
 import org.hyperledger.besu.ethereum.eth.transactions.PendingTransactions;
 import org.hyperledger.besu.ethereum.eth.transactions.TransactionPoolConfiguration;
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule;
@@ -61,6 +64,7 @@ import org.apache.tuweni.bytes.Bytes;
 import org.assertj.core.api.Java6Assertions;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 public class CliqueBlockCreatorTest {
 
@@ -118,6 +122,8 @@ public class CliqueBlockCreatorTest {
         CliqueExtraData.createWithoutProposerSeal(Bytes.wrap(new byte[32]), validatorList);
 
     final Address coinbase = AddressHelpers.ofValue(1);
+    WorldView worldView = getWorldView();
+
     final CliqueBlockCreator blockCreator =
         new CliqueBlockCreator(
             coinbase,
@@ -130,7 +136,7 @@ public class CliqueBlockCreatorTest {
                 metricsSystem,
                 blockchain::getChainHeadHeader,
                 TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-                worldState),
+                worldView),
             protocolContext,
             protocolSchedule,
             gasLimit -> gasLimit,
@@ -153,7 +159,7 @@ public class CliqueBlockCreatorTest {
     final Address a1 = Address.fromHexString("5");
     voteProposer.auth(a1);
     final Address coinbase = AddressHelpers.ofValue(1);
-
+    WorldView worldView = getWorldView();
     final CliqueBlockCreator blockCreator =
         new CliqueBlockCreator(
             coinbase,
@@ -166,7 +172,7 @@ public class CliqueBlockCreatorTest {
                 metricsSystem,
                 blockchain::getChainHeadHeader,
                 TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-                worldState),
+                worldView),
             protocolContext,
             protocolSchedule,
             gasLimit -> gasLimit,
@@ -188,7 +194,7 @@ public class CliqueBlockCreatorTest {
     final Address a1 = Util.publicKeyToAddress(otherKeyPair.getPublicKey());
     voteProposer.auth(a1);
     final Address coinbase = AddressHelpers.ofValue(1);
-
+    WorldView worldView = getWorldView();
     final CliqueBlockCreator blockCreator =
         new CliqueBlockCreator(
             coinbase,
@@ -201,7 +207,7 @@ public class CliqueBlockCreatorTest {
                 metricsSystem,
                 blockchain::getChainHeadHeader,
                 TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-                worldState),
+                worldView),
             protocolContext,
             protocolSchedule,
             gasLimit -> gasLimit,
@@ -226,7 +232,7 @@ public class CliqueBlockCreatorTest {
     final Address a1 = Address.fromHexString("5");
     voteProposer.auth(a1);
     final Address coinbase = AddressHelpers.ofValue(1);
-
+    WorldView worldView = getWorldView();
     final CliqueBlockCreator blockCreator =
         new CliqueBlockCreator(
             coinbase,
@@ -239,7 +245,7 @@ public class CliqueBlockCreatorTest {
                 metricsSystem,
                 blockchain::getChainHeadHeader,
                 TransactionPoolConfiguration.DEFAULT_PRICE_BUMP,
-                worldState),
+                worldView),
             protocolContext,
             protocolSchedule,
             gasLimit -> gasLimit,
@@ -252,5 +258,18 @@ public class CliqueBlockCreatorTest {
     final Block createdBlock = blockCreator.createBlock(0L);
     assertThat(createdBlock.getHeader().getNonce()).isEqualTo(CliqueBlockInterface.DROP_NONCE);
     assertThat(createdBlock.getHeader().getCoinbase()).isEqualTo(Address.fromHexString("0"));
+  }
+
+  private WorldView getWorldView() {
+    WorldView worldView = mock(WorldView.class);
+    when(worldView.get(any(Address.class)))
+        .thenAnswer(
+            (Answer<Account>)
+                invocation -> {
+                  Address from = invocation.getArgument(0);
+                  Account retval = new UpdateTrackingAccount<Account>(from);
+                  return retval;
+                });
+    return worldView;
   }
 }

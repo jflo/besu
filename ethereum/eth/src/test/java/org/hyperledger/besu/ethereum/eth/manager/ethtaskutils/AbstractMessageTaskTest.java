@@ -15,12 +15,14 @@
 package org.hyperledger.besu.ethereum.eth.manager.ethtaskutils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.ethereum.core.BlockchainSetupUtil;
 import org.hyperledger.besu.ethereum.core.Wei;
+import org.hyperledger.besu.ethereum.core.WorldView;
 import org.hyperledger.besu.ethereum.eth.EthProtocol;
 import org.hyperledger.besu.ethereum.eth.EthProtocolConfiguration;
 import org.hyperledger.besu.ethereum.eth.manager.DeterministicEthScheduler;
@@ -103,7 +105,7 @@ public abstract class AbstractMessageTaskTest<T, R> {
             Wei.of(1),
             TransactionPoolConfiguration.DEFAULT,
             Optional.empty(),
-            null);
+            getWorldView());
     ethProtocolManager =
         EthProtocolManagerTestUtil.create(
             blockchain,
@@ -187,5 +189,11 @@ public abstract class AbstractMessageTaskTest<T, R> {
     assertThat(future.isDone()).isTrue();
     assertThat(future.isCancelled()).isTrue();
     assertThat(task.run().isCancelled()).isTrue();
+  }
+
+  private WorldView getWorldView() {
+    WorldView worldView = mock(WorldView.class);
+
+    return worldView;
   }
 }

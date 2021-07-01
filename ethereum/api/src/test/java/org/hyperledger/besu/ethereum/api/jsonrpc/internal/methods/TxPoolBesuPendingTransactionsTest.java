@@ -239,7 +239,7 @@ public class TxPoolBesuPendingTransactionsTest {
         .map(
             transaction ->
                 new PendingTransactions.TransactionInfo(
-                    transaction, true, Instant.ofEpochSecond(Integer.MAX_VALUE)))
+                    transaction, true, Instant.ofEpochSecond(Integer.MAX_VALUE), 1L))
         .collect(Collectors.toUnmodifiableSet());
   }
 }
