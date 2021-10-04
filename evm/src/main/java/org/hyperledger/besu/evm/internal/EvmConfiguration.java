@@ -15,19 +15,13 @@
 
 package org.hyperledger.besu.evm.internal;
 
-public class EvmConfiguration {
-  public static final EvmConfiguration DEFAULT = new EvmConfiguration(32_000L);
-  private final long jumpDestCacheWeightKB;
+import org.immutables.value.Value;
 
-  public EvmConfiguration(final long jumpDestCacheWeightKB) {
-    this.jumpDestCacheWeightKB = jumpDestCacheWeightKB;
-  }
+@Value.Immutable
+public interface EvmConfiguration {
 
-  public long getJumpDestCacheWeightBytes() {
-    return jumpDestCacheWeightKB * 1024L;
-  }
+  EvmConfiguration DEFAULT =
+      ImmutableEvmConfiguration.builder().jumpDestCacheWeightKB(32_000).build();
 
-  public long getJumpDestCacheWeightKB() {
-    return jumpDestCacheWeightKB;
-  }
+  long jumpDestCacheWeightKB();
 }

@@ -17,6 +17,7 @@ package org.hyperledger.besu.cli.options.unstable;
 
 import org.hyperledger.besu.cli.options.CLIOptions;
 import org.hyperledger.besu.evm.internal.EvmConfiguration;
+import org.hyperledger.besu.evm.internal.ImmutableEvmConfiguration;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,7 +47,9 @@ public class EvmOptions implements CLIOptions<EvmConfiguration> {
 
   @Override
   public EvmConfiguration toDomainObject() {
-    return new EvmConfiguration(jumpDestCacheWeightKilobytes);
+    return ImmutableEvmConfiguration.builder()
+        .jumpDestCacheWeightKB(jumpDestCacheWeightKilobytes)
+        .build();
   }
 
   @Override
