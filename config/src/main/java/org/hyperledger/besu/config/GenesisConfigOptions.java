@@ -81,6 +81,8 @@ public interface GenesisConfigOptions {
 
   OptionalLong getArrowGlacierBlockNumber();
 
+  OptionalLong getPhillyBlockNumber();
+
   OptionalLong getBaseFeePerGas();
 
   Optional<UInt256> getTerminalTotalDifficulty();

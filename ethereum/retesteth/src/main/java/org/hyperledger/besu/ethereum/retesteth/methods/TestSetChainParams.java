@@ -124,6 +124,7 @@ public class TestSetChainParams implements JsonRpcMethod {
     maybeMoveToNumber(params, "berlinForkBlock", config, "berlinBlock");
     maybeMoveToNumber(params, "londonForkBlock", config, "londonBlock");
     maybeMoveToNumber(params, "arrowGlacierForkBlock", config, "arrowGlacierBlock");
+    maybeMoveToNumber(params, "phillyForkBlock", config, "phillyForkBlock");
     maybeMoveToNumber(params, "chainID", config, "chainId", 1);
 
     maybeMove(genesis, "author", chainParamsJson, "coinbase");

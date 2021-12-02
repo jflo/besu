@@ -31,6 +31,7 @@ import org.hyperledger.besu.ethereum.eth.manager.ForkIdManager;
 import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule;
 import org.hyperledger.besu.ethereum.mainnet.MutableProtocolSchedule;
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule;
+import org.hyperledger.besu.evm.gascalculator.PhillyGasCalculator;
 import org.hyperledger.besu.evm.internal.EvmConfiguration;
 
 import java.util.Collection;
@@ -110,8 +111,11 @@ public class ForkIdsTest {
               new ForkId(Bytes.ofUnsignedInt(0xe029e991L), 12244000L),
               new ForkId(Bytes.ofUnsignedInt(0xeb440f6L), 12965000L),
               new ForkId(Bytes.ofUnsignedInt(0xb715077dL), 13773000L),
-              new ForkId(Bytes.ofUnsignedInt(0x20c327fc), 0L),
-              new ForkId(Bytes.ofUnsignedInt(0x20c327fc), 0L))
+              new ForkId(
+                  Bytes.ofUnsignedInt(0x20c327fcL),
+                  PhillyGasCalculator.BLOCK_NUMBER), // TODO assign actual block
+              new ForkId(PhillyGasCalculator.BLOCK_HASH, 0L),
+              new ForkId(PhillyGasCalculator.BLOCK_HASH, 0L))
         },
         new Object[] {
           NetworkName.MORDOR,
@@ -168,8 +172,8 @@ public class ForkIdsTest {
     final AtomicLong blockNumber = new AtomicLong();
     when(mockBlockchain.getChainHeadBlockNumber()).thenAnswer(o -> blockNumber.get());
 
-    final ForkIdManager forkIdManager =
-        new ForkIdManager(mockBlockchain, genesisConfigFile.getForks(), false);
+    List<Long> forkBlockIds = genesisConfigFile.getForks();
+    final ForkIdManager forkIdManager = new ForkIdManager(mockBlockchain, forkBlockIds, false);
 
     final var actualForkIds =
         Streams.concat(

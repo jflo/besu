@@ -20,6 +20,7 @@ import org.hyperledger.besu.evm.Gas;
 import org.hyperledger.besu.evm.gascalculator.FrontierGasCalculator;
 import org.hyperledger.besu.evm.gascalculator.GasCalculator;
 import org.hyperledger.besu.evm.gascalculator.IstanbulGasCalculator;
+import org.hyperledger.besu.evm.gascalculator.PhillyGasCalculator;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -49,6 +50,7 @@ public class IntrinsicGasTest {
   public static Collection<Object[]> data() {
     final GasCalculator frontier = new FrontierGasCalculator();
     final GasCalculator istanbul = new IstanbulGasCalculator();
+    final GasCalculator philly = new PhillyGasCalculator();
     return Arrays.asList(
         new Object[][] {
           // EnoughGAS
@@ -62,6 +64,11 @@ public class IntrinsicGasTest {
             Gas.of(21224),
             "0xf86d80018259d894095e7baea6a6c7c4c2dfeb977efac326af552d870a8e0358ac39584bc98a7c979f984b031ba048b55bfa915ac795c431978d8a6a992b628d557da5ff759b307d495a36649353a01fffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab949f53faa07bd2c804"
           },
+          {
+            philly,
+            Gas.of(21042),
+            "0xf86d80018259d894095e7baea6a6c7c4c2dfeb977efac326af552d870a8e0358ac39584bc98a7c979f984b031ba048b55bfa915ac795c431978d8a6a992b628d557da5ff759b307d495a36649353a01fffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab949f53faa07bd2c804"
+          },
           // FirstZeroBytes
           {
             frontier,
@@ -72,6 +79,11 @@ public class IntrinsicGasTest {
             istanbul,
             Gas.of(21128),
             "0xf87c80018261a894095e7baea6a6c7c4c2dfeb977efac326af552d870a9d00000000000000000000000000010000000000000000000000000000001ba048b55bfa915ac795c431978d8a6a992b628d557da5ff759b307d495a36649353a01fffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab949f53faa07bd2c804"
+          },
+          {
+            philly,
+            Gas.of(21042),
+            "0xf86d80018259d894095e7baea6a6c7c4c2dfeb977efac326af552d870a8e0358ac39584bc98a7c979f984b031ba048b55bfa915ac795c431978d8a6a992b628d557da5ff759b307d495a36649353a01fffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab949f53faa07bd2c804"
           },
           // LastZeroBytes
           {
@@ -84,6 +96,11 @@ public class IntrinsicGasTest {
             Gas.of(21128),
             "0xf87c80018261a894095e7baea6a6c7c4c2dfeb977efac326af552d870a9d01000000000000000000000000000000000000000000000000000000001ba048b55bfa915ac795c431978d8a6a992b628d557da5ff759b307d495a36649353a01fffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab949f53faa07bd2c804"
           },
+          {
+            philly,
+            Gas.of(21042),
+            "0xf86d80018259d894095e7baea6a6c7c4c2dfeb977efac326af552d870a8e0358ac39584bc98a7c979f984b031ba048b55bfa915ac795c431978d8a6a992b628d557da5ff759b307d495a36649353a01fffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab949f53faa07bd2c804"
+          },
           // NotEnoughGAS
           {
             frontier,
@@ -95,6 +112,11 @@ public class IntrinsicGasTest {
             Gas.of(21224),
             "0xf86d800182521c94095e7baea6a6c7c4c2dfeb977efac326af552d870a8e0358ac39584bc98a7c979f984b031ba048b55bfa915ac795c431978d8a6a992b628d557da5ff759b307d495a36649353a0efffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab949f53faa07bd2c804"
           },
+          {
+            philly,
+            Gas.of(21042),
+            "0xf86d80018259d894095e7baea6a6c7c4c2dfeb977efac326af552d870a8e0358ac39584bc98a7c979f984b031ba048b55bfa915ac795c431978d8a6a992b628d557da5ff759b307d495a36649353a01fffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab949f53faa07bd2c804"
+          },
           // ZeroBytes
           {
             frontier,
@@ -105,6 +127,11 @@ public class IntrinsicGasTest {
             istanbul,
             Gas.of(21116),
             "0xf87c80018261a894095e7baea6a6c7c4c2dfeb977efac326af552d870a9d00000000000000000000000000000000000000000000000000000000001ba048b55bfa915ac795c431978d8a6a992b628d557da5ff759b307d495a36649353a01fffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab949f53faa07bd2c804"
+          },
+          {
+            philly,
+            Gas.of(21042),
+            "0xf86d80018259d894095e7baea6a6c7c4c2dfeb977efac326af552d870a8e0358ac39584bc98a7c979f984b031ba048b55bfa915ac795c431978d8a6a992b628d557da5ff759b307d495a36649353a01fffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab949f53faa07bd2c804"
           },
         });
   }

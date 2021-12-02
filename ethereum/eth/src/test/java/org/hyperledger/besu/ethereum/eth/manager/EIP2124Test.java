@@ -25,6 +25,7 @@ import org.hyperledger.besu.ethereum.eth.ForkIdTestUtil.ForkIds;
 import org.hyperledger.besu.ethereum.eth.ForkIdTestUtil.GenesisHash;
 import org.hyperledger.besu.ethereum.eth.ForkIdTestUtil.Network;
 import org.hyperledger.besu.ethereum.eth.ForkIdTestUtil.PeerCheckCase;
+import org.hyperledger.besu.evm.gascalculator.PhillyGasCalculator;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -220,15 +221,31 @@ public class EIP2124Test {
             "Mainnet // First Arrow Glacier block",
             Network.MAINNET,
             13773000L,
-            ForkIdTestUtil.wantForkId("0x20c327fc", 0L),
+            ForkIdTestUtil.wantForkId("0x20c327fc", PhillyGasCalculator.BLOCK_NUMBER),
             Optional.of(ForkIds.MAINNET),
             empty()
           },
           {
-            "Mainnet // Future Arrow Glacier block",
+            "Mainnet // Last Arrow Glacier block",
+            Network.MAINNET,
+            13773001L,
+            ForkIdTestUtil.wantForkId("0x20c327fc", PhillyGasCalculator.BLOCK_NUMBER),
+            Optional.of(ForkIds.MAINNET),
+            empty()
+          },
+          {
+            "Mainnet // First Philly block",
+            Network.MAINNET,
+            PhillyGasCalculator.BLOCK_NUMBER,
+            ForkIdTestUtil.wantForkId(PhillyGasCalculator.BLOCK_HASH_HEX, 0L),
+            Optional.of(ForkIds.MAINNET),
+            empty()
+          },
+          {
+            "Mainnet // Future Philly block",
             Network.MAINNET,
             20000000L,
-            ForkIdTestUtil.wantForkId("0x20c327fc", 0L),
+            ForkIdTestUtil.wantForkId(PhillyGasCalculator.BLOCK_HASH_HEX, 0L),
             Optional.of(ForkIds.MAINNET),
             empty()
           },

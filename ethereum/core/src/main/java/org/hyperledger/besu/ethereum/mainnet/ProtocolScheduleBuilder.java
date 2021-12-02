@@ -235,6 +235,7 @@ public class ProtocolScheduleBuilder {
                 create(
                     config.getArrowGlacierBlockNumber(),
                     specFactory.arrowGlacierDefinition(config)),
+                create(config.getPhillyBlockNumber(), specFactory.phillyDefinition(config)),
                 // Classic Milestones
                 create(config.getEcip1015BlockNumber(), specFactory.tangerineWhistleDefinition()),
                 create(config.getDieHardBlockNumber(), specFactory.dieHardDefinition()),
@@ -324,6 +325,7 @@ public class ProtocolScheduleBuilder {
     lastForkBlock = validateForkOrder("London", config.getLondonBlockNumber(), lastForkBlock);
     lastForkBlock =
         validateForkOrder("ArrowGlacier", config.getArrowGlacierBlockNumber(), lastForkBlock);
+    lastForkBlock = validateForkOrder("Philly", config.getPhillyBlockNumber(), lastForkBlock);
     assert (lastForkBlock >= 0);
   }
 

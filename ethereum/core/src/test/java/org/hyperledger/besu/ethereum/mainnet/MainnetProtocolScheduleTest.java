@@ -16,6 +16,7 @@ package org.hyperledger.besu.ethereum.mainnet;
 
 import org.hyperledger.besu.config.GenesisConfigFile;
 import org.hyperledger.besu.ethereum.core.ProtocolScheduleFixture;
+import org.hyperledger.besu.evm.gascalculator.PhillyGasCalculator;
 import org.hyperledger.besu.evm.internal.EvmConfiguration;
 
 import java.nio.charset.StandardCharsets;
@@ -48,8 +49,9 @@ public class MainnetProtocolScheduleTest {
     Assertions.assertThat(sched.getByBlockNumber(12_244_000L).getName()).isEqualTo("Berlin");
     Assertions.assertThat(sched.getByBlockNumber(12_965_000L).getName()).isEqualTo("London");
     Assertions.assertThat(sched.getByBlockNumber(13_773_000L).getName()).isEqualTo("ArrowGlacier");
-    Assertions.assertThat(sched.getByBlockNumber(Long.MAX_VALUE).getName())
-        .isEqualTo("ArrowGlacier");
+    Assertions.assertThat(sched.getByBlockNumber(PhillyGasCalculator.BLOCK_NUMBER).getName())
+        .isEqualTo("Philly");
+    Assertions.assertThat(sched.getByBlockNumber(Long.MAX_VALUE).getName()).isEqualTo("Philly");
   }
 
   @Test
