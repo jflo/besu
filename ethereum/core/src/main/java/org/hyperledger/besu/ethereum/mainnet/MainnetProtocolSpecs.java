@@ -607,8 +607,8 @@ public abstract class MainnetProtocolSpecs {
             quorumCompatibilityMode,
             evmConfiguration)
         .name("Philly")
-        .gasCalculator(PhillyGasCalculator::new);
-    // .blockValidatorBuilder(PhillyBlockValidator);
+        .gasCalculator(PhillyGasCalculator::new)
+        .blockBodyValidatorBuilder(TxCallDataValidator::new);
   }
 
   private static TransactionReceipt frontierTransactionReceiptFactory(

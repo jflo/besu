@@ -18,6 +18,7 @@ package org.hyperledger.besu.ethereum.mainnet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import org.apache.logging.log4j.LogManager;
 import org.hyperledger.besu.crypto.KeyPair;
 import org.hyperledger.besu.crypto.SignatureAlgorithmFactory;
 import org.hyperledger.besu.datatypes.Wei;
@@ -36,6 +37,7 @@ import java.util.Optional;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.tuweni.bytes.Bytes;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,6 +51,7 @@ public class TxCallDataValidatorTest {
   @Mock BlockHeader blockHeader;
   @Mock Block block;
   private TxCallDataValidator blockBodyValidator;
+  private Level previousLogLevel;
 
   private static final KeyPair keyPair = SignatureAlgorithmFactory.getInstance().generateKeyPair();
 
@@ -57,7 +60,13 @@ public class TxCallDataValidatorTest {
     when(block.getHeader()).thenReturn(blockHeader);
 
     blockBodyValidator = new TxCallDataValidator(protocolSchedule);
+    previousLogLevel = LogManager.getLogger(TxCallDataValidator.class).getLevel();
     Configurator.setLevel(TxCallDataValidator.class.getName(), Level.ALL);
+  }
+
+  @After
+  public void tearDown() {
+    Configurator.setLevel(TxCallDataValidator.class.getName(), previousLogLevel);
   }
 
   @Test
