@@ -16,7 +16,10 @@ package org.hyperledger.besu.ethereum.mainnet.headervalidationrules;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import org.hyperledger.besu.config.experimental.MergeOptions;
+import com.fasterxml.jackson.annotation.JacksonInject;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
+import org.hyperledger.besu.config.experimental.MergeConfigurationFactory;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.mainnet.DetachedBlockHeaderValidationRule;
 
@@ -28,15 +31,18 @@ public class TimestampMoreRecentThanParent implements DetachedBlockHeaderValidat
 
   private static final Logger LOG = LoggerFactory.getLogger(TimestampMoreRecentThanParent.class);
   private final long minimumSecondsSinceParent;
+  private final MergeConfiguration mergeConfiguration;
+
 
   public TimestampMoreRecentThanParent(final long minimumSecondsSinceParent) {
     checkArgument(minimumSecondsSinceParent >= 0, "minimumSecondsSinceParent must be positive");
     this.minimumSecondsSinceParent = minimumSecondsSinceParent;
+    this.mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
   }
 
   @Override
   public boolean validate(final BlockHeader header, final BlockHeader parent) {
-    if (MergeOptions.isMergeEnabled()) {
+    if (this.mergeConfiguration.isMergeEnabled()) {
       return true;
     }
     return validateTimestamp(header.getTimestamp(), parent.getTimestamp());

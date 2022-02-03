@@ -20,41 +20,62 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
+import org.hyperledger.besu.config.experimental.MergeConfiguration_Factory;
+import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+import javax.inject.Inject;
+
 @SuppressWarnings({"JdkObsolete"})
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class MergeOptionsTest {
+public class MergeConfigurationTest {
 
   @Test
   public void shouldBeDisabledByDefault() {
-    // disabledByDefault
-    assertThat(MergeOptions.create().isMergeEnabled()).isFalse();
+    MergeConfiguration mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+    assertThat(mergeConfiguration.isMergeEnabled()).isFalse();
   }
 
   @Test
   public void shouldBeEnabledFromCliConsumer() {
     // enable
+    MergeOptions config = DaggerMergeOptionsFactory.create().mergeOptions();
     var mockStack = new Stack<String>();
     mockStack.push("true");
-    new MergeOptions.MergeConfigConsumer().consumeParameters(mockStack, null, null);
-
-    assertThat(org.hyperledger.besu.config.experimental.MergeOptions.isMergeEnabled()).isTrue();
+    config.consumeParameters(mockStack, null, null);
+    assertThat(config.isMergeEnabled()).isTrue();
+    assertThat(config.toDomainObject().isMergeEnabled()).isTrue();
   }
 
   @Test
   public void shouldDoWithMergeEnabled() {
+    MergeConfiguration mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+    mergeConfiguration.setMergeEnabled(true);
     final AtomicBoolean check = new AtomicBoolean(false);
-    org.hyperledger.besu.config.experimental.MergeOptions.doIfMergeEnabled((() -> check.set(true)));
+    mergeConfiguration.doIfMergeEnabled((() -> check.set(true)));
     assertThat(check.get()).isTrue();
   }
 
   @Test
   public void shouldThrowOnReconfigure() {
+    MergeConfiguration mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+    mergeConfiguration.setMergeEnabled(true);
     assertThatThrownBy(
-            () -> org.hyperledger.besu.config.experimental.MergeOptions.setMergeEnabled(false))
+            () -> mergeConfiguration.setMergeEnabled(false))
         .isInstanceOf(RuntimeException.class);
+  }
+
+  @Test
+  public void enableConsistentAfterSetting() {
+    MergeConfiguration firstMergeConfig = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+    firstMergeConfig.setMergeEnabled(true);
+
+    MergeConfiguration secondMergeConfig = DaggerMergeConfigurationFactory.create().mergeConfiguration();;
+    assertThat(secondMergeConfig.isMergeEnabled()).isTrue();
+
   }
 }

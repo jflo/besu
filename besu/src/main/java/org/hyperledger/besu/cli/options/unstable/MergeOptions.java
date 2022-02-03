@@ -14,44 +14,63 @@
  */
 package org.hyperledger.besu.cli.options.unstable;
 
-import static org.hyperledger.besu.config.experimental.MergeOptions.setMergeEnabled;
-
-import java.util.Stack;
-
-import net.consensys.quorum.mainnet.launcher.options.Options;
+import dagger.Provides;
+import dagger.Module;
+import org.hyperledger.besu.cli.options.CLIOptions;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.List;
+import java.util.Stack;
+
+
+@Module
 /** Unstable support for eth1/2 merge */
-public class MergeOptions implements Options {
+public class MergeOptions implements CLIOptions<MergeConfiguration>, CommandLine.IParameterConsumer {
   // To make it easier for tests to reset the value to default
-  public static final boolean MERGE_ENABLED_DEFAULT_VALUE = false;
+  public boolean MERGE_ENABLED_DEFAULT_VALUE = false;
 
   @Option(
       hidden = true,
       names = {"--Xmerge-support"},
       description = "Enable experimental support for eth1/eth2 merge (default: ${DEFAULT-VALUE})",
       arity = "1",
-      parameterConsumer = MergeConfigConsumer.class)
+      parameterConsumer = MergeOptions.class)
   @SuppressWarnings({"FieldCanBeFinal"})
-  private static boolean mergeEnabled = MERGE_ENABLED_DEFAULT_VALUE;
+  private boolean mergeEnabled = MERGE_ENABLED_DEFAULT_VALUE;
 
-  public static MergeOptions create() {
-    return new MergeOptions();
+  @Inject
+  public MergeOptions() {
+
   }
 
-  public Boolean isMergeEnabled() {
-    return mergeEnabled;
+  @Override
+  public void consumeParameters(
+          final Stack<String> args,
+          final CommandLine.Model.ArgSpec argSpec,
+          final CommandLine.Model.CommandSpec commandSpec) {
+    mergeEnabled = (Boolean.parseBoolean(args.pop()));
   }
 
-  @SuppressWarnings({"JdkObsolete"})
-  static class MergeConfigConsumer implements CommandLine.IParameterConsumer {
-    @Override
-    public void consumeParameters(
-        final Stack<String> args,
-        final CommandLine.Model.ArgSpec argSpec,
-        final CommandLine.Model.CommandSpec commandSpec) {
-      setMergeEnabled(Boolean.parseBoolean(args.pop()));
-    }
+  public boolean isMergeEnabled() {
+    return this.mergeEnabled;
+  }
+
+  @Override
+  @Provides
+  @Singleton
+  public MergeConfiguration toDomainObject() {
+    MergeConfiguration config = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+    config.setMergeEnabled(this.mergeEnabled);
+    return config;
+  }
+
+  @Override
+  public List<String> getCLIOptions() {
+    return List.of("--Xmerge-support");
   }
 }

@@ -65,7 +65,9 @@ dependencies {
   implementation 'org.immutables:value-annotations'
 
   implementation 'org.xerial.snappy:snappy-java'
+  implementation 'com.google.dagger:dagger'
 
+  annotationProcessor 'com.google.dagger:dagger-compiler'
   annotationProcessor 'org.immutables:value'
 
   testImplementation project(path: ':config', configuration: 'testSupportArtifacts')

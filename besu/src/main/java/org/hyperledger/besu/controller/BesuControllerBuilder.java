@@ -16,6 +16,7 @@ package org.hyperledger.besu.controller;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.hyperledger.besu.cli.options.unstable.MergeOptions;
 import org.hyperledger.besu.config.GenesisConfigFile;
 import org.hyperledger.besu.consensus.qbft.pki.PkiBlockCreationConfiguration;
 import org.hyperledger.besu.crypto.NodeKey;
@@ -115,6 +116,7 @@ public abstract class BesuControllerBuilder {
   protected List<NodeMessagePermissioningProvider> messagePermissioningProviders =
       Collections.emptyList();
   protected EvmConfiguration evmConfiguration;
+  protected MergeOptions mergeOptions;
 
   public BesuControllerBuilder storageProvider(final StorageProvider storageProvider) {
     this.storageProvider = storageProvider;
@@ -238,6 +240,11 @@ public abstract class BesuControllerBuilder {
     return this;
   }
 
+  public BesuControllerBuilder mergeOptions(final MergeOptions mergeOptions){
+    this.mergeOptions = mergeOptions;
+    return this;
+  }
+
   public BesuController build() {
     checkNotNull(genesisConfig, "Missing genesis config");
     checkNotNull(syncConfig, "Missing sync config");
@@ -253,6 +260,7 @@ public abstract class BesuControllerBuilder {
     checkNotNull(storageProvider, "Must supply a storage provider");
     checkNotNull(gasLimitCalculator, "Missing gas limit calculator");
     checkNotNull(evmConfiguration, "Missing evm config");
+    checkNotNull(mergeOptions, "Missing merge options");
     prepForBuild();
 
     final ProtocolSchedule protocolSchedule = createProtocolSchedule();
@@ -406,7 +414,8 @@ public abstract class BesuControllerBuilder {
         additionalJsonRpcMethodFactory,
         nodeKey,
         closeables,
-        additionalPluginServices);
+        additionalPluginServices,
+        mergeOptions);
   }
 
   protected void prepForBuild() {}

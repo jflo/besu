@@ -15,7 +15,8 @@
 package org.hyperledger.besu.ethereum.api.jsonrpc.methods;
 
 import org.hyperledger.besu.config.GenesisConfigOptions;
-import org.hyperledger.besu.config.experimental.MergeOptions;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.JsonRpcConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.filter.FilterManager;
@@ -48,6 +49,12 @@ import java.util.Optional;
 import java.util.Set;
 
 public class JsonRpcMethodsFactory {
+
+  private final MergeConfiguration mergeConfiguration;
+
+  public JsonRpcMethodsFactory() {
+    this.mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+  }
 
   public Map<String, JsonRpcMethod> methods(
       final String clientVersion,
@@ -128,7 +135,7 @@ public class JsonRpcMethodsFactory {
               new TxPoolJsonRpcMethods(transactionPool),
               new PluginsJsonRpcMethods(namedPlugins));
 
-      MergeOptions.doIfMergeEnabled(
+      mergeConfiguration.doIfMergeEnabled(
           () ->
               enabled.putAll(
                   new ExecutionEngineJsonRpcMethods(miningCoordinator, protocolContext)

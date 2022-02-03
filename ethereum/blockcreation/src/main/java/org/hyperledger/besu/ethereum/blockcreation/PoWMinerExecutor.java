@@ -14,7 +14,8 @@
  */
 package org.hyperledger.besu.ethereum.blockcreation;
 
-import org.hyperledger.besu.config.experimental.MergeOptions;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.chain.MinedBlockObserver;
@@ -39,6 +40,7 @@ public class PoWMinerExecutor extends AbstractMinerExecutor<PoWBlockMiner> {
   protected final EpochCalculator epochCalculator;
   protected final long powJobTimeToLive;
   protected final int maxOmmerDepth;
+  private final MergeConfiguration mergeConfiguration;
 
   public PoWMinerExecutor(
       final ProtocolContext protocolContext,
@@ -55,6 +57,7 @@ public class PoWMinerExecutor extends AbstractMinerExecutor<PoWBlockMiner> {
     this.epochCalculator = epochCalculator;
     this.powJobTimeToLive = powJobTimeToLive;
     this.maxOmmerDepth = maxOmmerDepth;
+    this.mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
   }
 
   @Override
@@ -89,7 +92,7 @@ public class PoWMinerExecutor extends AbstractMinerExecutor<PoWBlockMiner> {
                     () ->
                         // TODO: FROMRAYONISM does this still apply to the merge?
                         //  supply a ZERO coinbase if unspecified AND merge is enabled
-                        MergeOptions.isMergeEnabled() ? Address.ZERO : null),
+                        this.mergeConfiguration.isMergeEnabled() ? Address.ZERO : null),
                 () -> targetGasLimit.map(AtomicLong::longValue),
                 parent -> extraData,
                 pendingTransactions,

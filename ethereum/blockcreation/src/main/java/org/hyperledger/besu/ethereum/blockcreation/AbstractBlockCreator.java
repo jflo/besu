@@ -14,7 +14,8 @@
  */
 package org.hyperledger.besu.ethereum.blockcreation;
 
-import org.hyperledger.besu.config.experimental.MergeOptions;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
@@ -77,6 +78,7 @@ public abstract class AbstractBlockCreator implements AsyncBlockCreator {
   private final Wei minTransactionGasPrice;
   private final Double minBlockOccupancyRatio;
   private final Address miningBeneficiary;
+  private final MergeConfiguration mergeConfiguration;
   protected final BlockHeader parentHeader;
   protected final ProtocolSpec protocolSpec;
 
@@ -104,6 +106,7 @@ public abstract class AbstractBlockCreator implements AsyncBlockCreator {
     this.miningBeneficiary = miningBeneficiary;
     this.parentHeader = parentHeader;
     this.protocolSpec = protocolSchedule.getByBlockNumber(parentHeader.getNumber() + 1);
+    this.mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
     blockHeaderFunctions = ScheduleBasedBlockHeaderFunctions.create(protocolSchedule);
   }
 
@@ -189,7 +192,7 @@ public abstract class AbstractBlockCreator implements AsyncBlockCreator {
               .populateFrom(processableBlockHeader)
               .ommersHash(
                   BodyValidation.ommersHash(
-                      MergeOptions.isMergeEnabled() ? Collections.emptyList() : ommers))
+                      this.mergeConfiguration.isMergeEnabled() ? Collections.emptyList() : ommers))
               .stateRoot(disposableWorldState.rootHash())
               .transactionsRoot(
                   BodyValidation.transactionsRoot(transactionResults.getTransactions()))

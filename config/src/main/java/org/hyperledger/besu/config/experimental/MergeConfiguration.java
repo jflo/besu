@@ -14,13 +14,18 @@
  */
 package org.hyperledger.besu.config.experimental;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.Optional;
 
-/** For now there is a static config that is driven by a command line option. */
-public class MergeOptions {
-  private static Optional<Boolean> mergeEnabled = Optional.empty();
+public class MergeConfiguration {
+  private Optional<Boolean> mergeEnabled = Optional.empty();
 
-  public static void setMergeEnabled(final boolean bool) {
+  @Inject
+  public MergeConfiguration(){
+  }
+
+  public void setMergeEnabled(final boolean bool) {
     if (!mergeEnabled.isPresent()) {
       mergeEnabled = Optional.of(bool);
     } else if (mergeEnabled.get() != bool) {
@@ -28,11 +33,11 @@ public class MergeOptions {
     }
   }
 
-  public static boolean isMergeEnabled() {
+  public boolean isMergeEnabled() {
     return mergeEnabled.orElse(false);
   }
 
-  public static void doIfMergeEnabled(final Runnable mergeDo) {
+  public void doIfMergeEnabled(final Runnable mergeDo) {
     if (isMergeEnabled()) {
       mergeDo.run();
     }

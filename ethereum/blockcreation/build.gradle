@@ -26,6 +26,9 @@ dependencies {
   implementation 'io.vertx:vertx-core'
   implementation 'org.apache.tuweni:tuweni-bytes'
   implementation 'org.apache.tuweni:tuweni-units'
+  implementation 'com.google.dagger:dagger'
+
+  annotationProcessor 'com.google.dagger:dagger-compiler'
 
   testImplementation project(path: ':config', configuration: 'testSupportArtifacts')
   testImplementation project(path: ':ethereum:core', configuration: 'testArtifacts')
