@@ -14,7 +14,7 @@
  */
 package org.hyperledger.besu.ethereum.blockcreation;
 
-import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
 import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
@@ -106,7 +106,7 @@ public abstract class AbstractBlockCreator implements AsyncBlockCreator {
     this.miningBeneficiary = miningBeneficiary;
     this.parentHeader = parentHeader;
     this.protocolSpec = protocolSchedule.getByBlockNumber(parentHeader.getNumber() + 1);
-    this.mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+    this.mergeConfiguration = DaggerMergeConfigurationComponent.create().mergeConfiguration();
     blockHeaderFunctions = ScheduleBasedBlockHeaderFunctions.create(protocolSchedule);
   }
 

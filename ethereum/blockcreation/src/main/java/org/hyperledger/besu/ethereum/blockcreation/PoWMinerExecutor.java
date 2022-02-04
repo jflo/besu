@@ -14,7 +14,7 @@
  */
 package org.hyperledger.besu.ethereum.blockcreation;
 
-import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
 import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.ethereum.ProtocolContext;
@@ -57,7 +57,7 @@ public class PoWMinerExecutor extends AbstractMinerExecutor<PoWBlockMiner> {
     this.epochCalculator = epochCalculator;
     this.powJobTimeToLive = powJobTimeToLive;
     this.maxOmmerDepth = maxOmmerDepth;
-    this.mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+    this.mergeConfiguration = DaggerMergeConfigurationComponent.create().mergeConfiguration();
   }
 
   @Override

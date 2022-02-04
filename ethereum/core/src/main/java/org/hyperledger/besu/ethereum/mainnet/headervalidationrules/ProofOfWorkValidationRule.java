@@ -16,9 +16,8 @@ package org.hyperledger.besu.ethereum.mainnet.headervalidationrules;
 
 import static java.lang.Boolean.FALSE;
 
-import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
 import org.hyperledger.besu.config.experimental.MergeConfiguration;
-import org.hyperledger.besu.config.experimental.MergeConfigurationFactory;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.mainnet.DetachedBlockHeaderValidationRule;
@@ -54,7 +53,7 @@ public final class ProofOfWorkValidationRule implements DetachedBlockHeaderValid
     this.epochCalculator = epochCalculator;
     this.hasher = hasher;
     this.feeMarket = feeMarket;
-    this.mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+    this.mergeConfiguration = DaggerMergeConfigurationComponent.create().mergeConfiguration();
   }
 
   public ProofOfWorkValidationRule(final EpochCalculator epochCalculator, final PoWHasher hasher) {

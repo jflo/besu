@@ -18,11 +18,13 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Optional;
 
+@Singleton
 public class MergeConfiguration {
   private Optional<Boolean> mergeEnabled = Optional.empty();
 
   @Inject
   public MergeConfiguration(){
+    mergeEnabled = Optional.empty();
   }
 
   public void setMergeEnabled(final boolean bool) {

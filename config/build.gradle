@@ -32,7 +32,6 @@ dependencies {
 
   implementation project(':datatypes')
   implementation project(':util')
-  implementation project(':besu')
 
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.google.guava:guava'

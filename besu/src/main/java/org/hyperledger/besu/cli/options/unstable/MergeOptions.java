@@ -17,7 +17,7 @@ package org.hyperledger.besu.cli.options.unstable;
 import dagger.Provides;
 import dagger.Module;
 import org.hyperledger.besu.cli.options.CLIOptions;
-import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
 import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Stack;
 
 
-@Module
+
 /** Unstable support for eth1/2 merge */
 public class MergeOptions implements CLIOptions<MergeConfiguration>, CommandLine.IParameterConsumer {
   // To make it easier for tests to reset the value to default
@@ -61,10 +61,8 @@ public class MergeOptions implements CLIOptions<MergeConfiguration>, CommandLine
   }
 
   @Override
-  @Provides
-  @Singleton
   public MergeConfiguration toDomainObject() {
-    MergeConfiguration config = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+    MergeConfiguration config = DaggerMergeConfigurationComponent.create().mergeConfiguration();
     config.setMergeEnabled(this.mergeEnabled);
     return config;
   }

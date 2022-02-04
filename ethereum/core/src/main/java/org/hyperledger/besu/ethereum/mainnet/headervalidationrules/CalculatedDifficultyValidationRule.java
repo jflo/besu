@@ -14,7 +14,7 @@
  */
 package org.hyperledger.besu.ethereum.mainnet.headervalidationrules;
 
-import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
 import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
@@ -34,7 +34,7 @@ public class CalculatedDifficultyValidationRule implements AttachedBlockHeaderVa
 
   public CalculatedDifficultyValidationRule(final DifficultyCalculator difficultyCalculator) {
     this.difficultyCalculator = difficultyCalculator;
-    this.mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+    this.mergeConfiguration = DaggerMergeConfigurationComponent.create().mergeConfiguration();
 
   }
 

@@ -15,7 +15,7 @@
 package org.hyperledger.besu.ethereum.api.jsonrpc.methods;
 
 import org.hyperledger.besu.config.GenesisConfigOptions;
-import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationFactory;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
 import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.JsonRpcConfiguration;
@@ -53,7 +53,7 @@ public class JsonRpcMethodsFactory {
   private final MergeConfiguration mergeConfiguration;
 
   public JsonRpcMethodsFactory() {
-    this.mergeConfiguration = DaggerMergeConfigurationFactory.create().mergeConfiguration();
+    this.mergeConfiguration = DaggerMergeConfigurationComponent.create().mergeConfiguration();
   }
 
   public Map<String, JsonRpcMethod> methods(
