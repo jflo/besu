@@ -31,7 +31,6 @@ public class TimestampMoreRecentThanParent implements DetachedBlockHeaderValidat
   private final long minimumSecondsSinceParent;
   private final MergeConfiguration mergeConfiguration;
 
-
   public TimestampMoreRecentThanParent(final long minimumSecondsSinceParent) {
     checkArgument(minimumSecondsSinceParent >= 0, "minimumSecondsSinceParent must be positive");
     this.minimumSecondsSinceParent = minimumSecondsSinceParent;

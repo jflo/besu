@@ -44,6 +44,7 @@ import org.hyperledger.besu.util.Log4j2ConfiguratorUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.inject.Inject;
 
 import org.junit.After;
 import org.junit.Before;
@@ -51,8 +52,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import javax.inject.Inject;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MergeReorgTest implements MergeGenesisConfigHelper {
@@ -76,8 +75,7 @@ public class MergeReorgTest implements MergeGenesisConfigHelper {
   private final BlockHeaderTestFixture headerGenerator = new BlockHeaderTestFixture();
   private final BaseFeeMarket feeMarket =
       new LondonFeeMarket(0, genesisState.getBlock().getHeader().getBaseFee());
-  @Inject
-  MergeConfiguration mergeConfiguration;
+  @Inject MergeConfiguration mergeConfiguration;
 
   @Before
   public void setUp() {

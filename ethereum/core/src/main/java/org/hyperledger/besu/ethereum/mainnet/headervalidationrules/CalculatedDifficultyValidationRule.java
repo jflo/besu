@@ -35,7 +35,6 @@ public class CalculatedDifficultyValidationRule implements AttachedBlockHeaderVa
   public CalculatedDifficultyValidationRule(final DifficultyCalculator difficultyCalculator) {
     this.difficultyCalculator = difficultyCalculator;
     this.mergeConfiguration = DaggerMergeConfigurationComponent.create().mergeConfiguration();
-
   }
 
   @Override

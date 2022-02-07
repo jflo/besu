@@ -17,58 +17,57 @@ package org.hyperledger.besu.config.experimental;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
+import java.util.Stack;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.inject.Singleton;
 
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @Singleton
 public class MergeConfigurationTest {
 
-  public MergeConfigurationTestComponent providesConfig;
-  public MergeConfiguration providedConfig;
+  public MergeConfiguration testConfig;
 
   @Before
   public void setUp() {
-    this.providesConfig = DaggerMergeConfigurationTestComponent.builder().build();
-    this.providedConfig = providesConfig.mergeConfiguration();
+    // every test gets a new, unset config
+    this.testConfig = DaggerMergeConfigurationTestComponent.create().mergeConfiguration();
   }
 
   @Test
   public void shouldBeDisabledByDefault() {
-    assertThat(providedConfig.isMergeEnabled()).isFalse();
+    assertThat(testConfig.isMergeEnabled()).isFalse();
   }
 
   @Test
   public void shouldDoWithMergeEnabled() {
-    providedConfig.setMergeEnabled(true);
+    testConfig.setMergeEnabled(true);
     final AtomicBoolean check = new AtomicBoolean(false);
-    providedConfig.doIfMergeEnabled((() -> check.set(true)));
+    testConfig.doIfMergeEnabled((() -> check.set(true)));
     assertThat(check.get()).isTrue();
   }
 
   @Test
   public void shouldThrowOnReconfigure() {
-    providedConfig.setMergeEnabled(true);
-    assertThatThrownBy(
-            () -> providedConfig.setMergeEnabled(false))
+    testConfig.setMergeEnabled(true);
+    assertThatThrownBy(() -> testConfig.setMergeEnabled(false))
         .isInstanceOf(RuntimeException.class);
   }
 
   @Test
-  public void enableConsistentAfterSetting() {
-    providedConfig.setMergeEnabled(true);
-
-    providedConfig = providesConfig.mergeConfiguration();
-    assertThat(providedConfig.isMergeEnabled()).isTrue();
-
+  @SuppressWarnings({"JdkObsolete"})
+  public void shouldBeEnabledFromCliConsumer() {
+    // enable
+    var mockStack = new Stack<String>();
+    mockStack.push("true");
+    MergeConfigurationProvider provider = new MergeConfigurationProvider();
+    provider.consumeParameters(mockStack, null, null);
+    MergeConfigurationComponent configuredFromCli =
+        DaggerMergeConfigurationComponent.builder().mergeConfigurationProvider(provider).build();
+    assertThat(configuredFromCli.mergeConfiguration().isMergeEnabled()).isTrue();
   }
 }

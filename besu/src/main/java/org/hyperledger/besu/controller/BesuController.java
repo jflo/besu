@@ -15,13 +15,13 @@
 package org.hyperledger.besu.controller;
 
 import org.hyperledger.besu.cli.config.EthNetworkConfig;
-import org.hyperledger.besu.cli.options.unstable.MergeOptions;
 import org.hyperledger.besu.config.GenesisConfigFile;
 import org.hyperledger.besu.config.GenesisConfigOptions;
 import org.hyperledger.besu.config.PowAlgorithm;
 import org.hyperledger.besu.config.QbftConfigOptions;
 import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
 import org.hyperledger.besu.config.experimental.MergeConfiguration;
+import org.hyperledger.besu.config.experimental.MergeConfigurationProvider;
 import org.hyperledger.besu.crypto.NodeKey;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.JsonRpcMethod;
@@ -70,22 +70,22 @@ public class BesuController implements java.io.Closeable {
   private final SyncState syncState;
 
   BesuController(
-          final ProtocolSchedule protocolSchedule,
-          final ProtocolContext protocolContext,
-          final EthProtocolManager ethProtocolManager,
-          final GenesisConfigOptions genesisConfigOptions,
-          final SubProtocolConfiguration subProtocolConfiguration,
-          final Synchronizer synchronizer,
-          final SyncState syncState,
-          final TransactionPool transactionPool,
-          final MiningCoordinator miningCoordinator,
-          final PrivacyParameters privacyParameters,
-          final MiningParameters miningParameters,
-          final JsonRpcMethods additionalJsonRpcMethodsFactory,
-          final NodeKey nodeKey,
-          final List<Closeable> closeables,
-          final PluginServiceFactory additionalPluginServices,
-          final MergeOptions mergeOptions) {
+      final ProtocolSchedule protocolSchedule,
+      final ProtocolContext protocolContext,
+      final EthProtocolManager ethProtocolManager,
+      final GenesisConfigOptions genesisConfigOptions,
+      final SubProtocolConfiguration subProtocolConfiguration,
+      final Synchronizer synchronizer,
+      final SyncState syncState,
+      final TransactionPool transactionPool,
+      final MiningCoordinator miningCoordinator,
+      final PrivacyParameters privacyParameters,
+      final MiningParameters miningParameters,
+      final JsonRpcMethods additionalJsonRpcMethodsFactory,
+      final NodeKey nodeKey,
+      final List<Closeable> closeables,
+      final PluginServiceFactory additionalPluginServices,
+      final MergeConfigurationProvider mergeOptions) {
     this.protocolSchedule = protocolSchedule;
     this.protocolContext = protocolContext;
     this.ethProtocolManager = ethProtocolManager;
@@ -216,7 +216,8 @@ public class BesuController implements java.io.Closeable {
       }
 
       // use merge config if experimental merge flag is enabled:
-      MergeConfiguration mergeConfiguration = DaggerMergeConfigurationComponent.create().mergeConfiguration();
+      MergeConfiguration mergeConfiguration =
+          DaggerMergeConfigurationComponent.create().mergeConfiguration();
       if (mergeConfiguration.isMergeEnabled()) {
         // TODO this should be changed to vanilla MergeBesuControllerBuilder and the Transition*
         // series of classes removed after we successfully transition to PoS

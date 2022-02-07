@@ -20,6 +20,7 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
 import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.core.Block;
@@ -91,7 +92,7 @@ public class DefaultBlockchain implements MutableBlockchain {
     checkNotNull(genesisBlock);
     checkNotNull(blockchainStorage);
     checkNotNull(metricsSystem);
-    this.mergeConfiguration = null;
+    this.mergeConfiguration = DaggerMergeConfigurationComponent.create().mergeConfiguration();
     this.blockchainStorage = blockchainStorage;
     genesisBlock.ifPresent(block -> this.setGenesis(block, dataDirectory));
 

@@ -30,7 +30,7 @@ public class MockConnectionInitializer implements ConnectionInitializer {
 
   private final PeerConnectionEventDispatcher eventDispatcher;
   private final Subscribers<ConnectCallback> connectCallbacks = Subscribers.create();
-  private boolean autocompleteConnections = true;
+  private boolean Connections = true;
   private final Map<Peer, CompletableFuture<PeerConnection>> incompleteConnections =
       new HashMap<>();
   private int autoDisconnectCounter = 0;

@@ -1,5 +1,5 @@
 /*
- * Copyright ConsenSys AG.
+ * Copyright Hyperledger Besu.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -14,18 +14,18 @@
  */
 package org.hyperledger.besu.config.experimental;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.Optional;
+import javax.inject.Inject;
 
-@Singleton
 public class MergeConfiguration {
   private Optional<Boolean> mergeEnabled = Optional.empty();
 
-  @Inject
-  public MergeConfiguration(){
-    mergeEnabled = Optional.empty();
+  public MergeConfiguration(final boolean mergeEnabled) {
+    this.mergeEnabled = Optional.of(mergeEnabled);
   }
+
+  @Inject
+  public MergeConfiguration() {}
 
   public void setMergeEnabled(final boolean bool) {
     if (!mergeEnabled.isPresent()) {
