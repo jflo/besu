@@ -83,6 +83,8 @@ import org.hyperledger.besu.cli.util.VersionProvider;
 import org.hyperledger.besu.config.GenesisConfigFile;
 import org.hyperledger.besu.config.GenesisConfigOptions;
 import org.hyperledger.besu.config.GoQuorumOptions;
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.config.experimental.MergeConfigurationProvider;
 import org.hyperledger.besu.consensus.qbft.pki.PkiBlockCreationConfiguration;
 import org.hyperledger.besu.consensus.qbft.pki.PkiBlockCreationConfigurationProvider;
@@ -1820,8 +1822,15 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
 
   public BesuControllerBuilder getControllerBuilder() {
     final KeyValueStorageProvider storageProvider = keyValueStorageProvider(keyValueStorageName);
+    MergeConfiguration mergeConfiguration =
+        DaggerMergeConfigurationComponent.builder()
+            .mergeConfigurationProvider(this.mergeOptions)
+            .build()
+            .mergeConfiguration();
+
     return controllerBuilderFactory
-        .fromEthNetworkConfig(updateNetworkConfig(network), genesisConfigOverrides)
+        .fromEthNetworkConfig(
+            updateNetworkConfig(network), genesisConfigOverrides, mergeConfiguration)
         .synchronizerConfiguration(buildSyncConfig())
         .ethProtocolConfiguration(unstableEthProtocolOptions.toDomainObject())
         .dataDirectory(dataDir())

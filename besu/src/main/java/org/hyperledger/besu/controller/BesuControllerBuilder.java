@@ -116,7 +116,7 @@ public abstract class BesuControllerBuilder {
   protected List<NodeMessagePermissioningProvider> messagePermissioningProviders =
       Collections.emptyList();
   protected EvmConfiguration evmConfiguration;
-  protected MergeConfigurationProvider mergeOptions;
+  protected Optional<MergeConfigurationProvider> mergeOptions;
 
   public BesuControllerBuilder storageProvider(final StorageProvider storageProvider) {
     this.storageProvider = storageProvider;
@@ -241,7 +241,7 @@ public abstract class BesuControllerBuilder {
   }
 
   public BesuControllerBuilder mergeOptions(final MergeConfigurationProvider mergeOptions) {
-    this.mergeOptions = mergeOptions;
+    this.mergeOptions = Optional.of(mergeOptions);
     return this;
   }
 
@@ -260,7 +260,7 @@ public abstract class BesuControllerBuilder {
     checkNotNull(storageProvider, "Must supply a storage provider");
     checkNotNull(gasLimitCalculator, "Missing gas limit calculator");
     checkNotNull(evmConfiguration, "Missing evm config");
-    // checkNotNull(mergeOptions, "Missing merge options");
+    //    checkNotNull(mergeOptions, "Missing merge options"
     prepForBuild();
 
     final ProtocolSchedule protocolSchedule = createProtocolSchedule();
@@ -414,8 +414,7 @@ public abstract class BesuControllerBuilder {
         additionalJsonRpcMethodFactory,
         nodeKey,
         closeables,
-        additionalPluginServices,
-        mergeOptions);
+        additionalPluginServices);
   }
 
   protected void prepForBuild() {}

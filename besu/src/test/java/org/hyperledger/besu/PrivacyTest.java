@@ -19,6 +19,7 @@ import static org.hyperledger.besu.ethereum.core.PrivacyParameters.DEFAULT_PRIVA
 import static org.hyperledger.besu.ethereum.core.PrivacyParameters.FLEXIBLE_PRIVACY;
 
 import org.hyperledger.besu.config.GenesisConfigFile;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.controller.BesuController;
 import org.hyperledger.besu.crypto.NodeKeyUtils;
 import org.hyperledger.besu.datatypes.Address;
@@ -103,7 +104,7 @@ public class PrivacyTest {
             .setFlexiblePrivacyGroupsEnabled(flexibleEnabled)
             .build();
     return new BesuController.Builder()
-        .fromGenesisConfig(GenesisConfigFile.mainnet())
+        .fromGenesisConfig(GenesisConfigFile.mainnet(), new MergeConfiguration())
         .synchronizerConfiguration(SynchronizerConfiguration.builder().build())
         .ethProtocolConfiguration(EthProtocolConfiguration.defaultConfig())
         .storageProvider(new InMemoryKeyValueStorageProvider())

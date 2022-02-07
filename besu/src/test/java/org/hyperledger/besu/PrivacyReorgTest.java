@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.hyperledger.besu.config.GenesisConfigFile;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.controller.BesuController;
 import org.hyperledger.besu.crypto.KeyPair;
 import org.hyperledger.besu.crypto.NodeKeyUtils;
@@ -188,7 +189,7 @@ public class PrivacyReorgTest {
 
     besuController =
         new BesuController.Builder()
-            .fromGenesisConfig(GenesisConfigFile.development())
+            .fromGenesisConfig(GenesisConfigFile.development(), new MergeConfiguration())
             .synchronizerConfiguration(SynchronizerConfiguration.builder().build())
             .ethProtocolConfiguration(EthProtocolConfiguration.defaultConfig())
             .storageProvider(new InMemoryKeyValueStorageProvider())

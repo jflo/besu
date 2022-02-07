@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.hyperledger.besu.config.GenesisConfigFile;
 import org.hyperledger.besu.config.JsonUtil;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.controller.BesuController;
 import org.hyperledger.besu.crypto.NodeKeyUtils;
 import org.hyperledger.besu.datatypes.Address;
@@ -413,7 +414,7 @@ public abstract class JsonBlockImporterTest {
       throws IOException {
     final Path dataDir = folder.newFolder().toPath();
     return new BesuController.Builder()
-        .fromGenesisConfig(genesisConfigFile)
+        .fromGenesisConfig(genesisConfigFile, new MergeConfiguration())
         .synchronizerConfiguration(SynchronizerConfiguration.builder().build())
         .ethProtocolConfiguration(EthProtocolConfiguration.defaultConfig())
         .storageProvider(new InMemoryKeyValueStorageProvider())

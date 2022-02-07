@@ -15,7 +15,6 @@
 package org.hyperledger.besu.ethereum.api.jsonrpc.methods;
 
 import org.hyperledger.besu.config.GenesisConfigOptions;
-import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
 import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.JsonRpcConfiguration;
@@ -50,11 +49,7 @@ import java.util.Set;
 
 public class JsonRpcMethodsFactory {
 
-  private final MergeConfiguration mergeConfiguration;
-
-  public JsonRpcMethodsFactory() {
-    this.mergeConfiguration = DaggerMergeConfigurationComponent.create().mergeConfiguration();
-  }
+  public JsonRpcMethodsFactory() {}
 
   public Map<String, JsonRpcMethod> methods(
       final String clientVersion,
@@ -80,7 +75,8 @@ public class JsonRpcMethodsFactory {
       final NatService natService,
       final Map<String, BesuPlugin> namedPlugins,
       final Path dataDir,
-      final EthPeers ethPeers) {
+      final EthPeers ethPeers,
+      final MergeConfiguration mergeConfiguration) {
     final Map<String, JsonRpcMethod> enabled = new HashMap<>();
 
     if (!rpcApis.isEmpty()) {

@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.hyperledger.besu.cli.config.EthNetworkConfig;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.consensus.common.bft.BftEventQueue;
 import org.hyperledger.besu.consensus.common.bft.network.PeerConnectionTracker;
 import org.hyperledger.besu.consensus.common.bft.protocol.BftProtocolManager;
@@ -83,7 +84,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public final class RunnerBuilderTest {
 
   @Rule public TemporaryFolder dataDir = new TemporaryFolder();
-
+  private MergeConfiguration testMergeConf;
   @Mock BesuController besuController;
   @Mock Vertx vertx;
 
@@ -120,6 +121,8 @@ public final class RunnerBuilderTest {
     when(besuController.getTransactionPool()).thenReturn(mock(TransactionPool.class));
     when(besuController.getSynchronizer()).thenReturn(mock(Synchronizer.class));
     when(besuController.getMiningCoordinator()).thenReturn(mock(MiningCoordinator.class));
+
+    this.testMergeConf = new MergeConfiguration(true);
   }
 
   @Test
@@ -221,6 +224,7 @@ public final class RunnerBuilderTest {
     EthNetworkConfig mockMainnet = mock(EthNetworkConfig.class);
     when(mockMainnet.getNetworkId()).thenReturn(BigInteger.ONE);
     when(besuController.getMiningCoordinator()).thenReturn(mock(MergeMiningCoordinator.class));
+    // need to enable merge in MergeConfiguration, and send to runnerbuilder.
 
     final Runner runner =
         new RunnerBuilder()
@@ -235,9 +239,11 @@ public final class RunnerBuilderTest {
             .metricsSystem(mock(ObservableMetricsSystem.class))
             .permissioningService(mock(PermissioningServiceImpl.class))
             .jsonRpcConfiguration(defaultPlusEng)
+            .engineJsonRpcConfiguration(defaultPlusEng)
             .graphQLConfiguration(mock(GraphQLConfiguration.class))
             .webSocketConfiguration(mock(WebSocketConfiguration.class))
             .metricsConfiguration(mock(MetricsConfiguration.class))
+            .mergeConfiguration(testMergeConf)
             .vertx(Vertx.vertx())
             .dataDir(dataDir.getRoot().toPath())
             .storageProvider(mock(KeyValueStorageProvider.class))
@@ -280,6 +286,7 @@ public final class RunnerBuilderTest {
             .forkIdSupplier(() -> Collections.singletonList(Bytes.EMPTY))
             .rpcEndpointService(new RpcEndpointServiceImpl())
             .besuPluginContext(mock(BesuPluginContextImpl.class))
+            .mergeConfiguration(this.testMergeConf)
             .build();
 
     assertThat(runner.getJsonRpcPort()).isPresent();

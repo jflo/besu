@@ -14,6 +14,10 @@
  */
 package org.hyperledger.besu.controller;
 
+import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
+import org.hyperledger.besu.consensus.merge.blockcreation.MergeCoordinator;
+import org.hyperledger.besu.consensus.merge.blockcreation.TransitionCoordinator;
 import org.hyperledger.besu.ethereum.ConsensusContext;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.blockcreation.DefaultBlockScheduler;
@@ -23,6 +27,7 @@ import org.hyperledger.besu.ethereum.blockcreation.PoWMiningCoordinator;
 import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.ethereum.core.MiningParameters;
 import org.hyperledger.besu.ethereum.eth.manager.EthProtocolManager;
+import org.hyperledger.besu.ethereum.eth.sync.backwardsync.BackwardsSyncContext;
 import org.hyperledger.besu.ethereum.eth.sync.state.SyncState;
 import org.hyperledger.besu.ethereum.eth.transactions.TransactionPool;
 import org.hyperledger.besu.ethereum.mainnet.EpochCalculator;
@@ -69,6 +74,29 @@ public class MainnetBesuControllerBuilder extends BesuControllerBuilder {
     miningCoordinator.setStratumMiningEnabled(miningParameters.isStratumMiningEnabled());
     if (miningParameters.isMiningEnabled()) {
       miningCoordinator.enable();
+    }
+
+    if (super.mergeOptions != null && super.mergeOptions.isPresent()) {
+      MergeConfiguration mergeConfig =
+          DaggerMergeConfigurationComponent.builder()
+              .mergeConfigurationProvider(super.mergeOptions.get())
+              .build()
+              .mergeConfiguration();
+      if (mergeConfig.isMergeEnabled()) {
+        final BackwardsSyncContext backwardsSyncContext =
+            new BackwardsSyncContext(
+                protocolContext, protocolSchedule, metricsSystem, ethProtocolManager.ethContext());
+        final MergeCoordinator mergeCoordinator =
+            new MergeCoordinator(
+                protocolContext,
+                protocolSchedule,
+                transactionPool.getPendingTransactions(),
+                miningParameters,
+                backwardsSyncContext);
+        final TransitionCoordinator mergeReadyClique =
+            new TransitionCoordinator(miningCoordinator, mergeCoordinator);
+        return mergeReadyClique;
+      }
     }
 
     return miningCoordinator;

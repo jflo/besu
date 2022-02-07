@@ -21,6 +21,8 @@ import static org.hyperledger.besu.cli.config.NetworkName.DEV;
 import org.hyperledger.besu.cli.config.EthNetworkConfig;
 import org.hyperledger.besu.config.GenesisConfigFile;
 import org.hyperledger.besu.config.JsonUtil;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
+import org.hyperledger.besu.config.experimental.MergeConfigurationProvider;
 import org.hyperledger.besu.controller.BesuController;
 import org.hyperledger.besu.controller.MainnetBesuControllerBuilder;
 import org.hyperledger.besu.crypto.KeyPairUtil;
@@ -172,6 +174,7 @@ public final class RunnerTest {
             .storageProvider(createKeyValueStorageProvider(dataDirAhead, dbAhead))
             .gasLimitCalculator(GasLimitCalculator.constant())
             .evmConfiguration(EvmConfiguration.DEFAULT)
+            .mergeOptions(new MergeConfigurationProvider())
             .build()) {
       setupState(blockCount, controller.getProtocolSchedule(), controller.getProtocolContext());
     }
@@ -193,6 +196,7 @@ public final class RunnerTest {
             .storageProvider(createKeyValueStorageProvider(dataDirAhead, dbAhead))
             .gasLimitCalculator(GasLimitCalculator.constant())
             .evmConfiguration(EvmConfiguration.DEFAULT)
+            .mergeOptions(new MergeConfigurationProvider())
             .build();
     final String listenHost = InetAddress.getLoopbackAddress().getHostAddress();
     final JsonRpcConfiguration aheadJsonRpcConfiguration = jsonRpcConfiguration();
@@ -212,7 +216,8 @@ public final class RunnerTest {
             .staticNodes(emptySet())
             .storageProvider(new InMemoryKeyValueStorageProvider())
             .forkIdSupplier(() -> Collections.singletonList(Bytes.EMPTY))
-            .rpcEndpointService(new RpcEndpointServiceImpl());
+            .rpcEndpointService(new RpcEndpointServiceImpl())
+            .mergeConfiguration(new MergeConfiguration());
 
     Runner runnerBehind = null;
     final Runner runnerAhead =
@@ -263,6 +268,7 @@ public final class RunnerTest {
               .transactionPoolConfiguration(TransactionPoolConfiguration.DEFAULT)
               .gasLimitCalculator(GasLimitCalculator.constant())
               .evmConfiguration(EvmConfiguration.DEFAULT)
+              .mergeOptions(new MergeConfigurationProvider())
               .build();
       final EnodeURL enode = runnerAhead.getLocalEnode().get();
       final EthNetworkConfig behindEthNetworkConfiguration =

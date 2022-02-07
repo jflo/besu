@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.hyperledger.besu.config.GenesisConfigFile;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.controller.BesuController;
 import org.hyperledger.besu.crypto.NodeKeyUtils;
 import org.hyperledger.besu.ethereum.GasLimitCalculator;
@@ -60,7 +61,7 @@ public final class RlpBlockImporterTest {
     BlockTestUtil.write1000Blocks(source);
     final BesuController targetController =
         new BesuController.Builder()
-            .fromGenesisConfig(GenesisConfigFile.mainnet())
+            .fromGenesisConfig(GenesisConfigFile.mainnet(), new MergeConfiguration())
             .synchronizerConfiguration(SynchronizerConfiguration.builder().build())
             .ethProtocolConfiguration(EthProtocolConfiguration.defaultConfig())
             .storageProvider(new InMemoryKeyValueStorageProvider())
@@ -89,7 +90,7 @@ public final class RlpBlockImporterTest {
     BlockTestUtil.writeBadPowBlocks(source);
     final BesuController targetController =
         new BesuController.Builder()
-            .fromGenesisConfig(GenesisConfigFile.mainnet())
+            .fromGenesisConfig(GenesisConfigFile.mainnet(), new MergeConfiguration())
             .synchronizerConfiguration(SynchronizerConfiguration.builder().build())
             .ethProtocolConfiguration(EthProtocolConfiguration.defaultConfig())
             .storageProvider(new InMemoryKeyValueStorageProvider())
@@ -118,7 +119,7 @@ public final class RlpBlockImporterTest {
     BlockTestUtil.writeBadPowBlocks(source);
     final BesuController targetController =
         new BesuController.Builder()
-            .fromGenesisConfig(GenesisConfigFile.mainnet())
+            .fromGenesisConfig(GenesisConfigFile.mainnet(), new MergeConfiguration())
             .synchronizerConfiguration(SynchronizerConfiguration.builder().build())
             .ethProtocolConfiguration(EthProtocolConfiguration.defaultConfig())
             .storageProvider(new InMemoryKeyValueStorageProvider())
@@ -159,7 +160,7 @@ public final class RlpBlockImporterTest {
 
     final BesuController controller =
         new BesuController.Builder()
-            .fromGenesisConfig(GenesisConfigFile.fromConfig(config))
+            .fromGenesisConfig(GenesisConfigFile.fromConfig(config), new MergeConfiguration())
             .synchronizerConfiguration(SynchronizerConfiguration.builder().build())
             .ethProtocolConfiguration(EthProtocolConfiguration.defaultConfig())
             .storageProvider(new InMemoryKeyValueStorageProvider())

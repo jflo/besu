@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.hyperledger.besu.chainimport.RlpBlockImporter;
 import org.hyperledger.besu.config.GenesisConfigFile;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.controller.BesuController;
 import org.hyperledger.besu.crypto.NodeKeyUtils;
 import org.hyperledger.besu.ethereum.GasLimitCalculator;
@@ -80,7 +81,7 @@ public final class RlpBlockExporterTest {
   private static BesuController createController() throws IOException {
     final Path dataDir = folder.newFolder().toPath();
     return new BesuController.Builder()
-        .fromGenesisConfig(GenesisConfigFile.mainnet())
+        .fromGenesisConfig(GenesisConfigFile.mainnet(), new MergeConfiguration())
         .synchronizerConfiguration(SynchronizerConfiguration.builder().build())
         .ethProtocolConfiguration(EthProtocolConfiguration.defaultConfig())
         .storageProvider(new InMemoryKeyValueStorageProvider())

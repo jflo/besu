@@ -19,9 +19,7 @@ import org.hyperledger.besu.config.GenesisConfigFile;
 import org.hyperledger.besu.config.GenesisConfigOptions;
 import org.hyperledger.besu.config.PowAlgorithm;
 import org.hyperledger.besu.config.QbftConfigOptions;
-import org.hyperledger.besu.config.experimental.DaggerMergeConfigurationComponent;
 import org.hyperledger.besu.config.experimental.MergeConfiguration;
-import org.hyperledger.besu.config.experimental.MergeConfigurationProvider;
 import org.hyperledger.besu.crypto.NodeKey;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.JsonRpcMethod;
@@ -84,8 +82,7 @@ public class BesuController implements java.io.Closeable {
       final JsonRpcMethods additionalJsonRpcMethodsFactory,
       final NodeKey nodeKey,
       final List<Closeable> closeables,
-      final PluginServiceFactory additionalPluginServices,
-      final MergeConfigurationProvider mergeOptions) {
+      final PluginServiceFactory additionalPluginServices) {
     this.protocolSchedule = protocolSchedule;
     this.protocolContext = protocolContext;
     this.ethProtocolManager = ethProtocolManager;
@@ -175,24 +172,31 @@ public class BesuController implements java.io.Closeable {
 
   public static class Builder {
 
-    public BesuControllerBuilder fromEthNetworkConfig(final EthNetworkConfig ethNetworkConfig) {
-      return fromEthNetworkConfig(ethNetworkConfig, Collections.emptyMap());
+    public BesuControllerBuilder fromEthNetworkConfig(
+        final EthNetworkConfig ethNetworkConfig, final MergeConfiguration mergeConfiguration) {
+      return fromEthNetworkConfig(ethNetworkConfig, Collections.emptyMap(), mergeConfiguration);
     }
 
     public BesuControllerBuilder fromEthNetworkConfig(
-        final EthNetworkConfig ethNetworkConfig, final Map<String, String> genesisConfigOverrides) {
+        final EthNetworkConfig ethNetworkConfig,
+        final Map<String, String> genesisConfigOverrides,
+        final MergeConfiguration mergeConfiguration) {
       return fromGenesisConfig(
               GenesisConfigFile.fromConfig(ethNetworkConfig.getGenesisConfig()),
-              genesisConfigOverrides)
+              genesisConfigOverrides,
+              mergeConfiguration)
           .networkId(ethNetworkConfig.getNetworkId());
     }
 
-    public BesuControllerBuilder fromGenesisConfig(final GenesisConfigFile genesisConfig) {
-      return fromGenesisConfig(genesisConfig, Collections.emptyMap());
+    public BesuControllerBuilder fromGenesisConfig(
+        final GenesisConfigFile genesisConfig, final MergeConfiguration mergeConfiguration) {
+      return fromGenesisConfig(genesisConfig, Collections.emptyMap(), mergeConfiguration);
     }
 
     BesuControllerBuilder fromGenesisConfig(
-        final GenesisConfigFile genesisConfig, final Map<String, String> genesisConfigOverrides) {
+        final GenesisConfigFile genesisConfig,
+        final Map<String, String> genesisConfigOverrides,
+        final MergeConfiguration mergeConfiguration) {
       final GenesisConfigOptions configOptions =
           genesisConfig.getConfigOptions(genesisConfigOverrides);
       final BesuControllerBuilder builder;
@@ -215,9 +219,6 @@ public class BesuController implements java.io.Closeable {
         throw new IllegalArgumentException("Unknown consensus mechanism defined");
       }
 
-      // use merge config if experimental merge flag is enabled:
-      MergeConfiguration mergeConfiguration =
-          DaggerMergeConfigurationComponent.create().mergeConfiguration();
       if (mergeConfiguration.isMergeEnabled()) {
         // TODO this should be changed to vanilla MergeBesuControllerBuilder and the Transition*
         // series of classes removed after we successfully transition to PoS

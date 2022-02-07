@@ -23,6 +23,7 @@ import static org.hyperledger.besu.ethereum.core.PrivacyParameters.FLEXIBLE_PRIV
 
 import org.hyperledger.besu.cli.config.EthNetworkConfig;
 import org.hyperledger.besu.cli.config.NetworkName;
+import org.hyperledger.besu.config.experimental.MergeConfiguration;
 import org.hyperledger.besu.controller.BesuController;
 import org.hyperledger.besu.crypto.NodeKey;
 import org.hyperledger.besu.ethereum.ProtocolContext;
@@ -161,6 +162,7 @@ public class RunnerBuilder {
   private String ethstatsContact;
   private JsonRpcConfiguration jsonRpcConfiguration;
   private Optional<JsonRpcConfiguration> engineJsonRpcConfiguration = Optional.empty();
+  private MergeConfiguration mergeConfiguration;
   private GraphQLConfiguration graphQLConfiguration;
   private WebSocketConfiguration webSocketConfiguration;
   private ApiConfiguration apiConfiguration;
@@ -293,6 +295,11 @@ public class RunnerBuilder {
   public RunnerBuilder engineJsonRpcConfiguration(
       final JsonRpcConfiguration engineJsonRpcConfiguration) {
     this.engineJsonRpcConfiguration = Optional.of(engineJsonRpcConfiguration);
+    return this;
+  }
+
+  public RunnerBuilder mergeConfiguration(final MergeConfiguration mergeConfiguration) {
+    this.mergeConfiguration = mergeConfiguration;
     return this;
   }
 
@@ -584,7 +591,8 @@ public class RunnerBuilder {
               natService,
               besuPluginContext.getNamedPlugins(),
               dataDir,
-              rpcEndpointServiceImpl);
+              rpcEndpointServiceImpl,
+              mergeConfiguration);
 
       final Map<String, JsonRpcMethod> nonEngineMethods =
           allJsonRpcMethods.entrySet().stream()
@@ -678,7 +686,8 @@ public class RunnerBuilder {
               natService,
               besuPluginContext.getNamedPlugins(),
               dataDir,
-              rpcEndpointServiceImpl);
+              rpcEndpointServiceImpl,
+              mergeConfiguration);
 
       final SubscriptionManager subscriptionManager =
           createSubscriptionManager(vertx, transactionPool, blockchainQueries);
@@ -873,7 +882,8 @@ public class RunnerBuilder {
       final NatService natService,
       final Map<String, BesuPlugin> namedPlugins,
       final Path dataDir,
-      final RpcEndpointServiceImpl rpcEndpointServiceImpl) {
+      final RpcEndpointServiceImpl rpcEndpointServiceImpl,
+      final MergeConfiguration mergeConfiguration) {
     final Map<String, JsonRpcMethod> methods =
         new JsonRpcMethodsFactory()
             .methods(
@@ -900,7 +910,8 @@ public class RunnerBuilder {
                 natService,
                 namedPlugins,
                 dataDir,
-                besuController.getProtocolManager().ethContext().getEthPeers());
+                besuController.getProtocolManager().ethContext().getEthPeers(),
+                mergeConfiguration);
     methods.putAll(besuController.getAdditionalJsonRpcMethods(jsonRpcApis));
 
     var pluginMethods = rpcEndpointServiceImpl.getPluginMethods(jsonRpcConfiguration.getRpcApis());
