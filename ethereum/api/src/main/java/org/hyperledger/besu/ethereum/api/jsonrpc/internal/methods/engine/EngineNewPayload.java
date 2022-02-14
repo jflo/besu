@@ -14,8 +14,6 @@
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine;
 
-import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.ExecutionError.INTERNAL_ERROR;
-import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.ExecutionError.SERVER_ERROR;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.ExecutionStatus.ACCEPTED;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.ExecutionStatus.INVALID;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.ExecutionStatus.INVALID_BLOCK_HASH;
@@ -31,11 +29,8 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.RpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.EnginePayloadParameter;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcError;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcErrorResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcSuccessResponse;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.EngineNewPayloadError;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.EngineNewPayloadResult;
 import org.hyperledger.besu.ethereum.core.Block;
 import org.hyperledger.besu.ethereum.core.BlockBody;
@@ -105,8 +100,8 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
       return respondWith(
           reqId,
           mergeCoordinator.getLatestValidAncestor(blockParam.getParentHash()).orElse(null),
-          INVALID/*,
-          new EngineNewPayloadError(INTERNAL_ERROR)*/);
+          INVALID /*,
+                  new EngineNewPayloadError(INTERNAL_ERROR)*/);
     }
 
     LOG.info("create new block header");
@@ -138,10 +133,7 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
           String.format(
               "Computed block hash %s does not match block hash parameter %s",
               newBlockHeader.getBlockHash(), blockParam.getBlockHash()));
-      return respondWith(
-          reqId,
-          null,
-          INVALID_BLOCK_HASH/*,
+      return respondWith(reqId, null, INVALID_BLOCK_HASH /*,
           new EngineNewPayloadError(
               SERVER_ERROR,
               String.format(
@@ -154,21 +146,21 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
           .getBlockByHash(newBlockHeader.getBlockHash())
           .isPresent()) {
         LOG.debug("block already present");
-        return respondWith(reqId, blockParam.getBlockHash(), VALID/*, null*/);
+        return respondWith(reqId, blockParam.getBlockHash(), VALID /*, null*/);
       }
     }
 
     // TODO: post-merge cleanup
-//    if (!mergeCoordinator.latestValidAncestorDescendsFromTerminal(newBlockHeader)) {
-//      return new JsonRpcErrorResponse(
-//          requestContext.getRequest().getId(), JsonRpcError.INVALID_TERMINAL_BLOCK);
-//    }
+    //    if (!mergeCoordinator.latestValidAncestorDescendsFromTerminal(newBlockHeader)) {
+    //      return new JsonRpcErrorResponse(
+    //          requestContext.getRequest().getId(), JsonRpcError.INVALID_TERMINAL_BLOCK);
+    //    }
 
     LOG.info("is syncing?");
 
     if (mergeContext.isSyncing()) {
       LOG.debug("status syncing");
-      return respondWith(reqId, null, SYNCING/*, null*/);
+      return respondWith(reqId, null, SYNCING /*, null*/);
     }
 
     LOG.info("not syncing, construct new block");
@@ -181,7 +173,7 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
 
     if (latestValidAncestor.isEmpty()) {
       LOG.debug("New payload is accepted");
-      return respondWith(reqId, null, ACCEPTED/*, null*/);
+      return respondWith(reqId, null, ACCEPTED /*, null*/);
     }
 
     LOG.info("Executing block");
@@ -193,29 +185,23 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
 
     if (executionResult.errorMessage.isEmpty()) {
       LOG.info("New payload is valid: {}", newBlockHeader.getHash());
-      return respondWith(
-          reqId, newBlockHeader.getHash(), VALID);
+      return respondWith(reqId, newBlockHeader.getHash(), VALID);
     } else {
       LOG.debug("New payload is invalid: {}", executionResult.errorMessage.get());
-      return respondWith(
-          reqId,
-          latestValidAncestor.get(),
-          INVALID/*,
+      return respondWith(reqId, latestValidAncestor.get(), INVALID /*,
           new EngineNewPayloadError(SERVER_ERROR, executionResult.errorMessage.get())*/);
     }
   }
 
-//  JsonRpcResponse respondWith(
-//          final Object requestId,
-//          final Hash latestValidHash,
-//          final ExecutionStatus status) {
-//    return respondWith(requestId, latestValidHash, status, null);
-//  }
+  //  JsonRpcResponse respondWith(
+  //          final Object requestId,
+  //          final Hash latestValidHash,
+  //          final ExecutionStatus status) {
+  //    return respondWith(requestId, latestValidHash, status, null);
+  //  }
 
   JsonRpcResponse respondWith(
-      final Object requestId,
-      final Hash latestValidHash,
-      final ExecutionStatus status) {
+      final Object requestId, final Hash latestValidHash, final ExecutionStatus status) {
     return new JsonRpcSuccessResponse(
         requestId, new EngineNewPayloadResult(status, latestValidHash));
   }

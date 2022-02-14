@@ -26,13 +26,12 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 public class EngineNewPayloadResult {
   ExecutionStatus status;
   Optional<Hash> latestValidHash;
-  //Optional<EngineNewPayloadError> error;
+  // Optional<EngineNewPayloadError> error;
 
-  public EngineNewPayloadResult(
-      final ExecutionStatus status, final Hash latestValidHash) {
+  public EngineNewPayloadResult(final ExecutionStatus status, final Hash latestValidHash) {
     this.status = status;
     this.latestValidHash = Optional.ofNullable(latestValidHash);
-    //this.error = Optional.ofNullable(error);
+    // this.error = Optional.ofNullable(error);
   }
 
   @JsonGetter(value = "status")
@@ -45,8 +44,8 @@ public class EngineNewPayloadResult {
     return latestValidHash.map(Hash::toHexString).orElse(null);
   }
 
-//  @JsonGetter(value = "error")
-//  public EngineNewPayloadError getError() {
-//    return error.orElse(null);
-//  }
+  //  @JsonGetter(value = "error")
+  //  public EngineNewPayloadError getError() {
+  //    return error.orElse(null);
+  //  }
 }
