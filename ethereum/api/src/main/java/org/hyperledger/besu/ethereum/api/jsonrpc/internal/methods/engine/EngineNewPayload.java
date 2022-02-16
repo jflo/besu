@@ -14,11 +14,11 @@
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine;
 
-import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.ExecutionStatus.ACCEPTED;
-import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.ExecutionStatus.INVALID;
-import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.ExecutionStatus.INVALID_BLOCK_HASH;
-import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.ExecutionStatus.SYNCING;
-import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.ExecutionStatus.VALID;
+import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.ACCEPTED;
+import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID;
+import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID_BLOCK_HASH;
+import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.SYNCING;
+import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.VALID;
 import static org.hyperledger.besu.util.Slf4jLambdaHelper.traceLambda;
 
 import org.hyperledger.besu.consensus.merge.blockcreation.MergeMiningCoordinator;
@@ -201,7 +201,7 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
   //  }
 
   JsonRpcResponse respondWith(
-      final Object requestId, final Hash latestValidHash, final ExecutionStatus status) {
+      final Object requestId, final Hash latestValidHash, final EngineStatus status) {
     return new JsonRpcSuccessResponse(
         requestId, new EngineNewPayloadResult(status, latestValidHash));
   }
