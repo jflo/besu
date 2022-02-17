@@ -17,6 +17,7 @@ package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.ACCEPTED;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID_BLOCK_HASH;
+import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID_TERMINAL_BLOCK;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.SYNCING;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.VALID;
 import static org.hyperledger.besu.util.Slf4jLambdaHelper.traceLambda;
@@ -31,7 +32,7 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngin
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.EnginePayloadParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcSuccessResponse;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.EngineNewPayloadResult;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.EnginePayloadStatusResult;
 import org.hyperledger.besu.ethereum.core.Block;
 import org.hyperledger.besu.ethereum.core.BlockBody;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
@@ -75,18 +76,12 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
 
   @Override
   public JsonRpcResponse syncResponse(final JsonRpcRequestContext requestContext) {
-    LOG.info("Start syncResponse");
-
     final EnginePayloadParameter blockParam =
         requestContext.getRequiredParameter(0, EnginePayloadParameter.class);
-
-    LOG.info("get reqId");
 
     Object reqId = requestContext.getRequest().getId();
 
     traceLambda(LOG, "blockparam: {}", () -> Json.encodePrettily(blockParam));
-
-    LOG.info("get transactions");
 
     final List<Transaction> transactions;
     try {
@@ -96,15 +91,12 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
               .map(TransactionDecoder::decodeOpaqueBytes)
               .collect(Collectors.toList());
     } catch (final RLPException | IllegalArgumentException e) {
-      LOG.warn("failed to decode transactions from newBlock RPC", e);
       return respondWith(
           reqId,
           mergeCoordinator.getLatestValidAncestor(blockParam.getParentHash()).orElse(null),
-          INVALID /*,
-                  new EngineNewPayloadError(INTERNAL_ERROR)*/);
+          INVALID,
+          "Failed to decode transactions from block parameter");
     }
-
-    LOG.info("create new block header");
 
     final BlockHeader newBlockHeader =
         new BlockHeader(
@@ -120,7 +112,8 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
             blockParam.getGasLimit(),
             blockParam.getGasUsed(),
             blockParam.getTimestamp(),
-            Bytes.fromHexString(blockParam.getExtraData()),
+            Bytes.fromHexString(
+                blockParam.getExtraData()), // TODO: what should happen if extra data is null?
             blockParam.getBaseFeePerGas(),
             blockParam.getRandom(),
             0,
@@ -133,12 +126,7 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
           String.format(
               "Computed block hash %s does not match block hash parameter %s",
               newBlockHeader.getBlockHash(), blockParam.getBlockHash()));
-      return respondWith(reqId, null, INVALID_BLOCK_HASH /*,
-          new EngineNewPayloadError(
-              SERVER_ERROR,
-              String.format(
-                  "Computed block hash %s does not match block hash parameter %s",
-                  newBlockHeader.getBlockHash(), blockParam.getBlockHash()))*/);
+      return respondWith(reqId, null, INVALID_BLOCK_HASH);
     } else {
       // do we already have this payload
       if (protocolContext
@@ -146,63 +134,53 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
           .getBlockByHash(newBlockHeader.getBlockHash())
           .isPresent()) {
         LOG.debug("block already present");
-        return respondWith(reqId, blockParam.getBlockHash(), VALID /*, null*/);
+        return respondWith(reqId, blockParam.getBlockHash(), VALID);
       }
     }
 
     // TODO: post-merge cleanup
-    //    if (!mergeCoordinator.latestValidAncestorDescendsFromTerminal(newBlockHeader)) {
-    //      return new JsonRpcErrorResponse(
-    //          requestContext.getRequest().getId(), JsonRpcError.INVALID_TERMINAL_BLOCK);
-    //    }
-
-    LOG.info("is syncing?");
+    if (!mergeCoordinator.latestValidAncestorDescendsFromTerminal(newBlockHeader)) {
+      return respondWith(requestContext.getRequest().getId(), null, INVALID_TERMINAL_BLOCK);
+    }
 
     if (mergeContext.isSyncing()) {
       LOG.debug("status syncing");
-      return respondWith(reqId, null, SYNCING /*, null*/);
+      return respondWith(reqId, null, SYNCING);
     }
-
-    LOG.info("not syncing, construct new block");
 
     final var block =
         new Block(newBlockHeader, new BlockBody(transactions, Collections.emptyList()));
     final var latestValidAncestor = mergeCoordinator.getLatestValidAncestor(newBlockHeader);
 
-    LOG.info("latest ancestor is empty?");
-
     if (latestValidAncestor.isEmpty()) {
       LOG.debug("New payload is accepted");
-      return respondWith(reqId, null, ACCEPTED /*, null*/);
+      return respondWith(reqId, null, ACCEPTED);
     }
-
-    LOG.info("Executing block");
 
     // execute block and return result response
     final BlockValidator.Result executionResult = mergeCoordinator.executeBlock(block);
 
-    LOG.info("Block executed");
-
     if (executionResult.errorMessage.isEmpty()) {
-      LOG.info("New payload is valid: {}", newBlockHeader.getHash());
       return respondWith(reqId, newBlockHeader.getHash(), VALID);
     } else {
       LOG.debug("New payload is invalid: {}", executionResult.errorMessage.get());
-      return respondWith(reqId, latestValidAncestor.get(), INVALID /*,
-          new EngineNewPayloadError(SERVER_ERROR, executionResult.errorMessage.get())*/);
+      return respondWith(
+          reqId, latestValidAncestor.get(), INVALID, executionResult.errorMessage.get());
     }
   }
-
-  //  JsonRpcResponse respondWith(
-  //          final Object requestId,
-  //          final Hash latestValidHash,
-  //          final ExecutionStatus status) {
-  //    return respondWith(requestId, latestValidHash, status, null);
-  //  }
 
   JsonRpcResponse respondWith(
       final Object requestId, final Hash latestValidHash, final EngineStatus status) {
     return new JsonRpcSuccessResponse(
-        requestId, new EngineNewPayloadResult(status, latestValidHash));
+        requestId, new EnginePayloadStatusResult(status, latestValidHash, null));
+  }
+
+  JsonRpcResponse respondWith(
+      final Object requestId,
+      final Hash latestValidHash,
+      final EngineStatus status,
+      final String validationError) {
+    return new JsonRpcSuccessResponse(
+        requestId, new EnginePayloadStatusResult(status, latestValidHash, validationError));
   }
 }
