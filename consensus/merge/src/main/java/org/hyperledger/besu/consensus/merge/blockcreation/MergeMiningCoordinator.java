@@ -44,6 +44,8 @@ public interface MergeMiningCoordinator extends MiningCoordinator {
 
   boolean isBackwardSyncing();
 
+  boolean isBackwardSyncing(final Block blockToAppend);
+
   boolean isMiningBeforeMerge();
 
   class ForkchoiceResult {

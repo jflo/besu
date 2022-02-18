@@ -91,10 +91,9 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
               .map(TransactionDecoder::decodeOpaqueBytes)
               .collect(Collectors.toList());
     } catch (final RLPException | IllegalArgumentException e) {
-      return respondWith(
+      return respondWithInvalid(
           reqId,
           mergeCoordinator.getLatestValidAncestor(blockParam.getParentHash()).orElse(null),
-          INVALID,
           "Failed to decode transactions from block parameter");
     }
 
@@ -143,17 +142,16 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
       return respondWith(requestContext.getRequest().getId(), null, INVALID_TERMINAL_BLOCK);
     }
 
-    if (mergeContext.isSyncing()) {
-      LOG.debug("status syncing");
+    final var block =
+        new Block(newBlockHeader, new BlockBody(transactions, Collections.emptyList()));
+
+    if (mergeContext.isSyncing() || mergeCoordinator.isBackwardSyncing(block)) {
       return respondWith(reqId, null, SYNCING);
     }
 
-    final var block =
-        new Block(newBlockHeader, new BlockBody(transactions, Collections.emptyList()));
     final var latestValidAncestor = mergeCoordinator.getLatestValidAncestor(newBlockHeader);
 
     if (latestValidAncestor.isEmpty()) {
-      LOG.debug("New payload is accepted");
       return respondWith(reqId, null, ACCEPTED);
     }
 
@@ -164,23 +162,33 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
       return respondWith(reqId, newBlockHeader.getHash(), VALID);
     } else {
       LOG.debug("New payload is invalid: {}", executionResult.errorMessage.get());
-      return respondWith(
-          reqId, latestValidAncestor.get(), INVALID, executionResult.errorMessage.get());
+      return respondWithInvalid(
+          reqId, latestValidAncestor.get(), executionResult.errorMessage.get());
     }
   }
 
   JsonRpcResponse respondWith(
       final Object requestId, final Hash latestValidHash, final EngineStatus status) {
+    traceLambda(
+        LOG,
+        "Response: requestId: {}, latestValidHash: {}, status: {}",
+        () -> requestId,
+        latestValidHash::toHexString,
+        status::name);
     return new JsonRpcSuccessResponse(
         requestId, new EnginePayloadStatusResult(status, latestValidHash, null));
   }
 
-  JsonRpcResponse respondWith(
-      final Object requestId,
-      final Hash latestValidHash,
-      final EngineStatus status,
-      final String validationError) {
+  JsonRpcResponse respondWithInvalid(
+      final Object requestId, final Hash latestValidHash, final String validationError) {
+    traceLambda(
+        LOG,
+        "Response: requestId: {}, latestValidHash: {}, status: {}, validationError: {}",
+        () -> requestId,
+        latestValidHash::toHexString,
+        INVALID::name,
+        () -> validationError);
     return new JsonRpcSuccessResponse(
-        requestId, new EnginePayloadStatusResult(status, latestValidHash, validationError));
+        requestId, new EnginePayloadStatusResult(INVALID, latestValidHash, validationError));
   }
 }

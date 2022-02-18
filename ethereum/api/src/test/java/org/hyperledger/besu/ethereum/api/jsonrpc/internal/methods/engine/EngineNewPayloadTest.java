@@ -162,8 +162,6 @@ public class EngineNewPayloadTest {
     BlockHeader mockHeader = new BlockHeaderTestFixture().baseFeePerGas(Wei.ONE).buildHeader();
 
     when(blockchain.getBlockByHash(any())).thenReturn(Optional.empty());
-    when(mergeCoordinator.getLatestValidAncestor(any(BlockHeader.class)))
-        .thenReturn(Optional.of(mockHash));
 
     when(mergeCoordinator.latestValidAncestorDescendsFromTerminal(any(BlockHeader.class)))
         .thenReturn(false);
@@ -178,8 +176,6 @@ public class EngineNewPayloadTest {
   @Test
   public void shouldReturnInvalidBlockHashOnBadHashParameter() {
     BlockHeader mockHeader = new BlockHeaderTestFixture().buildHeader();
-    when(mergeCoordinator.getLatestValidAncestor(any(BlockHeader.class)))
-        .thenReturn(Optional.of(mockHash));
 
     var resp = resp(mockPayload(mockHeader, Collections.emptyList()));
 
@@ -193,8 +189,6 @@ public class EngineNewPayloadTest {
     BlockHeader realHeader = new BlockHeaderTestFixture().baseFeePerGas(Wei.ONE).buildHeader();
     BlockHeader paramHeader = spy(realHeader);
     when(paramHeader.getHash()).thenReturn(Hash.fromHexStringLenient("0x1337"));
-    when(mergeCoordinator.getLatestValidAncestor(any(BlockHeader.class)))
-        .thenReturn(Optional.of(mockHash));
 
     var resp = resp(mockPayload(paramHeader, Collections.emptyList()));
 
@@ -235,9 +229,11 @@ public class EngineNewPayloadTest {
 
   @Test
   public void shouldRespondWithSyncingDuringBackwardsSync() {
-    when(mergeCoordinator.getLatestValidAncestor(any(BlockHeader.class)))
-        .thenReturn(Optional.empty());
-    BlockHeader mockHeader = new BlockHeaderTestFixture().buildHeader();
+    when(mergeCoordinator.latestValidAncestorDescendsFromTerminal(any(BlockHeader.class)))
+        .thenReturn(true);
+    when(mergeCoordinator.isBackwardSyncing(any(Block.class))).thenReturn(Boolean.TRUE);
+    BlockHeader mockHeader = new BlockHeaderTestFixture().baseFeePerGas(Wei.ONE).buildHeader();
+
     var resp = resp(mockPayload(mockHeader, Collections.emptyList()));
 
     EnginePayloadStatusResult res = fromSuccessResp(resp);
