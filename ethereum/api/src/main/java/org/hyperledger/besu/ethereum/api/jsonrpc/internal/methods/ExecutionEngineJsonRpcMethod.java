@@ -38,26 +38,6 @@ public abstract class ExecutionEngineJsonRpcMethod implements JsonRpcMethod {
     INVALID_TERMINAL_BLOCK;
   }
 
-  public enum ExecutionError {
-    PARSE_ERROR(-32700),
-    INVALID_REQUEST(-32600),
-    METHOD_NOT_FOUND(-32601),
-    INVALID_PARAMS(-32602),
-    INTERNAL_ERROR(-32603),
-    SERVER_ERROR(-32000),
-    UNKNOWN_PAYLOAD(-32001);
-
-    private final int code;
-
-    ExecutionError(final int code) {
-      this.code = code;
-    }
-
-    public int getCode() {
-      return code;
-    }
-  }
-
   private final Vertx syncVertx;
   private static final Logger LOG = LoggerFactory.getLogger(ExecutionEngineJsonRpcMethod.class);
   protected final MergeContext mergeContext;
