@@ -179,7 +179,7 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
         LOG,
         "Response: requestId: {}, latestValidHash: {}, status: {}",
         () -> requestId,
-        latestValidHash::toHexString,
+        () -> latestValidHash == null ? null : latestValidHash.toHexString(),
         status::name);
     return new JsonRpcSuccessResponse(
         requestId, new EnginePayloadStatusResult(status, latestValidHash, null));
