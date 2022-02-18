@@ -97,6 +97,13 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
           "Failed to decode transactions from block parameter");
     }
 
+    if (blockParam.getExtraData() == null) {
+      return respondWithInvalid(
+          reqId,
+          mergeCoordinator.getLatestValidAncestor(blockParam.getParentHash()).orElse(null),
+          "Field extraData must not be null");
+    }
+
     final BlockHeader newBlockHeader =
         new BlockHeader(
             blockParam.getParentHash(),
@@ -111,8 +118,7 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
             blockParam.getGasLimit(),
             blockParam.getGasUsed(),
             blockParam.getTimestamp(),
-            Bytes.fromHexString(
-                blockParam.getExtraData()), // TODO: what should happen if extra data is null?
+            Bytes.fromHexString(blockParam.getExtraData()),
             blockParam.getBaseFeePerGas(),
             blockParam.getRandom(),
             0,
@@ -185,7 +191,7 @@ public class EngineNewPayload extends ExecutionEngineJsonRpcMethod {
         LOG,
         "Response: requestId: {}, latestValidHash: {}, status: {}, validationError: {}",
         () -> requestId,
-        latestValidHash::toHexString,
+        () -> latestValidHash == null ? null : latestValidHash.toHexString(),
         INVALID::name,
         () -> validationError);
     return new JsonRpcSuccessResponse(

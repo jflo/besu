@@ -248,6 +248,21 @@ public class EngineNewPayloadTest {
     assertThat(mergeContext.getTerminalTotalDifficulty()).isNull();
   }
 
+  @Test
+  public void shouldRespondWithInvalidIfExtraDataIsNull() {
+    BlockHeader realHeader = new BlockHeaderTestFixture().baseFeePerGas(Wei.ONE).buildHeader();
+    BlockHeader paramHeader = spy(realHeader);
+    when(paramHeader.getHash()).thenReturn(Hash.fromHexStringLenient("0x1337"));
+    when(paramHeader.getExtraData().toHexString()).thenReturn(null);
+
+    var resp = resp(mockPayload(paramHeader, Collections.emptyList()));
+
+    EnginePayloadStatusResult res = fromSuccessResp(resp);
+    assertThat(res.getLatestValidHash()).isNull();
+    assertThat(res.getStatus()).isEqualTo(INVALID.name());
+    assertThat(res.getError()).isEqualTo("Field extraData must not be null");
+  }
+
   private JsonRpcResponse resp(final EnginePayloadParameter payload) {
     return method.response(
         new JsonRpcRequestContext(
@@ -266,7 +281,7 @@ public class EngineNewPayloadTest {
         new UnsignedLongParameter(header.getGasLimit()),
         new UnsignedLongParameter(header.getGasUsed()),
         new UnsignedLongParameter(header.getTimestamp()),
-        header.getExtraData().toHexString(),
+        header.getExtraData() == null ? null : header.getExtraData().toHexString(),
         header.getReceiptsRoot(),
         header.getLogsBloom(),
         header.getRandom().map(Bytes32::toHexString).orElse("0x0"),
