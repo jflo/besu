@@ -132,12 +132,18 @@ public class WebSocketService {
                 buffer.toString(),
                 socketAddressAsString(socketAddress));
 
-            AuthenticationUtils.getUser(
-                authenticationService,
-                token,
-                user ->
-                    websocketRequestHandler.handle(
-                        authenticationService, websocket, buffer.toString(), user));
+            if (authenticationService.isPresent()) {
+              authenticationService
+                  .get()
+                  .getUser(
+                      token,
+                      user ->
+                          websocketRequestHandler.handle(
+                              authenticationService, websocket, buffer.toString(), user));
+            } else {
+              websocketRequestHandler.handle(
+                  Optional.empty(), websocket, buffer.toString(), Optional.empty());
+            }
           });
 
       websocket.textMessageHandler(
@@ -147,12 +153,18 @@ public class WebSocketService {
                 payload,
                 socketAddressAsString(socketAddress));
 
-            AuthenticationUtils.getUser(
-                authenticationService,
-                token,
-                user ->
-                    websocketRequestHandler.handle(
-                        authenticationService, websocket, payload, user));
+            if (authenticationService.isPresent()) {
+              authenticationService
+                  .get()
+                  .getUser(
+                      token,
+                      user ->
+                          websocketRequestHandler.handle(
+                              authenticationService, websocket, payload, user));
+            } else {
+              websocketRequestHandler.handle(
+                  Optional.empty(), websocket, payload, Optional.empty());
+            }
           });
 
       websocket.closeHandler(

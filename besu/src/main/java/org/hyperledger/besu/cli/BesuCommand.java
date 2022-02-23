@@ -1774,8 +1774,7 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
 
     jsonRpcConfiguration = jsonRpcConfiguration(rpcHttpPort, rpcHttpApis, hostsAllowlist);
     engineJsonRpcConfiguration =
-        jsonRpcConfiguration(
-            engineRpcHttpPort, Arrays.asList("ENGINE", "ETH"), engineHostsAllowlist);
+        createEngineJsonRpcConfiguration(engineRpcHttpPort, engineHostsAllowlist);
     p2pTLSConfiguration = p2pTLSConfigOptions.p2pTLSConfiguration(commandLine);
     graphQLConfiguration = graphQLConfiguration();
     webSocketConfiguration = webSocketConfiguration(rpcWsPort, rpcWsApis, hostsAllowlist);
@@ -1940,6 +1939,15 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
     graphQLConfiguration.setHttpTimeoutSec(unstableRPCOptions.getHttpTimeoutSec());
 
     return graphQLConfiguration;
+  }
+
+  private JsonRpcConfiguration createEngineJsonRpcConfiguration(
+      final Integer listenPort, final List<String> allowCallsFrom) {
+    JsonRpcConfiguration engineConfig =
+        jsonRpcConfiguration(listenPort, Arrays.asList("ENGINE", "ETH"), allowCallsFrom);
+    engineConfig.setAuthenticationEnabled(true);
+    engineConfig.setAuthenticationAlgorithm(JwtAlgorithm.HS256);
+    return engineConfig;
   }
 
   private JsonRpcConfiguration jsonRpcConfiguration(

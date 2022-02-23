@@ -197,7 +197,7 @@ public class JsonRpcHttpService {
         readinessService);
   }
 
-  private JsonRpcHttpService(
+  public JsonRpcHttpService(
       final Vertx vertx,
       final Path dataDir,
       final JsonRpcConfiguration config,
@@ -575,22 +575,32 @@ public class JsonRpcHttpService {
           final JsonObject requestBodyJsonObject =
               ContextKey.REQUEST_BODY_AS_JSON_OBJECT.extractFrom(
                   routingContext, () -> new JsonObject(json));
-          AuthenticationUtils.getUser(
-              authenticationService,
-              token,
-              user -> handleJsonSingleRequest(routingContext, requestBodyJsonObject, user));
+          if (authenticationService.isPresent()) {
+            authenticationService
+                .get()
+                .getUser(
+                    token,
+                    user -> handleJsonSingleRequest(routingContext, requestBodyJsonObject, user));
+          } else {
+            handleJsonSingleRequest(routingContext, requestBodyJsonObject, Optional.empty());
+          }
+
         } else {
           final JsonArray array = new JsonArray(json);
           if (array.size() < 1) {
             handleJsonRpcError(routingContext, null, INVALID_REQUEST);
             return;
           }
-          AuthenticationUtils.getUser(
-              authenticationService,
-              token,
-              user -> handleJsonBatchRequest(routingContext, array, user));
+          if (authenticationService.isPresent()) {
+            authenticationService
+                .get()
+                .getUser(token, user -> handleJsonBatchRequest(routingContext, array, user));
+          } else {
+            handleJsonBatchRequest(routingContext, array, Optional.empty());
+          }
         }
       } catch (final DecodeException | NullPointerException ex) {
+        LOG.debug("Exception handling request", ex);
         handleJsonRpcError(routingContext, null, JsonRpcError.PARSE_ERROR);
       }
     }

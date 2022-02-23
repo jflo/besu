@@ -20,8 +20,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.vertx.core.Handler;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,41 +66,6 @@ public class AuthenticationUtils {
       LOG.trace("user NOT authorized : {}", jsonRpcMethod.getName());
     }
     return foundMatchingPermission.get();
-  }
-
-  public static void getUser(
-      final Optional<AuthenticationService> authenticationService,
-      final String token,
-      final Handler<Optional<User>> handler) {
-    try {
-      if (authenticationService.isEmpty()) {
-        handler.handle(Optional.empty());
-      } else {
-        authenticationService
-            .get()
-            .getJwtAuthProvider()
-            .authenticate(
-                new JsonObject().put("token", token),
-                (r) -> {
-                  if (r.succeeded()) {
-                    final Optional<User> user = Optional.ofNullable(r.result());
-                    validateExpiryExists(user);
-                    handler.handle(user);
-                  } else {
-                    LOG.debug("Invalid JWT token", r.cause());
-                    handler.handle(Optional.empty());
-                  }
-                });
-      }
-    } catch (Exception e) {
-      handler.handle(Optional.empty());
-    }
-  }
-
-  private static void validateExpiryExists(final Optional<User> user) {
-    if (!user.map(User::attributes).map(a -> a.containsKey("exp")).orElse(false)) {
-      throw new IllegalStateException("Invalid JWT doesn't have expiry");
-    }
   }
 
   public static String getJwtTokenFromAuthorizationHeaderValue(final String value) {
