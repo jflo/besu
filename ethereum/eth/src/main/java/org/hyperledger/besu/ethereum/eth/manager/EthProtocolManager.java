@@ -448,37 +448,6 @@ public class EthProtocolManager
     }
   }
 
-  private void disconnectKnownPowPeers() {
-    long lockStamp = powTerminalDifficultyLock.readLock();
-    try {
-      if (powTerminalDifficulty.isPresent()) {
-        LOG.info(
-            "disconnecting peers with total difficulty over {}",
-            powTerminalDifficulty.get().toBigInteger());
-        ethPeers
-            .streamAllPeers()
-            .filter(
-                ethPeer ->
-                    ethPeer
-                        .chainState()
-                        .getBestBlock()
-                        .totalDifficulty
-                        .greaterThan(powTerminalDifficulty.get()))
-            .forEach(
-                ethPeer -> {
-                  LOG.debug(
-                      "disconnecting previously connected peer for exceeding total difficulty: {}",
-                      ethPeer.toString());
-                  ethPeer.disconnect(DisconnectReason.SUBPROTOCOL_TRIGGERED);
-                  handleDisconnect(
-                      ethPeer.getConnection(), DisconnectReason.SUBPROTOCOL_TRIGGERED, false);
-                });
-      }
-    } finally {
-      powTerminalDifficultyLock.unlockRead(lockStamp);
-    }
-  }
-
   @Override
   public void onNewForkchoiceMessage(
       final Hash headBlockHash,
@@ -488,9 +457,6 @@ public class EthProtocolManager
         && !maybeFinalizedBlockHash.get().equals(this.lastFinalized)) {
       this.lastFinalized = maybeFinalizedBlockHash.get();
       this.numFinalizedSeen.getAndIncrement();
-      if (isFinalized()) {
-        disconnectKnownPowPeers();
-      }
     }
   }
 }

@@ -204,53 +204,6 @@ public final class EthProtocolManagerTest {
   }
 
   @Test
-  public void disconnectPoWPeersAfterTransition() {
-    try (final EthProtocolManager ethManager =
-        EthProtocolManagerTestUtil.create(
-            blockchain,
-            () -> false,
-            protocolContext.getWorldStateArchive(),
-            transactionPool,
-            EthProtocolConfiguration.defaultConfig())) {
-
-      final MockPeerConnection workPeer = setupPeer(ethManager, (cap, msg, conn) -> {});
-      final MockPeerConnection stakePeer = setupPeer(ethManager, (cap, msg, conn) -> {});
-
-      final StatusMessage workPeerStatus =
-          StatusMessage.create(
-              EthProtocol.EthVersion.V63,
-              BigInteger.ONE,
-              blockchain.getChainHead().getTotalDifficulty().add(20),
-              blockchain.getChainHeadHash(),
-              blockchain.getBlockHeader(BlockHeader.GENESIS_BLOCK_NUMBER).get().getHash());
-
-      final StatusMessage stakePeerStatus =
-          StatusMessage.create(
-              EthProtocol.EthVersion.V63,
-              BigInteger.ONE,
-              blockchain.getChainHead().getTotalDifficulty(),
-              blockchain.getChainHeadHash(),
-              blockchain.getBlockHeader(BlockHeader.GENESIS_BLOCK_NUMBER).get().getHash());
-
-      ethManager.processMessage(EthProtocol.ETH63, new DefaultMessage(workPeer, workPeerStatus));
-      ethManager.processMessage(EthProtocol.ETH63, new DefaultMessage(stakePeer, stakePeerStatus));
-
-      ethManager.onCrossingMergeBoundary(
-          true, Optional.of(blockchain.getChainHead().getTotalDifficulty()));
-      ethManager.onNewForkchoiceMessage(
-          Hash.EMPTY, Optional.of(Hash.hash(Bytes.of(1))), Hash.EMPTY);
-      ethManager.onNewForkchoiceMessage(
-          Hash.EMPTY, Optional.of(Hash.hash(Bytes.of(2))), Hash.EMPTY);
-      assertThat(workPeer.isDisconnected()).isTrue();
-      assertThat(workPeer.getDisconnectReason()).isPresent();
-      assertThat(workPeer.getDisconnectReason())
-          .get()
-          .isEqualTo(DisconnectReason.SUBPROTOCOL_TRIGGERED);
-      assertThat(stakePeer.isDisconnected()).isFalse();
-    }
-  }
-
-  @Test
   public void disconnectNewPoWPeers() {
     try (final EthProtocolManager ethManager =
         EthProtocolManagerTestUtil.create(
