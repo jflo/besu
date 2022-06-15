@@ -464,7 +464,15 @@ public class EthProtocolManager
                         .getBestBlock()
                         .totalDifficulty
                         .greaterThan(powTerminalDifficulty.get()))
-            .forEach(ethPeer -> ethPeer.disconnect(DisconnectReason.SUBPROTOCOL_TRIGGERED));
+            .forEach(
+                ethPeer -> {
+                  LOG.debug(
+                      "disconnecting previously connected peer for exceeding total difficulty: {}",
+                      ethPeer.toString());
+                  ethPeer.disconnect(DisconnectReason.SUBPROTOCOL_TRIGGERED);
+                  handleDisconnect(
+                      ethPeer.getConnection(), DisconnectReason.SUBPROTOCOL_TRIGGERED, false);
+                });
       }
     } finally {
       powTerminalDifficultyLock.unlockRead(lockStamp);
