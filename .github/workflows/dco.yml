@@ -5,7 +5,8 @@ on:
 
 jobs:
   dco:
-    runs-on: [besu,Linux,self-hosted,nodocker]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
       - run: echo "This DCO job runs on pull_request event and workflow_dispatch"
