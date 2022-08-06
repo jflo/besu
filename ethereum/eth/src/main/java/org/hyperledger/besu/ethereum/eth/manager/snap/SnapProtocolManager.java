@@ -14,6 +14,9 @@
  */
 package org.hyperledger.besu.ethereum.eth.manager.snap;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import org.hyperledger.besu.ethereum.eth.SnapProtocol;
 import org.hyperledger.besu.ethereum.eth.manager.EthMessage;
 import org.hyperledger.besu.ethereum.eth.manager.EthMessages;
