@@ -28,12 +28,12 @@ public class TrieNodesMessageProcessor implements EthMessages.MessageCallback {
 
   private static final Logger LOG = LoggerFactory.getLogger(TrieNodesMessageProcessor.class);
 
-  public TrieNodesMessageProcessor(WorldStateArchive archive) {
+  public TrieNodesMessageProcessor(final WorldStateArchive archive) {
     this.archive = archive;
   }
 
   @Override
-  public void exec(EthMessage message) {
-
+  public void exec(final EthMessage message) {
+    LOG.debug("TrieNodesMessageProcessor using {}", archive.getClass().getSimpleName());
   }
 }

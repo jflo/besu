@@ -21,10 +21,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.ethereum.bonsai.BonsaiLayeredWorldState;
 import org.hyperledger.besu.ethereum.bonsai.BonsaiWorldStateArchive;
@@ -35,6 +39,9 @@ import org.hyperledger.besu.ethereum.chain.DefaultBlockchain;
 import org.hyperledger.besu.ethereum.core.InMemoryKeyValueStorageProvider;
 import org.hyperledger.besu.ethereum.eth.manager.EthMessages;
 import org.hyperledger.besu.ethereum.eth.manager.snap.SnapServer;
+import org.hyperledger.besu.ethereum.eth.messages.snap.GetTrieNodesMessage;
+import org.hyperledger.besu.ethereum.eth.messages.snap.TrieNodesMessage;
+import org.hyperledger.besu.ethereum.p2p.rlpx.wire.MessageData;
 import org.hyperledger.besu.ethereum.referencetests.ReferenceTestBlockchain;
 import org.hyperledger.besu.ethereum.storage.StorageProvider;
 import org.hyperledger.besu.ethereum.storage.keyvalue.WorldStateKeyValueStorage;
@@ -48,11 +55,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.Mock;
 
-@RunWith(Parameterized.class)
 public class SnapServerTest {
 
 
-  private final DataStorageFormat storageFormat;
   private WorldStateStorage worldStateStorage;
 
   private final Blockchain blockchain = mock(Blockchain.class);
@@ -61,19 +66,10 @@ public class SnapServerTest {
 
   private final EthMessages inboundHandlers = new EthMessages();
 
-  @Parameterized.Parameters
-  public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][] {{DataStorageFormat.BONSAI}, {DataStorageFormat.FOREST}});
-  }
-
-  public SnapServerTest(final DataStorageFormat storageFormat) {
-    this.storageFormat = storageFormat;
-  }
-
   @Before
   public void setUp() {
     when(blockchain.observeBlockAdded(any())).thenReturn(1l);
-    if (storageFormat == DataStorageFormat.BONSAI) {
+
       StorageProvider storageProvider = new InMemoryKeyValueStorageProvider();
       worldStateStorage =
           new BonsaiWorldStateKeyValueStorage(storageProvider);
@@ -88,15 +84,27 @@ public class SnapServerTest {
                   layeredWorldStatesByHash),
               storageProvider,
               blockchain);
-    } else {
-      worldStateStorage = new WorldStateKeyValueStorage(new InMemoryKeyValueStorage());
-    }
+
   }
 
   @Test
   public void serverStartup() {
     SnapServer server = new SnapServer(this.inboundHandlers, this.archive);
     assertThat(server).isNotNull();
+  }
+
+  @Test
+  public void handleRequestForTrieNodes() {
+    SnapServer server = new SnapServer(this.inboundHandlers, this.archive);
+    InputStream rlpFile = this.getClass().getResourceAsStream("/snapMessages/6_1659646743327.rlp");
+    try {
+      GetTrieNodesMessage req = new GetTrieNodesMessage(Bytes.wrap(rlpFile.readAllBytes()));
+      TrieNodesMessage resp = TrieNodesMessage.readFrom(
+          server.constructGetTrieNodesResponse(this.archive, req));
+      assertThat(resp).isNotNull();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 }

@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.bytes.Bytes32;
+import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.bonsai.BonsaiPersistedWorldState;
 import org.hyperledger.besu.ethereum.eth.manager.EthMessages;
 import org.hyperledger.besu.ethereum.eth.messages.snap.AccountRangeMessage;
@@ -90,7 +92,7 @@ public class SnapServer {
     return ByteCodesMessage.create(new ArrayDeque<>());
   }
 
-  private MessageData constructGetTrieNodesResponse(
+  public MessageData constructGetTrieNodesResponse(
       final WorldStateArchive worldStateArchive, final MessageData message) {
     final GetTrieNodesMessage getTrieNodes = GetTrieNodesMessage.readFrom(message);
     final GetTrieNodesMessage.TrieNodesPaths paths = getTrieNodes.paths(true);
@@ -117,8 +119,7 @@ public class SnapServer {
       List<Bytes> pathset = pathsIterator.next();
       if (pathset.size() == 1) {
         accountTrie
-            .getNodeWithPath(CompactEncoding.decode(pathset.get(0)))
-            .map(Node::getRlp)
+            .getPath(CompactEncoding.decode(pathset.get(0)))
             .ifPresent(
                 rlp -> {
                   trieNodes.add(rlp);
@@ -137,8 +138,7 @@ public class SnapServer {
                   Function.identity(),
                   Function.identity());
           storageTrie
-              .getNodeWithPath(CompactEncoding.decode(pathset.get(i)))
-              .map(Node::getRlp)
+              .getPath(CompactEncoding.decode(pathset.get(i)))
               .ifPresent(
                   rlp -> {
                     trieNodes.add(rlp);
@@ -150,6 +150,6 @@ public class SnapServer {
         break;
       }
     }
-    return TrieNodes.create(trieNodes);
+    return TrieNodesMessage.create(trieNodes);
   }
 }
