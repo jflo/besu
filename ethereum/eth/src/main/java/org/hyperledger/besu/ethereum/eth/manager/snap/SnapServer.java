@@ -17,6 +17,8 @@ package org.hyperledger.besu.ethereum.eth.manager.snap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import org.apache.tuweni.bytes.Bytes;
@@ -26,15 +28,22 @@ import org.hyperledger.besu.ethereum.bonsai.BonsaiPersistedWorldState;
 import org.hyperledger.besu.ethereum.eth.manager.EthMessages;
 import org.hyperledger.besu.ethereum.eth.messages.snap.AccountRangeMessage;
 import org.hyperledger.besu.ethereum.eth.messages.snap.ByteCodesMessage;
+import org.hyperledger.besu.ethereum.eth.messages.snap.GetAccountRangeMessage;
+import org.hyperledger.besu.ethereum.eth.messages.snap.GetByteCodesMessage;
+import org.hyperledger.besu.ethereum.eth.messages.snap.GetStorageRangeMessage;
 import org.hyperledger.besu.ethereum.eth.messages.snap.GetTrieNodesMessage;
 import org.hyperledger.besu.ethereum.eth.messages.snap.SnapV1;
 import org.hyperledger.besu.ethereum.eth.messages.snap.StorageRangeMessage;
 import org.hyperledger.besu.ethereum.eth.messages.snap.TrieNodesMessage;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.MessageData;
+import org.hyperledger.besu.ethereum.p2p.rlpx.wire.messages.DisconnectMessage;
+import org.hyperledger.besu.ethereum.p2p.rlpx.wire.messages.DisconnectMessage.DisconnectReason;
 import org.hyperledger.besu.ethereum.trie.CompactEncoding;
 import org.hyperledger.besu.ethereum.trie.MerklePatriciaTrie;
 import org.hyperledger.besu.ethereum.trie.Node;
+import org.hyperledger.besu.ethereum.trie.RangeStorageEntriesCollector;
 import org.hyperledger.besu.ethereum.trie.StoredMerklePatriciaTrie;
+import org.hyperledger.besu.ethereum.trie.TrieIterator;
 import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive;
 
 import java.util.HashMap;
@@ -48,7 +57,7 @@ public class SnapServer {
 
   private final EthMessages snapMessages;
   private final WorldStateArchive worldStateArchive;
-
+  private static final int MAX_ENTRIES_PER_REQUEST = 100000;
   private final static Logger LOG = LoggerFactory.getLogger(SnapServer.class);
 
   private static final int MAX_RESPONSE_SIZE = 2 * 1024 * 1024;
@@ -76,23 +85,131 @@ public class SnapServer {
 
   private MessageData constructGetAccountRangeResponse(
       final WorldStateArchive worldStateArchive, final MessageData message) {
-    // TODO implement
-    return AccountRangeMessage.create(new HashMap<>(), new ArrayDeque<>());
+    final GetAccountRangeMessage getAccountRangeMessage = GetAccountRangeMessage.readFrom(message);
+    final BonsaiPersistedWorldState worldState =
+        (BonsaiPersistedWorldState) worldStateArchive.getMutable();
+    final GetAccountRangeMessage.Range range = getAccountRangeMessage.range(true);
+
+    final int maxResponseBytes = Math.min(range.responseBytes().intValue(), MAX_RESPONSE_SIZE);
+
+    LOG.info(
+        "Receive get account range message from {} to {}",
+        range.startKeyHash().toHexString(),
+        range.endKeyHash().toHexString());
+    final StoredMerklePatriciaTrie<Bytes, Bytes> trie =
+        new StoredMerklePatriciaTrie<>(
+            (location, key) ->
+                worldState.getWorldStateStorage().getAccountStateTrieNode(location, key),
+            range.worldStateRootHash(),
+            Function.identity(),
+            Function.identity());
+
+    final RangeStorageEntriesCollector collector =
+        RangeStorageEntriesCollector.createCollector(
+            range.startKeyHash(), range.endKeyHash(), MAX_ENTRIES_PER_REQUEST, maxResponseBytes);
+    final TrieIterator<Bytes> visitor = RangeStorageEntriesCollector.createVisitor(collector);
+
+    final TreeMap<Bytes32, Bytes> accounts =
+        (TreeMap<Bytes32, Bytes>)
+            trie.entriesFrom(
+                root ->
+                    RangeStorageEntriesCollector.collectEntries(
+                        collector, visitor, root, range.startKeyHash()));
+
+    final ArrayDeque<Bytes> proof =
+        new ArrayDeque<>(
+            worldStateArchive.getAccountProofRelatedNodes(
+                range.worldStateRootHash(), Hash.wrap(range.startKeyHash())));
+    if (!accounts.isEmpty()) {
+      proof.addAll(
+          worldStateArchive.getAccountProofRelatedNodes(
+              range.worldStateRootHash(), Hash.wrap(accounts.lastKey())));
+    }
+
+    return AccountRangeMessage.create(accounts, proof);
   }
 
   private MessageData constructGetStorageRangeResponse(
       final WorldStateArchive worldStateArchive, final MessageData message) {
-    // TODO implement
-    return StorageRangeMessage.create(new ArrayDeque<>(), new ArrayDeque<>());
+    final GetStorageRangeMessage getStorageRangeMessage = GetStorageRangeMessage.readFrom(message);
+    final BonsaiPersistedWorldState worldState =
+        (BonsaiPersistedWorldState) worldStateArchive.getMutable();
+    final GetStorageRangeMessage.StorageRange range = getStorageRangeMessage.range(true);
+
+    final int maxResponseBytes = Math.min(range.responseBytes().intValue(), MAX_RESPONSE_SIZE);
+
+    LOG.info("Receive get storage range message from {}", range.startKeyHash().toHexString());
+
+    final RangeStorageEntriesCollector collector =
+        RangeStorageEntriesCollector.createCollector(
+            range.startKeyHash(), range.endKeyHash(), MAX_ENTRIES_PER_REQUEST, maxResponseBytes);
+    final TrieIterator<Bytes> visitor = RangeStorageEntriesCollector.createVisitor(collector);
+
+    final ArrayDeque<TreeMap<Bytes32, Bytes>> slots = new ArrayDeque<>();
+    final List<Bytes> proofs = new ArrayDeque<>();
+
+    final Iterator<Bytes32> iterator = range.hashes().iterator();
+    while (iterator.hasNext() && visitor.getState().continueIterating()) {
+      final Hash currentAccountHash = Hash.wrap(iterator.next());
+      final StoredMerklePatriciaTrie<Bytes, Bytes> trie =
+          new StoredMerklePatriciaTrie<>(
+              (location, key) ->
+                  worldState
+                      .getWorldStateStorage()
+                      .getAccountStorageTrieNode(currentAccountHash, location, key),
+              range.worldStateRootHash(),
+              Function.identity(),
+              Function.identity());
+
+      slots.add(
+          (TreeMap<Bytes32, Bytes>)
+              trie.entriesFrom(
+                  root ->
+                      RangeStorageEntriesCollector.collectEntries(
+                          collector, visitor, root, range.startKeyHash())));
+
+      proofs.addAll(
+          worldStateArchive.getSlotProofRelatedNodes(
+              range.worldStateRootHash(), currentAccountHash, Hash.wrap(range.startKeyHash())));
+      if (!slots.last().isEmpty()) {
+        proofs.addAll(
+            worldStateArchive.getSlotProofRelatedNodes(
+                range.worldStateRootHash(), currentAccountHash, Hash.wrap(slots.last().lastKey())));
+      }
+    }
+
+    return StorageRangeMessage.create(slots, proofs);
   }
 
   private MessageData constructGetBytecodesResponse(
       final WorldStateArchive worldStateArchive, final MessageData message) {
-    // TODO implement
-    return ByteCodesMessage.create(new ArrayDeque<>());
+    final GetByteCodesMessage getByteCodesMessage = GetByteCodesMessage.readFrom(message);
+    final BonsaiPersistedWorldState worldState =
+        (BonsaiPersistedWorldState) worldStateArchive.getMutable();
+    final GetByteCodesMessage.CodeHashes request = getByteCodesMessage.codeHashes(true);
+
+    final int maxResponseBytes = Math.min(request.responseBytes().intValue(), MAX_RESPONSE_SIZE);
+    final AtomicInteger currentResponseSize = new AtomicInteger();
+
+    LOG.info("Receive get bytecodes message for {}", request.hashes());
+
+    final ArrayList<Bytes> foundBytecodes = new ArrayList<>();
+    for (Bytes32 hash : request.hashes()) {
+      final Optional<Bytes> code = worldState.getWorldStateStorage().getCode(hash, null);
+      if (code.isEmpty()) {
+        return DisconnectMessage.create(DisconnectReason.UNKNOWN);
+      }
+      foundBytecodes.add(code.get());
+
+      currentResponseSize.addAndGet(foundBytecodes.size());
+      if (currentResponseSize.get() > maxResponseBytes) {
+        break;
+      }
+    }
+    return ByteCodesMessage.create(foundBytecodes);
   }
 
-  public MessageData constructGetTrieNodesResponse(
+  private MessageData constructGetTrieNodesResponse(
       final WorldStateArchive worldStateArchive, final MessageData message) {
     final GetTrieNodesMessage getTrieNodes = GetTrieNodesMessage.readFrom(message);
     final GetTrieNodesMessage.TrieNodesPaths paths = getTrieNodes.paths(true);

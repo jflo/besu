@@ -75,6 +75,20 @@ public class WorldStateProofProvider {
     }
   }
 
+  public List<Bytes> getAccountProofRelatedNodes(
+      final Hash worldStateRoot, final Bytes accountHash) {
+    final Proof<Bytes> accountProof =
+        newAccountStateTrie(worldStateRoot).getValueWithProof(accountHash);
+    return accountProof.getProofRelatedNodes();
+  }
+
+  public List<Bytes> getStorageProofRelatedNodes(
+      final Hash worldStateRoot, final Hash accountHash, final Hash slotHash) {
+    final Proof<Bytes> storageProof =
+        newAccountStorageTrie(accountHash, worldStateRoot).getValueWithProof(slotHash);
+    return storageProof.getProofRelatedNodes();
+  }
+
   private SortedMap<UInt256, Proof<Bytes>> getStorageProofs(
       final Hash accountHash,
       final StateTrieAccountValue account,
@@ -85,13 +99,6 @@ public class WorldStateProofProvider {
     accountStorageKeys.forEach(
         key -> storageProofs.put(key, storageTrie.getValueWithProof(Hash.hash(key))));
     return storageProofs;
-  }
-
-  public List<Bytes> getAccountProofRelatedNodes(
-      final Hash worldStateRoot, final Bytes accountHash) {
-    final Proof<Bytes> accountProof =
-        newAccountStateTrie(worldStateRoot).getValueWithProof(accountHash);
-    return accountProof.getProofRelatedNodes();
   }
 
   private MerklePatriciaTrie<Bytes, Bytes> newAccountStateTrie(final Bytes32 rootHash) {

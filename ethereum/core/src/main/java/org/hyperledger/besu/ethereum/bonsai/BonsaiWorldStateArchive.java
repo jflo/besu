@@ -25,6 +25,7 @@ import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.MutableWorldState;
 import org.hyperledger.besu.ethereum.proof.WorldStateProof;
+import org.hyperledger.besu.ethereum.proof.WorldStateProofProvider;
 import org.hyperledger.besu.ethereum.storage.StorageProvider;
 import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive;
 import org.hyperledger.besu.evm.worldstate.WorldState;
@@ -47,6 +48,7 @@ public class BonsaiWorldStateArchive implements WorldStateArchive {
   private final TrieLogManager trieLogManager;
   private final BonsaiPersistedWorldState persistedState;
   private final BonsaiWorldStateKeyValueStorage worldStateStorage;
+  private final WorldStateProofProvider worldStateProof;
 
   public BonsaiWorldStateArchive(
       final TrieLogManager trieLogManager,
@@ -57,6 +59,7 @@ public class BonsaiWorldStateArchive implements WorldStateArchive {
     this.worldStateStorage = new BonsaiWorldStateKeyValueStorage(provider);
     this.persistedState = new BonsaiPersistedWorldState(this, worldStateStorage);
     blockchain.observeBlockAdded(this::blockAddedHandler);
+    this.worldStateProof = new WorldStateProofProvider(worldStateStorage);
   }
 
   private void blockAddedHandler(final BlockAddedEvent event) {
@@ -242,5 +245,17 @@ public class BonsaiWorldStateArchive implements WorldStateArchive {
       final List<UInt256> accountStorageKeys) {
     // FIXME we can do proofs for layered tries and the persisted trie
     return Optional.empty();
+  }
+
+  @Override
+  public List<Bytes> getAccountProofRelatedNodes(
+      final Hash worldStateRoot, final Bytes accountHash) {
+    return worldStateProof.getAccountProofRelatedNodes(worldStateRoot, accountHash);
+  }
+
+  @Override
+  public List<Bytes> getSlotProofRelatedNodes(
+      final Hash worldStateRoot, final Hash accountHash, final Hash slotHash) {
+    return worldStateProof.getStorageProofRelatedNodes(worldStateRoot, accountHash, slotHash);
   }
 }
