@@ -14,6 +14,7 @@
  */
 package org.hyperledger.besu.ethereum.eth.messages.snap;
 
+import java.util.Optional;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.AbstractSnapMessageData;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.MessageData;
@@ -31,6 +32,9 @@ public final class GetAccountRangeMessage extends AbstractSnapMessageData {
 
   public GetAccountRangeMessage(final Bytes data) {
     super(data);
+    RLPInput toRead = new BytesValueRLPInput(data, false);
+    toRead.enterList();
+    super.setRootHash(Optional.of(Hash.wrap(toRead.readBytes32())));
   }
 
   public static GetAccountRangeMessage readFrom(final MessageData message) {

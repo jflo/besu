@@ -83,12 +83,12 @@ public class SnapServer {
         messageData -> constructGetTrieNodesResponse(worldStateArchive, messageData));
   }
 
-  private MessageData constructGetAccountRangeResponse(
+  public MessageData constructGetAccountRangeResponse(
       final WorldStateArchive worldStateArchive, final MessageData message) {
     final GetAccountRangeMessage getAccountRangeMessage = GetAccountRangeMessage.readFrom(message);
     final BonsaiPersistedWorldState worldState =
         (BonsaiPersistedWorldState) worldStateArchive.getMutable();
-    final GetAccountRangeMessage.Range range = getAccountRangeMessage.range(true);
+    final GetAccountRangeMessage.Range range = getAccountRangeMessage.range(false);
 
     final int maxResponseBytes = Math.min(range.responseBytes().intValue(), MAX_RESPONSE_SIZE);
 
@@ -209,7 +209,7 @@ public class SnapServer {
     return ByteCodesMessage.create(foundBytecodes);
   }
 
-  private MessageData constructGetTrieNodesResponse(
+  public MessageData constructGetTrieNodesResponse(
       final WorldStateArchive worldStateArchive, final MessageData message) {
     final GetTrieNodesMessage getTrieNodes = GetTrieNodesMessage.readFrom(message);
     final GetTrieNodesMessage.TrieNodesPaths paths = getTrieNodes.paths(true);
@@ -219,7 +219,7 @@ public class SnapServer {
     final int maxResponseBytes = Math.min(paths.responseBytes().intValue(), MAX_RESPONSE_SIZE);
     final AtomicInteger currentResponseSize = new AtomicInteger();
 
-    LOG.info("Receive get trie nodes range message");
+    LOG.debug("Receive get trie nodes range message for {} paths", paths.paths().size());
 
     final ArrayList<Bytes> trieNodes = new ArrayList<>();
     final Iterator<List<Bytes>> pathsIterator = paths.paths().iterator();

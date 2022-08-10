@@ -15,6 +15,7 @@
 package org.hyperledger.besu.ethereum.p2p.rlpx.wire;
 
 import org.hyperledger.besu.datatypes.Hash;
+import org.hyperledger.besu.ethereum.rlp.BytesValueRLPInput;
 import org.hyperledger.besu.ethereum.rlp.RLP;
 import org.hyperledger.besu.ethereum.rlp.RLPInput;
 
@@ -31,11 +32,13 @@ public abstract class AbstractSnapMessageData extends AbstractMessageData {
   @VisibleForTesting
   public static final BigInteger SIZE_REQUEST = BigInteger.valueOf(524288); // 512 * 1024
 
+  private byte requestId;
+
   private Optional<Hash> rootHash;
 
   public AbstractSnapMessageData(final Bytes data) {
     super(data);
-    rootHash = Optional.empty();
+    this.rootHash = Optional.empty();
   }
 
   public Optional<Hash> getRootHash() {
@@ -62,6 +65,14 @@ public abstract class AbstractSnapMessageData extends AbstractMessageData {
 
   protected Bytes wrap(final BigInteger requestId) {
     throw new UnsupportedOperationException("cannot wrap this message");
+  }
+
+  public byte getRequestId() {
+    return requestId;
+  }
+
+  public void setRequestId(final byte requestId) {
+    this.requestId = requestId;
   }
 
   public static MessageData create(final Message message) {

@@ -24,12 +24,20 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
+import org.apache.tuweni.bytes.MutableBytes32;
+import org.apache.tuweni.units.bigints.UInt256;
+import org.apache.tuweni.units.bigints.UInt256Value;
+import org.hyperledger.besu.datatypes.Address;
+import org.hyperledger.besu.datatypes.Hash;
+import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.bonsai.BonsaiLayeredWorldState;
 import org.hyperledger.besu.ethereum.bonsai.BonsaiWorldStateArchive;
 import org.hyperledger.besu.ethereum.bonsai.BonsaiWorldStateKeyValueStorage;
@@ -39,13 +47,21 @@ import org.hyperledger.besu.ethereum.chain.DefaultBlockchain;
 import org.hyperledger.besu.ethereum.core.InMemoryKeyValueStorageProvider;
 import org.hyperledger.besu.ethereum.eth.manager.EthMessages;
 import org.hyperledger.besu.ethereum.eth.manager.snap.SnapServer;
+import org.hyperledger.besu.ethereum.eth.messages.snap.AccountRangeMessage;
+import org.hyperledger.besu.ethereum.eth.messages.snap.AccountRangeMessage.AccountRangeData;
+import org.hyperledger.besu.ethereum.eth.messages.snap.GetAccountRangeMessage;
 import org.hyperledger.besu.ethereum.eth.messages.snap.GetTrieNodesMessage;
 import org.hyperledger.besu.ethereum.eth.messages.snap.TrieNodesMessage;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.MessageData;
+import org.hyperledger.besu.ethereum.proof.WorldStateProofProvider;
 import org.hyperledger.besu.ethereum.referencetests.ReferenceTestBlockchain;
+import org.hyperledger.besu.ethereum.rlp.BytesValueRLPInput;
+import org.hyperledger.besu.ethereum.rlp.BytesValueRLPOutput;
+import org.hyperledger.besu.ethereum.rlp.RLPOutput;
 import org.hyperledger.besu.ethereum.storage.StorageProvider;
 import org.hyperledger.besu.ethereum.storage.keyvalue.WorldStateKeyValueStorage;
 import org.hyperledger.besu.ethereum.worldstate.DataStorageFormat;
+import org.hyperledger.besu.ethereum.worldstate.StateTrieAccountValue;
 import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive;
 import org.hyperledger.besu.ethereum.worldstate.WorldStateStorage;
 import org.hyperledger.besu.services.kvstore.InMemoryKeyValueStorage;
@@ -65,6 +81,8 @@ public class SnapServerTest {
   private WorldStateArchive archive;
 
   private final EthMessages inboundHandlers = new EthMessages();
+
+  private final Bytes32 Bytes32_MAX = Bytes32.fromHexString("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
   @Before
   public void setUp() {
@@ -94,11 +112,89 @@ public class SnapServerTest {
   }
 
   @Test
+  public void handleRequestForMaxRange() {
+    Address addr1 = Address.fromHexString("0x24defc2d149861d3d245749b81fe0e6b28e04f31");
+    Address addr2 = Address.fromHexString("0x24defc2d149861d3d245749b81fe0e6b28e04f32");
+    SnapServer server = new SnapServer(this.inboundHandlers, this.archive);
+    this.archive.getMutable().updater().createAccount(addr1, 1, Wei.ONE);
+    this.archive.getMutable().updater().createAccount(addr2, 2, Wei.of(2));
+    this.archive.getMutable().persist(null);
+    Hash worldstateRoot = this.archive.getMutable().rootHash();
+
+    GetAccountRangeMessage req = GetAccountRangeMessage.readFrom(GetAccountRangeMessage.create(
+        worldstateRoot,
+        Bytes32.ZERO,
+        Bytes32_MAX));
+
+    assertThat(req.getRootHash()).isNotEmpty();
+    assertThat(req.getRootHash().get()).isEqualTo(this.archive.getMutable().rootHash());
+
+    AccountRangeMessage resp = AccountRangeMessage.readFrom(server.constructGetAccountRangeResponse(this.archive, req));
+
+    assertThat(resp).isNotNull();
+    AccountRangeData accountRangeData = resp.accountData(false);
+    assertThat(accountRangeData.accounts()).isNotEmpty();
+    assertThat(accountRangeData.accounts()).hasSize(2);
+    assertThat(accountRangeData.accounts().get(Hash.hash(addr1))).isNotNull();
+    Bytes account1Content = accountRangeData.accounts().get(Hash.hash(addr1));
+    Bytes account2Content = accountRangeData.accounts().get(Hash.hash(addr2));
+
+    assertThat(account2Content).isNotNull();
+    assertThat(account1Content).isNotNull();
+    assertThat(accountRangeData.accounts().get(Hash.hash(addr2))).isNotNull();
+
+    StateTrieAccountValue account1Trie = StateTrieAccountValue.readFrom(new BytesValueRLPInput(account1Content, false));
+    StateTrieAccountValue account2Trie = StateTrieAccountValue.readFrom(new BytesValueRLPInput(account2Content, false));
+
+    assertThat(account1Trie.getNonce()).isEqualTo(1);
+    assertThat(account1Trie.getBalance()).isEqualTo(Wei.ONE);
+    assertThat(account2Trie.getNonce()).isEqualTo(2);
+    assertThat(account2Trie.getBalance()).isEqualTo(Wei.of(2));
+
+    assertThat(accountRangeData.proofs()).isNotEmpty();
+
+    WorldStateProofProvider proofProvider = new WorldStateProofProvider(this.worldStateStorage);
+    assertThat(accountRangeData.proofs()).hasSize(4); //TODO but why?
+
+    //proofProvider.isValidRangeProof(Bytes32.ZERO, Bytes32_MAX, worldstateRoot, accountRangeData.proofs(), List.of(addr1, addr2));
+
+  }
+
+  @Test
+  public void returnsEmptyIfWorldStateNotFound() {
+
+  }
+
+  @Test
+  public void returnsFirstAfterLimitWhenOutOfRange() {
+
+  }
+
+  @Test
+  public void mustMerkleProveStartingHashAndLastReturned() {
+
+  }
+
+  @Test
+  public void merkleProveMissingStartHashAndLastReturned() {
+
+  }
+
+  @Test
+  public void noProofsOnAllAccounts() {
+
+  }
+
+  //TODO add tests for old worldstates going back 128 blocks
+
+  @Test
   public void handleRequestForTrieNodes() {
     SnapServer server = new SnapServer(this.inboundHandlers, this.archive);
     InputStream rlpFile = this.getClass().getResourceAsStream("/snapMessages/6_1659646743327.rlp");
     try {
       GetTrieNodesMessage req = new GetTrieNodesMessage(Bytes.wrap(rlpFile.readAllBytes()));
+      //TODO add faked data to the archive.
+
       TrieNodesMessage resp = TrieNodesMessage.readFrom(
           server.constructGetTrieNodesResponse(this.archive, req));
       assertThat(resp).isNotNull();
