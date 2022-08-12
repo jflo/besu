@@ -93,9 +93,16 @@ public class SnapServer {
     final int maxResponseBytes = Math.min(range.responseBytes().intValue(), MAX_RESPONSE_SIZE);
 
     LOG.info(
-        "Receive get account range message from {} to {}",
+        "Receive get account range message from {} to {} as of worldstate {}",
         range.startKeyHash().toHexString(),
-        range.endKeyHash().toHexString());
+        range.endKeyHash().toHexString(),
+        worldStateArchive.getMutable().rootHash());
+
+    if(!worldStateArchive.getMutable().rootHash().equals(range.worldStateRootHash())) {
+      //todo rewind to requested worldstate hash if possible
+      return AccountRangeMessage.empty();
+    }
+
     final StoredMerklePatriciaTrie<Bytes, Bytes> trie =
         new StoredMerklePatriciaTrie<>(
             (location, key) ->

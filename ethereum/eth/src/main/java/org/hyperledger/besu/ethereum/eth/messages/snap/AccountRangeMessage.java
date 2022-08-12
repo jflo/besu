@@ -14,6 +14,8 @@
  */
 package org.hyperledger.besu.ethereum.eth.messages.snap;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.AbstractSnapMessageData;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.MessageData;
@@ -50,6 +52,10 @@ public final class AccountRangeMessage extends AbstractSnapMessageData {
           String.format("Message has code %d and thus is not a AccountRangeMessage.", code));
     }
     return new AccountRangeMessage(message.getData());
+  }
+
+  public static AccountRangeMessage empty() {
+    return create(Optional.empty(), new HashMap<Bytes32, Bytes>(), new ArrayList<Bytes>());
   }
 
   public static AccountRangeMessage create(

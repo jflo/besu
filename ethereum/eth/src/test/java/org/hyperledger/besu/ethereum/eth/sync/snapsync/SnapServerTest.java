@@ -153,25 +153,73 @@ public class SnapServerTest {
 
     assertThat(accountRangeData.proofs()).isNotEmpty();
 
-    WorldStateProofProvider proofProvider = new WorldStateProofProvider(this.worldStateStorage);
-    assertThat(accountRangeData.proofs()).hasSize(4); //TODO but why?
 
+    assertThat(accountRangeData.proofs()).hasSize(4); //TODO but why?
+    //WorldStateProofProvider proofProvider = new WorldStateProofProvider(this.worldStateStorage);
     //proofProvider.isValidRangeProof(Bytes32.ZERO, Bytes32_MAX, worldstateRoot, accountRangeData.proofs(), List.of(addr1, addr2));
 
   }
 
   @Test
   public void returnsEmptyIfWorldStateNotFound() {
+    Address addr1 = Address.fromHexString("0x24defc2d149861d3d245749b81fe0e6b28e04f31");
+    Address addr2 = Address.fromHexString("0x24defc2d149861d3d245749b81fe0e6b28e04f32");
+    SnapServer server = new SnapServer(this.inboundHandlers, this.archive);
+    this.archive.getMutable().updater().createAccount(addr1, 1, Wei.ONE);
+    this.archive.getMutable().persist(null);
+    Hash firstWorldStateRoot = this.archive.getMutable().rootHash();
+    this.archive.getMutable().updater().createAccount(addr2, 2, Wei.of(2));
+    this.archive.getMutable().persist(null);
 
+    GetAccountRangeMessage req = GetAccountRangeMessage.readFrom(GetAccountRangeMessage.create(
+        firstWorldStateRoot,
+        Bytes32.ZERO,
+        Bytes32_MAX));
+
+    assertThat(req.getRootHash()).isNotEmpty();
+    assertThat(req.getRootHash().get()).isEqualTo(firstWorldStateRoot);
+
+    AccountRangeMessage resp = AccountRangeMessage.readFrom(server.constructGetAccountRangeResponse(this.archive, req));
+    AccountRangeData accountRangeData = resp.accountData(false);
+    assertThat(accountRangeData.accounts()).isEmpty();
+    assertThat(accountRangeData.proofs()).isEmpty();
   }
 
   @Test
   public void returnsFirstAfterLimitWhenOutOfRange() {
+    //create  account, add to world state.
+    Address toFind = Address.fromHexString("0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
+    SnapServer server = new SnapServer(this.inboundHandlers, this.archive);
+    this.archive.getMutable().updater().createAccount(toFind, 31337, Wei.of(100));
+    this.archive.getMutable().persist(null);
+    Hash rangeLimit = Hash.hash(toFind);
+    BigInteger upperLimit = rangeLimit.copy().toBigInteger().subtract(BigInteger.ONE);
+
+    //request a range from 0 to that accounts hash - 1
+    GetAccountRangeMessage req = GetAccountRangeMessage.readFrom(GetAccountRangeMessage.create(
+        this.archive.getMutable().rootHash(),
+        Bytes32.ZERO,
+        Bytes32.wrap(upperLimit.toByteArray())
+        ));
+
+    //assert that account is returned, and is the only one.
+    AccountRangeMessage resp = AccountRangeMessage.readFrom(server.constructGetAccountRangeResponse(this.archive, req));
+    AccountRangeData accountRangeData = resp.accountData(false);
+    assertThat(accountRangeData.accounts()).isNotEmpty();
+    assertThat(accountRangeData.proofs()).isNotEmpty();
+    assertThat(accountRangeData.accounts()).hasSize(1);
+    assertThat(accountRangeData.proofs()).hasSize(2);
+    Bytes accountSlim = accountRangeData.accounts().get(Hash.hash(toFind));
+    StateTrieAccountValue cowContent = StateTrieAccountValue.readFrom(new BytesValueRLPInput(accountSlim, false));
+    assertThat(cowContent.getNonce()).isEqualTo(31337);
+    assertThat(cowContent.getBalance()).isEqualTo(Wei.of(100));
 
   }
 
   @Test
   public void mustMerkleProveStartingHashAndLastReturned() {
+    //even if the starting one doesn't exist.
+    //add 2 accounts, search for them by exact range, check the proofs for each.
 
   }
 
@@ -189,18 +237,7 @@ public class SnapServerTest {
 
   @Test
   public void handleRequestForTrieNodes() {
-    SnapServer server = new SnapServer(this.inboundHandlers, this.archive);
-    InputStream rlpFile = this.getClass().getResourceAsStream("/snapMessages/6_1659646743327.rlp");
-    try {
-      GetTrieNodesMessage req = new GetTrieNodesMessage(Bytes.wrap(rlpFile.readAllBytes()));
-      //TODO add faked data to the archive.
 
-      TrieNodesMessage resp = TrieNodesMessage.readFrom(
-          server.constructGetTrieNodesResponse(this.archive, req));
-      assertThat(resp).isNotNull();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
   }
 
 }
