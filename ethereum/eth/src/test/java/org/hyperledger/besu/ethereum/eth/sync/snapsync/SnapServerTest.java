@@ -155,9 +155,9 @@ public class SnapServerTest {
 
 
     assertThat(accountRangeData.proofs()).hasSize(4); //TODO but why?
-    //WorldStateProofProvider proofProvider = new WorldStateProofProvider(this.worldStateStorage);
-    //proofProvider.isValidRangeProof(Bytes32.ZERO, Bytes32_MAX, worldstateRoot, accountRangeData.proofs(), List.of(addr1, addr2));
-
+    WorldStateProofProvider proofProvider = new WorldStateProofProvider(this.worldStateStorage);
+    boolean proven = proofProvider.isValidRangeProof(Bytes32.ZERO, Bytes32_MAX, worldstateRoot, accountRangeData.proofs(), accountRangeData.accounts());
+    assertThat(proven).isTrue();
   }
 
   @Test
