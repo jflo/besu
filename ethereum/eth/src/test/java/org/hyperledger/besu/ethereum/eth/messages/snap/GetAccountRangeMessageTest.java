@@ -34,7 +34,8 @@ public final class GetAccountRangeMessageTest {
 
     // Perform round-trip transformation
     final MessageData initialMessage =
-        GetAccountRangeMessage.create(rootHash, startKeyHash, endKeyHash, AbstractSnapMessageData.SIZE_REQUEST);
+        GetAccountRangeMessage.create(
+            rootHash, startKeyHash, endKeyHash, AbstractSnapMessageData.SIZE_REQUEST);
     final MessageData raw = new RawMessage(SnapV1.GET_ACCOUNT_RANGE, initialMessage.getData());
 
     final GetAccountRangeMessage message = GetAccountRangeMessage.readFrom(raw);

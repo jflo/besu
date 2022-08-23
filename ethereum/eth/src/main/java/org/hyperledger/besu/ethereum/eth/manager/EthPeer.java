@@ -318,7 +318,8 @@ public class EthPeer implements Comparable<EthPeer> {
       final Hash stateRoot, final Bytes32 startKeyHash, final Bytes32 endKeyHash)
       throws PeerNotConnected {
     final GetAccountRangeMessage getAccountRangeMessage =
-        GetAccountRangeMessage.create(stateRoot, startKeyHash, endKeyHash, AbstractSnapMessageData.SIZE_REQUEST);
+        GetAccountRangeMessage.create(
+            stateRoot, startKeyHash, endKeyHash, AbstractSnapMessageData.SIZE_REQUEST);
     getAccountRangeMessage.setRootHash(Optional.of(stateRoot));
     return sendRequest(
         requestManagers.get(SnapProtocol.NAME).get(SnapV1.GET_ACCOUNT_RANGE),

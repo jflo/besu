@@ -19,6 +19,7 @@ package org.hyperledger.besu.ethereum.eth.sync.snapsync;
 import org.hyperledger.besu.ethereum.eth.manager.EthMessage;
 import org.hyperledger.besu.ethereum.eth.manager.EthMessages;
 import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

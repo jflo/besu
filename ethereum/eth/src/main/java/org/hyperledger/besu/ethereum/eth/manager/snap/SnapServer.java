@@ -14,15 +14,6 @@
  */
 package org.hyperledger.besu.ethereum.eth.manager.snap;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
-import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
-import org.apache.tuweni.bytes.Bytes;
-import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.bonsai.BonsaiPersistedWorldState;
 import org.hyperledger.besu.ethereum.eth.manager.EthMessages;
@@ -40,15 +31,22 @@ import org.hyperledger.besu.ethereum.p2p.rlpx.wire.messages.DisconnectMessage;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.messages.DisconnectMessage.DisconnectReason;
 import org.hyperledger.besu.ethereum.trie.CompactEncoding;
 import org.hyperledger.besu.ethereum.trie.MerklePatriciaTrie;
-import org.hyperledger.besu.ethereum.trie.Node;
 import org.hyperledger.besu.ethereum.trie.RangeStorageEntriesCollector;
 import org.hyperledger.besu.ethereum.trie.StoredMerklePatriciaTrie;
 import org.hyperledger.besu.ethereum.trie.TrieIterator;
 import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import kotlin.collections.ArrayDeque;
+import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.bytes.Bytes32;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,8 +55,8 @@ public class SnapServer {
 
   private final EthMessages snapMessages;
   private final WorldStateArchive worldStateArchive;
-  private static final int MAX_ENTRIES_PER_REQUEST = 100000;  //524288
-  private final static Logger LOG = LoggerFactory.getLogger(SnapServer.class);
+  private static final int MAX_ENTRIES_PER_REQUEST = 100000; // 524288
+  private static final Logger LOG = LoggerFactory.getLogger(SnapServer.class);
 
   private static final int MAX_RESPONSE_SIZE = 2 * 1024 * 1024;
 
@@ -98,8 +96,8 @@ public class SnapServer {
         range.endKeyHash().toHexString(),
         worldStateArchive.getMutable().rootHash());
 
-    if(!worldStateArchive.getMutable().rootHash().equals(range.worldStateRootHash())) {
-      //todo rewind to requested worldstate hash if possible
+    if (!worldStateArchive.getMutable().rootHash().equals(range.worldStateRootHash())) {
+      // todo rewind to requested worldstate hash if possible
       return AccountRangeMessage.empty();
     }
 
@@ -188,12 +186,12 @@ public class SnapServer {
     return StorageRangeMessage.create(slots, proofs);
   }
 
-  private MessageData constructGetBytecodesResponse(
+  public MessageData constructGetBytecodesResponse(
       final WorldStateArchive worldStateArchive, final MessageData message) {
     final GetByteCodesMessage getByteCodesMessage = GetByteCodesMessage.readFrom(message);
     final BonsaiPersistedWorldState worldState =
         (BonsaiPersistedWorldState) worldStateArchive.getMutable();
-    final GetByteCodesMessage.CodeHashes request = getByteCodesMessage.codeHashes(true);
+    final GetByteCodesMessage.CodeHashes request = getByteCodesMessage.codeHashes(false);
 
     final int maxResponseBytes = Math.min(request.responseBytes().intValue(), MAX_RESPONSE_SIZE);
     final AtomicInteger currentResponseSize = new AtomicInteger();
@@ -202,7 +200,7 @@ public class SnapServer {
 
     final ArrayList<Bytes> foundBytecodes = new ArrayList<>();
     for (Bytes32 hash : request.hashes()) {
-      final Optional<Bytes> code = worldState.getWorldStateStorage().getCode(hash, null);
+      final Optional<Bytes> code = worldState.getWorldStateStorage().getCode(null, Hash.wrap(hash));
       if (code.isEmpty()) {
         return DisconnectMessage.create(DisconnectReason.UNKNOWN);
       }
