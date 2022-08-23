@@ -25,11 +25,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.bytes.MutableBytes32;
@@ -52,6 +54,7 @@ import org.hyperledger.besu.ethereum.eth.messages.snap.AccountRangeMessage.Accou
 import org.hyperledger.besu.ethereum.eth.messages.snap.GetAccountRangeMessage;
 import org.hyperledger.besu.ethereum.eth.messages.snap.GetTrieNodesMessage;
 import org.hyperledger.besu.ethereum.eth.messages.snap.TrieNodesMessage;
+import org.hyperledger.besu.ethereum.p2p.rlpx.wire.AbstractSnapMessageData;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.MessageData;
 import org.hyperledger.besu.ethereum.proof.WorldStateProofProvider;
 import org.hyperledger.besu.ethereum.referencetests.ReferenceTestBlockchain;
@@ -112,7 +115,7 @@ public class SnapServerTest {
   }
 
   @Test
-  public void handleRequestForMaxRange() {
+  public void handleRequestForMaxRangeResponseFits() {
     Address addr1 = Address.fromHexString("0x24defc2d149861d3d245749b81fe0e6b28e04f31");
     Address addr2 = Address.fromHexString("0x24defc2d149861d3d245749b81fe0e6b28e04f32");
     SnapServer server = new SnapServer(this.inboundHandlers, this.archive);
@@ -124,7 +127,7 @@ public class SnapServerTest {
     GetAccountRangeMessage req = GetAccountRangeMessage.readFrom(GetAccountRangeMessage.create(
         worldstateRoot,
         Bytes32.ZERO,
-        Bytes32_MAX));
+        Bytes32_MAX, AbstractSnapMessageData.SIZE_REQUEST));
 
     assertThat(req.getRootHash()).isNotEmpty();
     assertThat(req.getRootHash().get()).isEqualTo(this.archive.getMutable().rootHash());
@@ -151,13 +154,49 @@ public class SnapServerTest {
     assertThat(account2Trie.getNonce()).isEqualTo(2);
     assertThat(account2Trie.getBalance()).isEqualTo(Wei.of(2));
 
-    assertThat(accountRangeData.proofs()).isNotEmpty();
-
-
-    assertThat(accountRangeData.proofs()).hasSize(4); //TODO but why?
     WorldStateProofProvider proofProvider = new WorldStateProofProvider(this.worldStateStorage);
-    boolean proven = proofProvider.isValidRangeProof(Bytes32.ZERO, Bytes32_MAX, worldstateRoot, accountRangeData.proofs(), accountRangeData.accounts());
+    boolean proven = proofProvider.isValidRangeProof(accountRangeData.accounts().firstKey(), accountRangeData.accounts().lastKey(), worldstateRoot, accountRangeData.proofs(), accountRangeData.accounts());
     assertThat(proven).isTrue();
+
+  }
+  @Test
+  public void truncatesToMaxAccountListSize() {
+    Bytes addressBase = Bytes.fromHexString("0x10000000000000000000000000000000000000");
+
+    TreeMap<Bytes32, Bytes> accounts = new TreeMap<>();
+    for(int i=1; i<21; i++){
+      Address lastAccount = Address.wrap(Bytes.concatenate(addressBase, Bytes.of(i)));
+      accounts.put(Hash.hash(lastAccount), lastAccount);
+      this.archive.getMutable().updater().createAccount(
+          lastAccount, i, Wei.of(i)
+      );
+    }
+    this.archive.getMutable().persist(null);
+    Hash worldstateRoot = this.archive.getMutable().rootHash();
+    SnapServer server = new SnapServer(this.inboundHandlers, this.archive);
+
+    GetAccountRangeMessage req = GetAccountRangeMessage.readFrom(GetAccountRangeMessage.create(
+        worldstateRoot,
+        accounts.firstKey(),
+        accounts.lastKey(), BigInteger.valueOf(10*102))); //102 bytes per account, 32 for hash, 70 for account data
+
+    assertThat(req.getRootHash()).isNotEmpty();
+    assertThat(req.getRootHash().get()).isEqualTo(this.archive.getMutable().rootHash());
+
+    AccountRangeMessage resp = AccountRangeMessage.readFrom(server.constructGetAccountRangeResponse(this.archive, req));
+
+    assertThat(resp).isNotNull();
+    AccountRangeData accountRangeData = resp.accountData(false);
+    assertThat(accountRangeData.accounts()).isNotEmpty();
+    assertThat(accountRangeData.accounts()).hasSize(10);
+
+    Object[] hashOrder = accounts.keySet().toArray();
+
+    WorldStateProofProvider proofProvider = new WorldStateProofProvider(this.worldStateStorage);
+    boolean proven = proofProvider.isValidRangeProof((Bytes32)hashOrder[0],
+        (Bytes32)hashOrder[9], worldstateRoot, accountRangeData.proofs(), accountRangeData.accounts());
+    assertThat(proven).isTrue();
+
   }
 
   @Test
@@ -174,7 +213,7 @@ public class SnapServerTest {
     GetAccountRangeMessage req = GetAccountRangeMessage.readFrom(GetAccountRangeMessage.create(
         firstWorldStateRoot,
         Bytes32.ZERO,
-        Bytes32_MAX));
+        Bytes32_MAX, BigInteger.valueOf(2)));
 
     assertThat(req.getRootHash()).isNotEmpty();
     assertThat(req.getRootHash().get()).isEqualTo(firstWorldStateRoot);
@@ -199,7 +238,7 @@ public class SnapServerTest {
     GetAccountRangeMessage req = GetAccountRangeMessage.readFrom(GetAccountRangeMessage.create(
         this.archive.getMutable().rootHash(),
         Bytes32.ZERO,
-        Bytes32.wrap(upperLimit.toByteArray())
+        Bytes32.wrap(upperLimit.toByteArray()), BigInteger.valueOf(2)
         ));
 
     //assert that account is returned, and is the only one.

@@ -57,7 +57,7 @@ public class SnapServer {
 
   private final EthMessages snapMessages;
   private final WorldStateArchive worldStateArchive;
-  private static final int MAX_ENTRIES_PER_REQUEST = 100000;
+  private static final int MAX_ENTRIES_PER_REQUEST = 100000;  //524288
   private final static Logger LOG = LoggerFactory.getLogger(SnapServer.class);
 
   private static final int MAX_RESPONSE_SIZE = 2 * 1024 * 1024;

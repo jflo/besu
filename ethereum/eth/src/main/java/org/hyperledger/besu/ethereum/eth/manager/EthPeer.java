@@ -37,6 +37,7 @@ import org.hyperledger.besu.ethereum.eth.messages.snap.SnapV1;
 import org.hyperledger.besu.ethereum.eth.peervalidation.PeerValidator;
 import org.hyperledger.besu.ethereum.p2p.rlpx.connections.PeerConnection;
 import org.hyperledger.besu.ethereum.p2p.rlpx.connections.PeerConnection.PeerNotConnected;
+import org.hyperledger.besu.ethereum.p2p.rlpx.wire.AbstractSnapMessageData;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.Capability;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.MessageData;
 import org.hyperledger.besu.ethereum.p2p.rlpx.wire.messages.DisconnectMessage.DisconnectReason;
@@ -317,7 +318,7 @@ public class EthPeer implements Comparable<EthPeer> {
       final Hash stateRoot, final Bytes32 startKeyHash, final Bytes32 endKeyHash)
       throws PeerNotConnected {
     final GetAccountRangeMessage getAccountRangeMessage =
-        GetAccountRangeMessage.create(stateRoot, startKeyHash, endKeyHash);
+        GetAccountRangeMessage.create(stateRoot, startKeyHash, endKeyHash, AbstractSnapMessageData.SIZE_REQUEST);
     getAccountRangeMessage.setRootHash(Optional.of(stateRoot));
     return sendRequest(
         requestManagers.get(SnapProtocol.NAME).get(SnapV1.GET_ACCOUNT_RANGE),

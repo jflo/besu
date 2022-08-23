@@ -50,13 +50,13 @@ public final class GetAccountRangeMessage extends AbstractSnapMessageData {
   }
 
   public static GetAccountRangeMessage create(
-      final Hash worldStateRootHash, final Bytes32 startKeyHash, final Bytes32 endKeyHash) {
+      final Hash worldStateRootHash, final Bytes32 startKeyHash, final Bytes32 endKeyHash, final BigInteger responseBytesLimit) {
     final BytesValueRLPOutput tmp = new BytesValueRLPOutput();
     tmp.startList();
     tmp.writeBytes(worldStateRootHash);
     tmp.writeBytes(startKeyHash);
     tmp.writeBytes(endKeyHash);
-    tmp.writeBigIntegerScalar(SIZE_REQUEST);
+    tmp.writeBigIntegerScalar(responseBytesLimit);
     tmp.endList();
     return new GetAccountRangeMessage(tmp.encoded());
   }
