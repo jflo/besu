@@ -202,10 +202,11 @@ public class SnapServer {
     for (Bytes32 hash : request.hashes()) {
       final Optional<Bytes> code = worldState.getWorldStateStorage().getCode(null, Hash.wrap(hash));
       if (code.isEmpty()) {
-        return DisconnectMessage.create(DisconnectReason.UNKNOWN);
+        //return DisconnectMessage.create(DisconnectReason.UNKNOWN);
+        foundBytecodes.add(Bytes.EMPTY);
+      } else {
+        foundBytecodes.add(code.get());
       }
-      foundBytecodes.add(code.get());
-
       currentResponseSize.addAndGet(foundBytecodes.size());
       if (currentResponseSize.get() > maxResponseBytes) {
         break;

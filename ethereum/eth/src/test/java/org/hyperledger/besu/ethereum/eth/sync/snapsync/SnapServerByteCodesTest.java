@@ -21,6 +21,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+
+import kotlin.collections.ArrayDeque;
+import org.apache.tuweni.bytes.Bytes;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.bonsai.BonsaiLayeredWorldState;
 import org.hyperledger.besu.ethereum.bonsai.BonsaiWorldStateArchive;
@@ -112,5 +115,32 @@ public class SnapServerByteCodesTest {
   // The order is the same as in the request, but there might be gaps if not all codes are
   // available or there might be fewer is QoS limits are reached.
   @Test
-  public void getsMostByteCodes() {}
+  public void getsMostByteCodes() {
+    BlockDataGenerator genny = new BlockDataGenerator();
+    List<Account> valid = genny.createRandomContractAccountsWithNonEmptyStorage(this.archive.getMutable(), 20);
+    List<Bytes32> missing = List.of(Bytes32.random(), Bytes32.random(), Bytes32.random());
+
+    List<Bytes32> requested = valid.stream().map(a -> Hash.hash(a.getAddress())).collect(Collectors.toList());
+    requested.add(0, missing.get(0));
+    requested.add(missing.get(2));
+    requested.add(13, missing.get(1)); //0th, last and 13th should be gaps in response
+
+    SnapServer server = new SnapServer(this.inboundHandlers, this.archive);
+
+    GetByteCodesMessage req = GetByteCodesMessage.create(requested);
+    req = GetByteCodesMessage.readFrom(req);
+    assertThat(req.getRootHash()).isEmpty();
+    ByteCodesMessage resp = ByteCodesMessage.readFrom(server.constructGetBytecodesResponse(this.archive, req));
+    assertThat(resp).isNotNull();
+    ArrayDeque<Bytes> byteCodes = resp.bytecodes(false).codes();
+    assertThat(byteCodes).hasSize(23);
+    assertThat(byteCodes.last()).isEqualTo(Bytes.EMPTY); //Are empty bytes the correct way to represent gaps?
+    byteCodes.removeLast();
+    assertThat(byteCodes.first()).isEqualTo(Bytes.EMPTY);
+    byteCodes.removeFirst();
+    assertThat(byteCodes.get(12)).isEqualTo(Bytes.EMPTY);
+    byteCodes.remove(12);
+    assertThat(byteCodes.containsAll(valid.stream().map(a -> a.getCode()).collect(Collectors.toList()))).isTrue();
+
+  }
 }
