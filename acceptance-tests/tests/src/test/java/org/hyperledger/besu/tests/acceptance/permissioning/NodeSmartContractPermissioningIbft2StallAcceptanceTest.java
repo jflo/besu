@@ -18,13 +18,16 @@ import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.ethereum.permissioning.PermissioningConfiguration;
 import org.hyperledger.besu.ethereum.permissioning.SmartContractPermissioningConfiguration;
 import org.hyperledger.besu.tests.acceptance.dsl.node.BesuNode;
+import org.hyperledger.besu.testutil.ShardedTestRunner;
 
 import java.io.IOException;
 import java.util.Optional;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
-public class NodeSmartContractPermissioningIbft2StallAcceptanceTest
+@RunWith(ShardedTestRunner.class)
+public class NodeSmartContractPermissioningIbftStallAcceptanceTest
     extends NodeSmartContractPermissioningAcceptanceTestBase {
 
   private static final String GENESIS_FILE =

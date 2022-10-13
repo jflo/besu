@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.hyperledger.besu.tests.acceptance.dsl.AcceptanceTestBase;
 import org.hyperledger.besu.tests.acceptance.dsl.node.BesuNode;
+import org.hyperledger.besu.testutil.ShardedTestRunner;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -28,11 +29,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(ShardedTestRunner.class)
 public class BadCLIOptionsPluginTest extends AcceptanceTestBase {
   private BesuNode node;
 

@@ -19,15 +19,18 @@ import org.hyperledger.besu.tests.acceptance.dsl.node.BesuNode;
 import org.hyperledger.besu.tests.acceptance.dsl.node.cluster.Cluster;
 import org.hyperledger.besu.tests.acceptance.dsl.node.cluster.ClusterConfiguration;
 import org.hyperledger.besu.tests.acceptance.dsl.node.cluster.ClusterConfigurationBuilder;
+import org.hyperledger.besu.testutil.ShardedTestRunner;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(ShardedTestRunner.class)
 public class JsonRpcWebsocketAuthenticationAcceptanceTest extends AcceptanceTestBase {
   private BesuNode nodeUsingAuthFile;
   private BesuNode nodeUsingRsaJwtPublicKey;

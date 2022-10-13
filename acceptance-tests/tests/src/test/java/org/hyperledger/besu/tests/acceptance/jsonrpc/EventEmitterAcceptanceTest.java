@@ -20,20 +20,23 @@ import org.hyperledger.besu.tests.acceptance.dsl.AcceptanceTestBase;
 import org.hyperledger.besu.tests.acceptance.dsl.node.BesuNode;
 import org.hyperledger.besu.tests.web3j.generated.EventEmitter;
 import org.hyperledger.besu.tests.web3j.generated.EventEmitter.StoredEventResponse;
+import org.hyperledger.besu.testutil.ShardedTestRunner;
 
 import java.math.BigInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.reactivex.Flowable;
 import io.reactivex.disposables.Disposable;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.web3j.protocol.core.methods.request.EthFilter;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 /*
  * This class is based around the EventEmitter solidity contract
  */
+@RunWith(ShardedTestRunner.class)
 public class EventEmitterAcceptanceTest extends AcceptanceTestBase {
 
   private BesuNode node;

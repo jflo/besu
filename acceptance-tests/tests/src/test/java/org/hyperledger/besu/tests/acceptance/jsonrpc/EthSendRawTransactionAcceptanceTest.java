@@ -20,14 +20,17 @@ import org.hyperledger.besu.tests.acceptance.dsl.node.Node;
 import org.hyperledger.besu.tests.acceptance.dsl.node.configuration.BesuNodeConfigurationBuilder;
 import org.hyperledger.besu.tests.acceptance.dsl.node.configuration.genesis.GenesisConfigurationFactory;
 import org.hyperledger.besu.tests.acceptance.dsl.transaction.account.TransferTransaction;
+import org.hyperledger.besu.testutil.ShardedTestRunner;
 
 import java.math.BigInteger;
 import java.util.function.UnaryOperator;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
-public class EthSendRawTransactionAcceptanceTest extends AcceptanceTestBase {
+@RunWith(ShardedTestRunner.class)
+public class EthSendRawTransactionTest extends AcceptanceTestBase {
   private static final long CHAIN_ID = 20211;
 
   private Account sender;

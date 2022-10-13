@@ -23,6 +23,7 @@ import org.hyperledger.besu.tests.acceptance.dsl.AcceptanceTestBase;
 import org.hyperledger.besu.tests.acceptance.dsl.WaitUtils;
 import org.hyperledger.besu.tests.acceptance.dsl.node.BesuNode;
 import org.hyperledger.besu.tests.acceptance.dsl.node.configuration.BesuNodeConfigurationBuilder;
+import org.hyperledger.besu.testutil.ShardedTestRunner;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -59,10 +60,12 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(ShardedTestRunner.class)
 public class OpenTelemetryAcceptanceTest extends AcceptanceTestBase {
 
   private static final class FakeCollector extends TraceServiceGrpc.TraceServiceImplBase {

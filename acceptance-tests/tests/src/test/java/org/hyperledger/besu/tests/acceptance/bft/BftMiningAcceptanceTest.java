@@ -21,13 +21,16 @@ import org.hyperledger.besu.ethereum.core.MiningParameters;
 import org.hyperledger.besu.tests.acceptance.dsl.account.Account;
 import org.hyperledger.besu.tests.acceptance.dsl.blockchain.Amount;
 import org.hyperledger.besu.tests.acceptance.dsl.node.BesuNode;
+import org.hyperledger.besu.testutil.ShardedTestRunner;
 
 import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+@RunWith(ShardedTestRunner.class)
 public class BftMiningAcceptanceTest extends ParameterizedBftTestBase {
 
   public BftMiningAcceptanceTest(

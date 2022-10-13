@@ -20,18 +20,21 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.hyperledger.besu.privacy.contracts.generated.DefaultFlexiblePrivacyGroupManagementContract;
 import org.hyperledger.besu.tests.acceptance.dsl.AcceptanceTestBase;
 import org.hyperledger.besu.tests.acceptance.dsl.node.BesuNode;
+import org.hyperledger.besu.testutil.ShardedTestRunner;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.web3j.protocol.core.RemoteFunctionCall;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.exceptions.TransactionException;
 import org.web3j.utils.Base64String;
 
+@RunWith(ShardedTestRunner.class)
 @SuppressWarnings("unchecked")
 public class PrivacyGroupTest extends AcceptanceTestBase {
 
