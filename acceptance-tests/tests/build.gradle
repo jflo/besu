@@ -107,7 +107,7 @@ task acceptanceTest(type: Test) {
 
   dependsOn(rootProject.installDist)
   setSystemProperties(test.getSystemProperties())
-  systemProperty 'acctests.runBesuAsProcess', 'true'
+  systemProperty 'acctests.runBesuAsProcess', 'false'
   systemProperty 'java.security.properties', "${buildDir}/resources/test/acceptanceTesting.security"
   mustRunAfter rootProject.subprojects*.test
   description = 'Runs ALL Besu acceptance tests (mainnet and non-mainnet).'
