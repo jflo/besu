@@ -35,15 +35,35 @@ public class TransactionEncoder {
 
   @FunctionalInterface
   interface Encoder {
-    void encode(Transaction transaction, RLPOutput output);
+
+    Bytes encode(final Transaction transaction);
+
+    static Encoder rlpEncoder(final RLPEncoder rlpEncoder) {
+      return transaction -> RLP.encode(rlpOutput -> rlpEncoder.encode(transaction, rlpOutput));
+    }
+
+    static Encoder sszEncoder(final SSZEncoder sszEncoder) {
+      return transaction -> SSZ.encode(sszOutput -> sszEncoder.encode(transaction, sszOutput));
+    }
+  }
+
+  interface RLPEncoder {
+    void encode(final Transaction transaction, final RLPOutput output);
+  }
+
+  interface SSZEncoder {
+    void encode(final Transaction transaction, final SSZ.SSZOutput output);
   }
 
   private static final Map<TransactionType, Encoder> TYPED_TRANSACTION_ENCODERS =
       Map.of(
-          TransactionType.ACCESS_LIST,
-          TransactionEncoder::encodeAccessList,
-          TransactionType.EIP1559,
-          TransactionEncoder::encodeEIP1559);
+          TransactionType.ACCESS_LIST, Encoder.rlpEncoder(TransactionEncoder::encodeAccessList),
+          TransactionType.EIP1559, Encoder.rlpEncoder(TransactionEncoder::encodeEIP1559),
+          TransactionType.BLOB_TX_TYPE, Encoder.sszEncoder(TransactionEncoder::encodeBlobTx));
+
+  private static void encodeBlobTx(final Transaction transaction, final SSZ.SSZOutput rlpOutput) {
+    // todo: implement
+  }
 
   public static void encodeForWire(final Transaction transaction, final RLPOutput rlpOutput) {
     final TransactionType transactionType =
@@ -75,8 +95,7 @@ public class TransactionEncoder {
               "Developer Error. A supported transaction type %s has no associated encoding logic",
               transactionType);
       return Bytes.concatenate(
-          Bytes.of(transactionType.getSerializedType()),
-          RLP.encode(rlpOutput -> encoder.encode(transaction, rlpOutput)));
+          Bytes.of(transactionType.getSerializedType()), encoder.encode(transaction));
     }
   }
 

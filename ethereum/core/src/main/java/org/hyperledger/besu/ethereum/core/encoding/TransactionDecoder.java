@@ -47,15 +47,38 @@ public class TransactionDecoder {
 
   @FunctionalInterface
   interface Decoder {
-    Transaction decode(RLPInput input);
+    Transaction decode(final Bytes input);
+
+    static Decoder rlpDecoder(final RLPDecoder rlpDecoder) {
+      return input -> rlpDecoder.decode(RLP.input(input));
+    }
+
+    static Decoder sszDecoder(final SSZDecoder sszDecoder) {
+      return input -> sszDecoder.decode(SSZ.input(input));
+    }
+  }
+
+  interface RLPDecoder {
+    Transaction decode(final RLPInput input);
+  }
+
+  interface SSZDecoder {
+    Transaction decode(final SSZ.SSZInput output);
   }
 
   private static final ImmutableMap<TransactionType, Decoder> TYPED_TRANSACTION_DECODERS =
       ImmutableMap.of(
           TransactionType.ACCESS_LIST,
-          TransactionDecoder::decodeAccessList,
+          Decoder.rlpDecoder(TransactionDecoder::decodeAccessList),
           TransactionType.EIP1559,
-          TransactionDecoder::decodeEIP1559);
+          Decoder.rlpDecoder(TransactionDecoder::decodeEIP1559),
+          TransactionType.BLOB_TX_TYPE,
+          Decoder.sszDecoder(TransactionDecoder::decodeBlob));
+
+  private static Transaction decodeBlob(final SSZ.SSZInput sszInput) {
+    // todo: implement
+    return null;
+  }
 
   private static final Supplier<SignatureAlgorithm> SIGNATURE_ALGORITHM =
       Suppliers.memoize(SignatureAlgorithmFactory::getInstance);
@@ -72,7 +95,7 @@ public class TransactionDecoder {
       final Bytes typedTransactionBytes = rlpInput.readBytes();
       final TransactionType transactionType =
           TransactionType.of(typedTransactionBytes.get(0) & 0xff);
-      return getDecoder(transactionType).decode(RLP.input(typedTransactionBytes.slice(1)));
+      return getDecoder(transactionType).decode(typedTransactionBytes.slice(1));
     }
   }
 
@@ -88,7 +111,7 @@ public class TransactionDecoder {
     } catch (final IllegalArgumentException __) {
       return decodeForWire(RLP.input(input), goQuorumCompatibilityMode);
     }
-    return getDecoder(transactionType).decode(RLP.input(input.slice(1)));
+    return getDecoder(transactionType).decode(input.slice(1));
   }
 
   private static Decoder getDecoder(final TransactionType transactionType) {
