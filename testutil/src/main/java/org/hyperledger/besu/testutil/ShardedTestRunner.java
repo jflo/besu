@@ -26,7 +26,7 @@ public class ShardedTestRunner extends BlockJUnit4ClassRunner {
   @SuppressWarnings("DoNotInvokeMessageDigestDirectly")
   private static MessageDigest setUpDigest() {
     try {
-      return MessageDigest.getInstance("SHA-1");
+      return MessageDigest.getInstance("SHA-256");
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException(e);
     }
