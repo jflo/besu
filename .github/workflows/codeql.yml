@@ -24,7 +24,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: self-hosted
+    runs-on: ubuntu-22.04
     permissions:
       actions: read
       contents: read
@@ -60,7 +60,7 @@ jobs:
     # Autobuild failed (OOM)
     # Hence, supply memory args for gradle build
     - run: |
-        JAVA_OPTS="-Xmx1000M" ./gradlew --no-scan compileJava
+        JAVA_OPTS="-Xmx2048M" ./gradlew --no-scan compileJava
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
