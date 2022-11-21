@@ -5170,13 +5170,13 @@ public class BesuCommandTest extends CommandTestAbstract {
   @Test
   public void assertThatAllPortsSpecifiedSucceeds() {
     parseCommand(
-        "--p2p-port=4",
-        "--graphql-http-port=6",
-        "--rpc-http-port=8",
-        "--rpc-ws-port=10",
-        "--metrics-port=12",
-        "--metrics-push-port=14",
-        "--miner-stratum-port=15");
+        "--p2p-port=1028",
+        "--graphql-http-port=1029",
+        "--rpc-http-port=1030",
+        "--rpc-ws-port=1031",
+        "--metrics-port=1032",
+        "--metrics-push-port=1033",
+        "--miner-stratum-port=1034");
     assertThat(commandErrorOutput.toString(UTF_8)).isEmpty();
   }
 
