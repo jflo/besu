@@ -246,7 +246,7 @@ jobs:
           path: "ethereum/referencetests/build/generated/sources/reference-test/**"
           key: ${{ runner.os }}-reftests-${{ github.sha }}
   referenceTestEthereum:
-    runs-on: ubuntu-22.04
+    runs-on: [ self-hosted, X64, Linux ]
     container: hyperledger/besu-build:1.0
     needs:
      - prepareReferenceTestEthereum
