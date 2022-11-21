@@ -60,6 +60,17 @@ jobs:
         with:
           name: besu-zip
           path: build/distributions/*.zip
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
   testWindows:
     runs-on: windows-2022
     needs: assemble
@@ -164,6 +175,17 @@ jobs:
           name: junit-integration-test-results
           path: '**/build/test-results/integrationTest/TEST-*.xml'
           retention-days: 1
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
 # Disabled until javadoc warnings have been resolved.
 #  javadoc:
 #    runs-on: ubuntu-22.04
@@ -213,6 +235,17 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: compileJmh --scan
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
   prepareReferenceTestEthereum:
     runs-on: ubuntu-22.04
     container: hyperledger/besu-build:1.0
@@ -245,6 +278,17 @@ jobs:
         with:
           path: "ethereum/referencetests/build/generated/sources/reference-test/**"
           key: ${{ runner.os }}-reftests-${{ github.sha }}
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
   referenceTestEthereum:
     runs-on: [ self-hosted, X64, Linux ]
     container: hyperledger/besu-build:1.0
@@ -293,6 +337,17 @@ jobs:
           name: junit-reference-${{ matrix.runner-index }}-test-results
           path: '**/build/test-results/test/TEST-*.xml'
           retention-days: 1
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
   acceptanceTestEthereum:
     runs-on: [ self-hosted, X64, Linux ]
     container: hyperledger/besu-build:1.0
@@ -341,6 +396,17 @@ jobs:
           name: junit-acceptance-${{ matrix.runner-index }}-test-results
           path: 'acceptance-tests/tests/build/test-results/test/TEST-*.xml'
           retention-days: 1
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
   referenceTestQbft:
     runs-on: ubuntu-22.04
     container: hyperledger/besu-build:1.0
@@ -374,3 +440,14 @@ jobs:
           name: junit-qbft-reference-test-results
           path: '**/build/test-results/referenceTests/TEST-*.xml'
           retention-days: 1
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
