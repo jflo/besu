@@ -5018,11 +5018,11 @@ public class BesuCommandTest extends CommandTestAbstract {
   @Test
   public void assertThatAllPortsSpecifiedSucceeds() {
     parseCommand(
-        "--p2p-port=9",
-        "--graphql-http-port=10",
-        "--rpc-http-port=11",
-        "--rpc-ws-port=12",
-        "--metrics-port=13",
+        "--p2p-port=4",
+        "--graphql-http-port=6",
+        "--rpc-http-port=8",
+        "--rpc-ws-port=10",
+        "--metrics-port=12",
         "--metrics-push-port=14",
         "--miner-stratum-port=15");
     assertThat(commandErrorOutput.toString(UTF_8)).isEmpty();
