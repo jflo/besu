@@ -317,7 +317,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: "**/*.class"
-          key: ${{ runner.os }}-build-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
       - name: Cache acceptance test classes
         uses: actions/cache@v3
         with:
