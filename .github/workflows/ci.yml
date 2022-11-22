@@ -125,7 +125,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: "**/*.class"
-          key: ${{ runner.os }}-build-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
       - name: test
         uses: gradle/gradle-build-action@v2
         with:
@@ -163,7 +163,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: "**/*.class"
-          key: ${{ runner.os }}-build-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
       - name: test
         uses: gradle/gradle-build-action@v2
         with:
@@ -230,7 +230,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: "**/*.class"
-          key: ${{ runner.os }}-build-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
       - name: test
         uses: gradle/gradle-build-action@v2
         with:
@@ -268,7 +268,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: "**/*.class"
-          key: ${{ runner.os }}-build-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
       - name: generate ethereum reference tests
         uses: gradle/gradle-build-action@v2
         with:
@@ -315,7 +315,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: "**/*.class"
-          key: ${{ runner.os }}-build-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
       - name: Cache reference tests
         uses: actions/cache@v3
         with:
@@ -350,6 +350,7 @@ jobs:
           user_id: ${{ steps.get_uid.outputs.uid }}
   acceptanceTestEthereum:
     runs-on: [ self-hosted, X64, Linux ]
+    name: "Acceptance Runner #${{ matrix.runner-index }}: Run acceptance tests in parallel"
     container: hyperledger/besu-build:1.0
     needs:
       - runner-indexes
@@ -387,6 +388,8 @@ jobs:
           glob: 'acceptance-tests/tests/build/classes/**.class'
           split-total: ${{ env.total-runners }}
           split-index: ${{ matrix.runner-index }}
+      - name: debug gradle command
+        run: 'echo "${{ steps.split-tests.outputs.test-suite }}"'
       - name: run acceptance tests
         run: ./gradlew acceptanceTest $(echo ${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /') --scan
       - name: Upload Test Report
@@ -428,7 +431,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: "**/*.class"
-          key: ${{ runner.os }}-build-${{ github.sha }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
       - name: qbft reference tests
         uses: gradle/gradle-build-action@v2
         with:
