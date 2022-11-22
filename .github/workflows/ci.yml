@@ -385,7 +385,7 @@ jobs:
         id: split-tests
         uses: chaosaffe/split-tests@v1-alpha.1
         with:
-          glob: 'acceptance-tests/tests/**/*.java'
+          glob: 'acceptance-tests/tests/src/test/java/org/hyperledger/besu/tests/acceptance/**/*Test.java'
           split-total: ${{ env.total-runners }}
           split-index: ${{ matrix.runner-index }}
       - name: debug gradle command
