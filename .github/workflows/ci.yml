@@ -27,6 +27,16 @@ jobs:
         with:
           cache-read-only: false
           arguments: compileJava compileTestJava --scan -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=4
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
       - name: Cache classes
         uses: actions/cache@v3
         with:
@@ -47,7 +57,7 @@ jobs:
           distribution: adopt
           java-version: 17
           cache: gradle
-      - name: Cache classes
+      - name: Restore classes
         uses: actions/cache@v3
         with:
           path: "**/*.class"
@@ -60,16 +70,6 @@ jobs:
         with:
           name: besu-zip
           path: build/distributions/*.zip
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
-      - name: Correct Ownership in GITHUB_WORKSPACE directory
-        uses: peter-murray/reset-workspace-ownership-action@v1
-        with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
   testWindows:
     runs-on: windows-2022
     needs: assemble
@@ -120,7 +120,7 @@ jobs:
           distribution: adopt
           java-version: 17
           cache: gradle
-      - name: Cache classes
+      - name: Restore classes
         uses: actions/cache@v3
         with:
           path: "**/*.class"
@@ -158,7 +158,7 @@ jobs:
           distribution: adopt
           java-version: 17
           cache: gradle
-      - name: Cache classes
+      - name: Restore classes
         uses: actions/cache@v3
         with:
           path: "**/*.class"
@@ -167,6 +167,16 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: integrationTest --scan
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -174,17 +184,7 @@ jobs:
           name: junit-integration-test-results
           path: '**/build/test-results/integrationTest/TEST-*.xml'
           retention-days: 1
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
 
-      - name: Correct Ownership in GITHUB_WORKSPACE directory
-        uses: peter-murray/reset-workspace-ownership-action@v1
-        with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
 # Disabled until javadoc warnings have been resolved.
 #  javadoc:
 #    runs-on: ubuntu-22.04
@@ -225,7 +225,7 @@ jobs:
           distribution: adopt
           java-version: 17
           cache: gradle
-      - name: Cache classes
+      - name: Restore classes
         uses: actions/cache@v3
         with:
           path: "**/*.class"
@@ -240,7 +240,6 @@ jobs:
           actions_user_id=`id -u $USER`
           echo $actions_user_id
           echo ::set-output name=uid::$actions_user_id
-
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
@@ -263,7 +262,7 @@ jobs:
           distribution: adopt
           java-version: 17
           cache: gradle
-      - name: Cache classes
+      - name: Restore classes
         uses: actions/cache@v3
         with:
           path: "**/*.class"
@@ -272,22 +271,21 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: ethereum:referencetests:blockchainReferenceTests ethereum:referencetests:generalstateReferenceTests ethereum:referencetests:generalstateRegressionReferenceTests --scan
-      - name: Cache reference tests
-        uses: actions/cache@v3
-        with:
-          path: "ethereum/referencetests/build/generated/sources/reference-test/**"
-          key: ${{ runner.os }}-reftests-${{ github.sha }}
       - name: Get Actions user id
         id: get_uid
         run: |
           actions_user_id=`id -u $USER`
           echo $actions_user_id
           echo ::set-output name=uid::$actions_user_id
-
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
           user_id: ${{ steps.get_uid.outputs.uid }}
+      - name: Cache reference tests
+        uses: actions/cache@v3
+        with:
+          path: "ethereum/referencetests/build/generated/sources/reference-test/**"
+          key: ${{ runner.os }}-reftests-${{ github.sha }}
   referenceTestEthereum:
     runs-on: [ self-hosted, X64, Linux ]
     container: hyperledger/besu-build:1.0
@@ -310,12 +308,12 @@ jobs:
           distribution: adopt
           java-version: 17
           cache: gradle
-      - name: Cache classes
+      - name: Restore classes
         uses: actions/cache@v3
         with:
           path: "**/*.class"
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
-      - name: Cache reference tests
+      - name: Restore reference tests
         uses: actions/cache@v3
         with:
           path: "ethereum/referencetests/build/generated/sources/reference-test/**"
@@ -329,6 +327,16 @@ jobs:
           split-index: ${{ matrix.runner-index }}
       - name: run reference tests
         run: ./gradlew ethereum:referenceTests:referenceTests $(echo ${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /') --scan
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -336,17 +344,6 @@ jobs:
           name: junit-reference-${{ matrix.runner-index }}-test-results
           path: '**/build/test-results/test/TEST-*.xml'
           retention-days: 1
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
-
-      - name: Correct Ownership in GITHUB_WORKSPACE directory
-        uses: peter-murray/reset-workspace-ownership-action@v1
-        with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
   acceptanceTestEthereum:
     runs-on: [ self-hosted, X64, Linux ]
     name: "Acceptance Runner #${{ matrix.runner-index }}: Run acceptance tests in parallel"
@@ -368,7 +365,7 @@ jobs:
           distribution: adopt
           java-version: 17
           cache: gradle
-      - name: Cache classes
+      - name: Restore classes
         uses: actions/cache@v3
         with:
           path: "**/*.class"
@@ -384,6 +381,16 @@ jobs:
         run: 'echo "${{ steps.split-tests.outputs.test-suite }}"'
       - name: run acceptance tests
         run: ./gradlew acceptanceTest $(echo ${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /') --scan
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -391,17 +398,6 @@ jobs:
           name: junit-acceptance-${{ matrix.runner-index }}-test-results
           path: 'acceptance-tests/tests/build/test-results/test/TEST-*.xml'
           retention-days: 1
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
-
-      - name: Correct Ownership in GITHUB_WORKSPACE directory
-        uses: peter-murray/reset-workspace-ownership-action@v1
-        with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
   referenceTestQbft:
     runs-on: [self-hosted, Linux, X64]
     container: hyperledger/besu-build:1.0
@@ -419,7 +415,7 @@ jobs:
           distribution: adopt
           java-version: 17
           cache: gradle
-      - name: Cache classes
+      - name: Restore classes
         uses: actions/cache@v3
         with:
           path: "**/*.class"
@@ -428,6 +424,16 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: consensus:qbft:referencetests --scan
+      - name: Get Actions user id
+        id: get_uid
+        run: |
+          actions_user_id=`id -u $USER`
+          echo $actions_user_id
+          echo ::set-output name=uid::$actions_user_id
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ steps.get_uid.outputs.uid }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -435,14 +441,3 @@ jobs:
           name: junit-qbft-reference-test-results
           path: '**/build/test-results/referenceTests/TEST-*.xml'
           retention-days: 1
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
-
-      - name: Correct Ownership in GITHUB_WORKSPACE directory
-        uses: peter-murray/reset-workspace-ownership-action@v1
-        with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
