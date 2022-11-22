@@ -373,18 +373,11 @@ jobs:
         with:
           path: "**/*.class"
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
-      - name: Cache acceptance test classes
-        uses: actions/cache@v3
-        with:
-          path: |
-            acceptance-tests/tests/build/classes/**.class
-            !acceptance-tests/**/privacy/**.class
-          key: ${{ runner.os }}-acceptance-tests-${{ github.sha }}
       - name: Split tests
         id: split-tests
         uses: chaosaffe/split-tests@v1-alpha.1
         with:
-          glob: 'acceptance-tests/tests/build/classes/**.class'
+          glob: 'acceptance-tests/tests/**/*.java'
           split-total: ${{ env.total-runners }}
           split-index: ${{ matrix.runner-index }}
       - name: debug gradle command
