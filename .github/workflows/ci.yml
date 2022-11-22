@@ -10,7 +10,7 @@ env:
 
 jobs:
   compile:
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
@@ -33,7 +33,7 @@ jobs:
           path: "**/*.class"
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
   assemble:
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, Linux, X64]
     needs: compile
     container: hyperledger/besu-build:1.0
     timeout-minutes: 30
@@ -66,7 +66,6 @@ jobs:
           actions_user_id=`id -u $USER`
           echo $actions_user_id
           echo ::set-output name=uid::$actions_user_id
-
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
@@ -145,7 +144,7 @@ jobs:
           path: '**/build/reports/*'
           retention-days: 1
   integration-test:
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, Linux, X64]
     needs: compile
     timeout-minutes: 30
     container: hyperledger/besu-build:1.0
@@ -212,7 +211,7 @@ jobs:
 #        with:
 #          arguments: javadoc --scan
   compileJmh:
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, Linux, X64]
     container: hyperledger/besu-build:1.0
     needs: compile
     timeout-minutes: 30
@@ -247,7 +246,7 @@ jobs:
         with:
           user_id: ${{ steps.get_uid.outputs.uid }}
   prepareReferenceTestEthereum:
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, Linux, X64]
     container: hyperledger/besu-build:1.0
     needs: compile
     timeout-minutes: 30
@@ -411,7 +410,7 @@ jobs:
         with:
           user_id: ${{ steps.get_uid.outputs.uid }}
   referenceTestQbft:
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, Linux, X64]
     container: hyperledger/besu-build:1.0
     needs: compile
     timeout-minutes: 30
