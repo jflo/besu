@@ -258,7 +258,6 @@ jobs:
           user_id: ${{ steps.get_uid.outputs.uid }}
   prepareReferenceTestEthereum:
     runs-on: [self-hosted, Linux, X64]
-    container: hyperledger/besu-build:1.0
     needs: compile
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
