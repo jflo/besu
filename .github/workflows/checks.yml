@@ -34,3 +34,5 @@ jobs:
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
           user_id: 1003
+      - name: docker system prune
+        run: docker system prune --volumes -f
