@@ -15,3 +15,7 @@ jobs:
       - uses: gradle/wrapper-validation-action@v1
       - name: list perms
         run: ls -la
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: 1003

@@ -48,6 +48,10 @@ jobs:
       - name: publish
         if: ${{ github.actor != 'dependabot[bot]' && (contains('refs/heads/release-', github.ref) || github.ref == 'refs/heads/main') }}
         run: ./gradlew --no-daemon "-Pbranch=${{ github.head_ref || github.ref_name }}" dockerUpload
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: 1003
   buildArm64Docker:
     runs-on: [self-hosted, ARM64, Linux]
     if: ${{ github.actor != 'dependabot[bot]' }}
@@ -93,3 +97,7 @@ jobs:
           architecture: arm64
         with:
           arguments: "-Pbranch=${{ github.head_ref || github.ref_name }} dockerUpload"
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: 1003
