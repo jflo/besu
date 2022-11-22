@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   validation:
     name: "Gradle Wrapper Validation"
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - name: list perms
         run: ls -la
