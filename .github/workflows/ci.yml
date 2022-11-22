@@ -14,19 +14,27 @@ jobs:
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
+      - name: list perms
+        run: ls -la
       - name: Checkout Repo
         uses: actions/checkout@v3
+      - name: list perms
+        run: ls -la
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
           distribution: adopt
           java-version: 17
           cache: gradle
+      - name: list perms
+        run: ls -la
       - name: Compile
         uses: gradle/gradle-build-action@v2
         with:
           cache-read-only: false
           arguments: compileJava compileTestJava --scan -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=4
+      - name: list perms
+        run: ls -la
       - name: Get Actions user id
         id: get_uid
         run: |
@@ -37,11 +45,15 @@ jobs:
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
           user_id: ${{ steps.get_uid.outputs.uid }}
+      - name: list perms
+        run: ls -la
       - name: Cache classes
         uses: actions/cache@v3
         with:
           path: "**/*.class"
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
+      - name: list perms
+        run: ls -la
   assemble:
     runs-on: [self-hosted, Linux, X64]
     needs: compile
