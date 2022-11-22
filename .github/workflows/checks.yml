@@ -12,24 +12,33 @@ jobs:
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
+      - name: list perms
+        run: ls -la
       - name: Checkout Repo
         uses: actions/checkout@v3
+      - name: list perms
+        run: ls -la
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
           distribution: adopt
           java-version: 17
           cache: gradle
+      - name: list perms
+        run: ls -la
       - name: spotless
         run: ./gradlew --no-daemon --parallel clean spotlessCheck
+      - name: list perms
+        run: ls -la
       - name: Get Actions user id
         id: get_uid
         run: |
           actions_user_id=`id -u $USER`
           echo $actions_user_id
           echo ::set-output name=uid::$actions_user_id
-
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
           user_id: ${{ steps.get_uid.outputs.uid }}
+      - name: list perms
+        run: ls -la

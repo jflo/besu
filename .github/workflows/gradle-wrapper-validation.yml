@@ -7,5 +7,11 @@ jobs:
     name: "Gradle Wrapper Validation"
     runs-on: ubuntu-22.04
     steps:
+      - name: list perms
+        run: ls -la
       - uses: actions/checkout@v2
+      - name: list perms
+        run: ls -la
       - uses: gradle/wrapper-validation-action@v1
+      - name: list perms
+        run: ls -la
