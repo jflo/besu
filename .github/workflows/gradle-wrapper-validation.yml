@@ -15,5 +15,3 @@ jobs:
       - uses: gradle/wrapper-validation-action@v1
       - name: list perms
         run: ls -la
-      - name: docker system prune
-        run: docker system prune --volumes -f
