@@ -337,7 +337,7 @@ jobs:
         if: always() # always run even if the previous step fails
         with:
           name: junit-reference-${{ matrix.runner-index }}-test-results
-          path: '**/build/test-results/test/TEST-*.xml'
+          path: '**/build/test-results/referenceTests/TEST-*.xml'
           retention-days: 1
   acceptanceTestEthereum:
     runs-on: [ self-hosted, X64, Linux ]
@@ -388,7 +388,7 @@ jobs:
         if: always() # always run even if the previous step fails
         with:
           name: junit-acceptance-${{ matrix.runner-index }}-test-results
-          path: '**/build/test-results/acceptance-tests/tests/TEST-*.xml'
+          path: 'acceptance-tests/tests/build/test-results/acceptanceTest/TEST-*.xml'
           retention-days: 1
   referenceTestQbft:
     runs-on: [self-hosted, Linux, X64]
