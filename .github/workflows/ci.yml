@@ -328,7 +328,6 @@ jobs:
   acceptanceTestEthereum:
     runs-on: [ self-hosted, X64, Linux ]
     name: "Acceptance Runner #${{ matrix.runner-index }}: Run acceptance tests in parallel"
-    container: hyperledger/besu-build:1.0
     needs:
       - runner-indexes
       - compile
