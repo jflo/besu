@@ -373,10 +373,12 @@ jobs:
           glob: 'acceptance-tests/tests/src/test/java/org/hyperledger/besu/tests/acceptance/**/*Test.java'
           split-total: ${{ env.total-runners }}
           split-index: ${{ matrix.runner-index }}
-      - name: debug gradle command
+      - name: debug test list
         run: 'echo "${{ steps.split-tests.outputs.test-suite }}"'
+      - name: format gradle args
+        run: echo "gradle_args=${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /'" >> $GITHUB_ENV
       - name: run acceptance tests
-        run: ./gradlew acceptanceTest $(echo ${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /') --scan
+        run: ./gradlew acceptanceTest ${{env.gradle_args}} --scan
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
