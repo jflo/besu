@@ -35,16 +35,10 @@ jobs:
           arguments: compileJava compileTestJava --scan -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=4
       - name: list perms
         run: ls -la
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
+          user_id: 1003
       - name: list perms
         run: ls -la
       - name: Cache classes
@@ -179,16 +173,10 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: integrationTest --scan
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
+          user_id: 1003
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -246,16 +234,10 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: compileJmh --scan
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
+          user_id: 1003
   prepareReferenceTestEthereum:
     runs-on: [self-hosted, Linux, X64]
     needs: compile
@@ -282,16 +264,10 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: ethereum:referencetests:blockchainReferenceTests ethereum:referencetests:generalstateReferenceTests ethereum:referencetests:generalstateRegressionReferenceTests --scan
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
+          user_id: 1003
       - name: Cache reference tests
         uses: actions/cache@v3
         with:
@@ -338,16 +314,10 @@ jobs:
           split-index: ${{ matrix.runner-index }}
       - name: run reference tests
         run: ./gradlew ethereum:referenceTests:referenceTests $(echo ${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /') --scan
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
+          user_id: 1003
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -392,16 +362,10 @@ jobs:
         run: 'echo "${{ steps.split-tests.outputs.test-suite }}"'
       - name: run acceptance tests
         run: ./gradlew acceptanceTest $(echo ${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /') --scan
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
+          user_id: 1003
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -435,16 +399,10 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: consensus:qbft:referencetests --scan
-      - name: Get Actions user id
-        id: get_uid
-        run: |
-          actions_user_id=`id -u $USER`
-          echo $actions_user_id
-          echo ::set-output name=uid::$actions_user_id
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: ${{ steps.get_uid.outputs.uid }}
+          user_id: 1003
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
