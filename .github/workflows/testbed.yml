@@ -23,8 +23,8 @@ jobs:
         uses: chaosaffe/split-tests@v1-alpha.1
         with:
           glob: 'acceptance-tests/tests/src/test/java/org/hyperledger/besu/tests/acceptance/**/*Test.java'
-          split-total: ${{ env.total-runners }}
-          split-index: ${{ matrix.runner-index }}
+          split-total: 1
+          split-index: 0
       - name: debug test list
         run: 'echo "${{ steps.split-tests.outputs.test-suite }}"'
       - name: format gradle args
