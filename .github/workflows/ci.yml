@@ -330,6 +330,8 @@ jobs:
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
           user_id: ${{ env.runner_uid }}
+      - name: where reports
+        run: find . -name TEST-*.xml -print
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -379,12 +381,14 @@ jobs:
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
           user_id: ${{ env.runner_uid }}
+      - name: where reports
+        run: find . -name TEST-*.xml -print
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
         with:
           name: junit-acceptance-${{ matrix.runner-index }}-test-results
-          path: 'build/test-results/acceptance-tests/tests/TEST-*.xml'
+          path: '**/build/test-results/acceptance-tests/tests/TEST-*.xml'
           retention-days: 1
   referenceTestQbft:
     runs-on: [self-hosted, Linux, X64]
