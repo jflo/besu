@@ -3,32 +3,33 @@ on:
   push:
 
 jobs:
-  runs-on: [ self-hosted, X64, Linux ]
-  name: "sandbox"
-  timeout-minutes: 30
-  steps:
-    - name: export runner UID
-      run: echo "runner_uid=$UID" >> $GITHUB_ENV
-    - name: Checkout Repo
-      uses: actions/checkout@v3
-    - name: Set up Java
-      uses: actions/setup-java@v3
-      with:
-        distribution: adopt
-        java-version: 17
-        cache: gradle
-    - name: Split tests
-      id: split-tests
-      uses: chaosaffe/split-tests@v1-alpha.1
-      with:
-        glob: 'acceptance-tests/tests/src/test/java/org/hyperledger/besu/tests/acceptance/**/*Test.java'
-        split-total: ${{ env.total-runners }}
-        split-index: ${{ matrix.runner-index }}
-    - name: debug test list
-      run: 'echo "${{ steps.split-tests.outputs.test-suite }}"'
-    - name: format gradle args
-      run: echo "gradle_args="; echo "${{ steps.split-tests.outputs.test-suite }}" | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /' >> $GITHUB_ENV
-    - name: args are
-      run: ${{ env.gradle_args }}
-    - name: run acceptance tests
-      run: echo "./gradlew acceptanceTest ${{env.gradle_args}} --scan"
+  sandbox:
+    runs-on: [ self-hosted, X64, Linux ]
+    name: "sandbox"
+    timeout-minutes: 30
+    steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: adopt
+          java-version: 17
+          cache: gradle
+      - name: Split tests
+        id: split-tests
+        uses: chaosaffe/split-tests@v1-alpha.1
+        with:
+          glob: 'acceptance-tests/tests/src/test/java/org/hyperledger/besu/tests/acceptance/**/*Test.java'
+          split-total: ${{ env.total-runners }}
+          split-index: ${{ matrix.runner-index }}
+      - name: debug test list
+        run: 'echo "${{ steps.split-tests.outputs.test-suite }}"'
+      - name: format gradle args
+        run: echo "gradle_args="; echo "${{ steps.split-tests.outputs.test-suite }}" | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /' >> $GITHUB_ENV
+      - name: args are
+        run: ${{ env.gradle_args }}
+      - name: run acceptance tests
+        run: echo "./gradlew acceptanceTest ${{env.gradle_args}} --scan"
