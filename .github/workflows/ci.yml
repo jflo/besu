@@ -51,7 +51,6 @@ jobs:
   assemble:
     runs-on: [self-hosted, Linux, X64]
     needs: compile
-    container: hyperledger/besu-build:1.0
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
@@ -153,7 +152,6 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     needs: compile
     timeout-minutes: 30
-    container: hyperledger/besu-build:1.0
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
       - name: Checkout Repo
@@ -212,7 +210,6 @@ jobs:
 #          arguments: javadoc --scan
   compileJmh:
     runs-on: [self-hosted, Linux, X64]
-    container: hyperledger/besu-build:1.0
     needs: compile
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
@@ -275,7 +272,6 @@ jobs:
           key: ${{ runner.os }}-reftests-${{ github.sha }}
   referenceTestEthereum:
     runs-on: [ self-hosted, X64, Linux ]
-    container: hyperledger/besu-build:1.0
     needs:
      - prepareReferenceTestEthereum
      - runner-indexes
@@ -374,7 +370,6 @@ jobs:
           retention-days: 1
   referenceTestQbft:
     runs-on: [self-hosted, Linux, X64]
-    container: hyperledger/besu-build:1.0
     needs: compile
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
