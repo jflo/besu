@@ -9,6 +9,8 @@ jobs:
     runs-on: [self-hosted, X64, Linux]
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: Set up Java
@@ -51,11 +53,13 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: 1003
+          user_id: ${{ env.runner_uid }}
   buildArm64Docker:
     runs-on: [self-hosted, ARM64, Linux]
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: Set up Java
@@ -100,4 +104,4 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: 1003
+          user_id: ${{ env.runner_uid }}

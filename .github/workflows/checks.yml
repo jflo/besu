@@ -8,10 +8,11 @@ on:
 jobs:
   spotless:
     runs-on: [self-hosted, Linux, X64]
-    container: hyperledger/besu-build:1.0
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: list perms
         run: ls -la
       - name: Checkout Repo
@@ -33,4 +34,4 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: 1003
+          user_id: "${{ env.runner_uid }}
