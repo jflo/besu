@@ -14,8 +14,8 @@ jobs:
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
-      - name: runner UID
-        run: echo "runner_uid="`id -u` >> $GITHUB_ENV
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: list perms
         run: ls -la
       - name: Checkout Repo
@@ -56,6 +56,8 @@ jobs:
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: Set up Java
@@ -77,6 +79,10 @@ jobs:
         with:
           name: besu-zip
           path: build/distributions/*.zip
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: "${{env.runner_uid}}"
   testWindows:
     runs-on: windows-2022
     needs: assemble
@@ -156,6 +162,8 @@ jobs:
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: Set up Java
@@ -176,7 +184,7 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: 1003
+          user_id: ${{ env.runner_uid }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -216,6 +224,8 @@ jobs:
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: Set up Java
@@ -236,13 +246,15 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: 1003
+          user_id: ${{ env.runner_uid }}
   prepareReferenceTestEthereum:
     runs-on: [self-hosted, Linux, X64]
     needs: compile
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: Checkout Repo
         uses: actions/checkout@v3
         with:
@@ -266,7 +278,7 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: 1003
+          user_id: ${{ env.runner_uid }}
       - name: Cache reference tests
         uses: actions/cache@v3
         with:
@@ -283,6 +295,8 @@ jobs:
       matrix:
         runner-index: ${{ fromjson(needs.runner-indexes.outputs.json) }}
     steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: Checkout Repo
         uses: actions/checkout@v3
         with:
@@ -315,7 +329,7 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: 1003
+          user_id: ${{ env.runner_id }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -335,6 +349,8 @@ jobs:
       matrix:
         runner-index: ${{ fromjson(needs.runner-indexes.outputs.json) }}
     steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: Set up Java
@@ -362,13 +378,13 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: 1003
+          user_id: ${{ env.runner_id }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
         with:
           name: junit-acceptance-${{ matrix.runner-index }}-test-results
-          path: 'build/test-results/acceptance-tests/tests/tests/TEST-*.xml'
+          path: 'build/test-results/acceptance-tests/tests/TEST-*.xml'
           retention-days: 1
   referenceTestQbft:
     runs-on: [self-hosted, Linux, X64]
@@ -376,6 +392,8 @@ jobs:
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: Checkout Repo
         uses: actions/checkout@v3
         with:
@@ -398,7 +416,7 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: 1003
+          user_id: ${{ env.runner_id }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails

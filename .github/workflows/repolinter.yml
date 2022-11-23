@@ -16,19 +16,22 @@ on:
 jobs:
   build:
     runs-on: [self-hosted, Linux, X64]
-    container: ghcr.io/todogroup/repolinter:v0.10.1
     steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
       - name: list perms
         run: ls -la
       - name: Checkout Code
         uses: actions/checkout@v3
       - name: list perms
         run: ls -la
-      - name: Lint Repo
-        run: bundle exec /app/bin/repolinter.js --rulesetUrl https://raw.githubusercontent.com/hyperledger-labs/hyperledger-community-management-tools/main/repo_structure/repolint.json --format markdown
+      - name: 'Run Repolinter'
+        uses: newrelic/repolinter-action@v1
+        with:
+          config_url: https://raw.githubusercontent.com/hyperledger-labs/hyperledger-community-management-tools/main/repo_structure/repolint.json
       - name: list perms
         run: ls -la
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: 1003
+          user_id: ${{ env.runner_uid }}
