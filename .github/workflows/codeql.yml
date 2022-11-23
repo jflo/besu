@@ -38,14 +38,8 @@ jobs:
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
 
     steps:
-    - name: export runner UID
-      run: echo "runner_uid=$UID" >> $GITHUB_ENV
-    - name: list perms
-      run: ls -la
     - name: Checkout repository
       uses: actions/checkout@v3
-    - name: list perms
-      run: ls -la
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
@@ -60,11 +54,5 @@ jobs:
     # Hence, supply memory args for gradle build
     - run: |
         JAVA_OPTS="-Xmx2048M" ./gradlew --no-scan compileJava
-    - name: list perms
-      run: ls -la
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
-    - name: Correct Ownership in GITHUB_WORKSPACE directory
-      uses: peter-murray/reset-workspace-ownership-action@v1
-      with:
-        user_id: ${{ env.runner_uid }}
