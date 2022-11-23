@@ -40,7 +40,7 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: "${{env.runner_uid}}"
+          user_id: ${{env.runner_uid}}
       - name: list perms
         run: ls -la
       - name: Cache classes
@@ -82,7 +82,7 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: "${{env.runner_uid}}"
+          user_id: ${{env.runner_uid}}
   testWindows:
     runs-on: windows-2022
     needs: assemble
@@ -329,7 +329,7 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: ${{ env.runner_id }}
+          user_id: ${{ env.runner_uid }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -378,7 +378,7 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: ${{ env.runner_id }}
+          user_id: ${{ env.runner_uid }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -416,7 +416,7 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: ${{ env.runner_id }}
+          user_id: ${{ env.runner_uid }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
