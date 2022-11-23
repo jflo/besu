@@ -34,4 +34,4 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: "${{ env.runner_uid }}
+          user_id: ${{ env.runner_uid }}
