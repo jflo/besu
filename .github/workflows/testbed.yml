@@ -4,15 +4,8 @@ on:
 
 jobs:
   runs-on: [ self-hosted, X64, Linux ]
-  name: "Acceptance Runner #${{ matrix.runner-index }}: Run acceptance tests in parallel"
-  needs:
-    - runner-indexes
-    - compile
+  name: "sandbox"
   timeout-minutes: 30
-  if: ${{ github.actor != 'dependabot[bot]' }}
-  strategy:
-    matrix:
-      runner-index: ${{ fromjson(needs.runner-indexes.outputs.json) }}
   steps:
     - name: export runner UID
       run: echo "runner_uid=$UID" >> $GITHUB_ENV
