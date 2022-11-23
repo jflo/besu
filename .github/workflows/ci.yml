@@ -376,7 +376,9 @@ jobs:
       - name: debug test list
         run: 'echo "${{ steps.split-tests.outputs.test-suite }}"'
       - name: format gradle args
-        run: echo "gradle_args=${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /'" >> $GITHUB_ENV
+        run: echo "gradle_args="; echo $(${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /') >> $GITHUB_ENV
+      - name: args are
+        run: ${{ env.gradle_args }}
       - name: run acceptance tests
         run: ./gradlew acceptanceTest ${{env.gradle_args}} --scan
       - name: Correct Ownership in GITHUB_WORKSPACE directory
