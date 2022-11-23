@@ -6,7 +6,7 @@ on:
 
 env:
   GRADLE_OPTS: "-Xmx4g -Dorg.gradle.daemon=false"
-  total-runners: 8
+  total-runners: 6
 
 jobs:
   compile:
@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
+      - name: runner UID
+        run: echo "runner_uid="`id -u` >> $GITHUB_ENV
       - name: list perms
         run: ls -la
       - name: Checkout Repo
@@ -38,7 +40,7 @@ jobs:
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
-          user_id: 1003
+          user_id: "${{env.runner_uid}}"
       - name: list perms
         run: ls -la
       - name: Cache classes
@@ -366,7 +368,7 @@ jobs:
         if: always() # always run even if the previous step fails
         with:
           name: junit-acceptance-${{ matrix.runner-index }}-test-results
-          path: 'acceptance-tests/tests/build/test-results/test/TEST-*.xml'
+          path: 'build/test-results/acceptance-tests/tests/tests/TEST-*.xml'
           retention-days: 1
   referenceTestQbft:
     runs-on: [self-hosted, Linux, X64]
