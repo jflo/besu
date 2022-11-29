@@ -25,11 +25,13 @@ jobs:
           glob: 'acceptance-tests/tests/src/test/java/org/hyperledger/besu/tests/acceptance/**/*Test.java'
           split-total: 1
           split-index: 0
-      - name: debug test list
-        run: 'echo "${{ steps.split-tests.outputs.test-suite }}"'
+      - name: write out test list
+        run: 'echo "${{ steps.split-tests.outputs.test-suite }}" >> testList.txt'
       - name: format gradle args
-        run: echo "gradle_args="; echo "${{ steps.split-tests.outputs.test-suite }}" | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /' >> $GITHUB_ENV
+        run: cat testList.txt | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /' >> gradleArgs.txt
       - name: args are
-        run: ${{ env.gradle_args }}
+        run: cat gradleArgs.txt
       - name: run acceptance tests
-        run: echo "./gradlew acceptanceTest ${{env.gradle_args}} --scan"
+        run: echo "./gradlew acceptanceTest `cat gradleArgs.txt` --scan"
+      - name: cleanup tempfiles
+        run: rm testList.txt gradleArgs.txt
