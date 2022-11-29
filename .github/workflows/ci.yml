@@ -373,14 +373,16 @@ jobs:
           glob: 'acceptance-tests/tests/src/test/java/org/hyperledger/besu/tests/acceptance/**/*Test.java'
           split-total: ${{ env.total-runners }}
           split-index: ${{ matrix.runner-index }}
-      - name: debug test list
-        run: 'echo "${{ steps.split-tests.outputs.test-suite }}"'
+      - name: write out test list
+        run: echo "${{ steps.split-tests.outputs.test-suite }}" >> testList.txt
       - name: format gradle args
-        run: echo "gradle_args="; echo "${{ steps.split-tests.outputs.test-suite }}" | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /' >> $GITHUB_ENV
-      - name: args are
-        run: ${{ env.gradle_args }}
+        #regex means: first truncate file paths to align with package name, then swap path delimiter with package delimiter,
+        #then drop file extension, then insert --tests option between each.
+        run: cat testList.txt | sed -e 's@acceptance-tests/tests/src/test/java/@@g' -e 's@/@.@g' -e 's/\.java//g' -e 's/\ /\ --tests\ /g' >> gradleArgs.txt
       - name: run acceptance tests
-        run: ./gradlew acceptanceTest ${{env.gradle_args}} --scan
+        run: ./gradlew acceptanceTest --tests `cat gradleArgs.txt` --scan
+      - name: cleanup tempfiles
+        run: rm testList.txt gradleArgs.txt
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
