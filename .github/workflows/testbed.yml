@@ -26,12 +26,14 @@ jobs:
           split-total: 1
           split-index: 0
       - name: write out test list
-        run: 'echo "${{ steps.split-tests.outputs.test-suite }}" >> testList.txt'
+        run: echo "${{ steps.split-tests.outputs.test-suite }}" >> testList.txt
+      - name: debug testList
+        run: cat testList.txt
       - name: format gradle args
         run: cat testList.txt | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /' >> gradleArgs.txt
       - name: args are
         run: cat gradleArgs.txt
       - name: run acceptance tests
-        run: echo "./gradlew acceptanceTest `cat gradleArgs.txt` --scan"
+        run: ./gradlew acceptanceTest `cat gradleArgs.txt` --scan
       - name: cleanup tempfiles
         run: rm testList.txt gradleArgs.txt
