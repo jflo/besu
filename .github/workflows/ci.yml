@@ -345,6 +345,7 @@ jobs:
       - compile
     if: ${{ github.actor != 'dependabot[bot]' }}
     strategy:
+      fail-fast: false
       matrix:
         runner-index: ${{ fromjson(needs.runner-indexes.outputs.json) }}
     steps:
