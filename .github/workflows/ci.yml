@@ -5,7 +5,7 @@ on:
   pull_request:
 
 env:
-  GRADLE_OPTS: "-Xmx4g -Dorg.gradle.daemon=false"
+  GRADLE_OPTS: "-Xmx6g -Dorg.gradle.daemon=false"
   total-runners: 6
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           cache-read-only: false
-          arguments: compileJava compileTestJava --scan -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=4
+          arguments: compileJava compileTestJava --scan -Dorg.gradle.parallel=true
       - name: list perms
         run: ls -la
       - name: Correct Ownership in GITHUB_WORKSPACE directory
@@ -74,7 +74,7 @@ jobs:
       - name: Assemble
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: assemble --scan -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=4
+          arguments: assemble --scan -Dorg.gradle.parallel=true
       - uses: actions/upload-artifact@v3.1.0
         with:
           name: besu-zip
@@ -392,14 +392,12 @@ jobs:
           name: junit-acceptance-${{ matrix.runner-index }}-test-results
           path: 'acceptance-tests/tests/build/test-results/acceptanceTest/TEST-*.xml'
           retention-days: 1
-      - name: where html
-        run: find . -name "*.html"
       - name: Acceptance Test Report html
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
         with:
-          name: junit-test-results-html
-          path: 'acceptance-tests/**/build/reports/*'
+          name: html-acceptance-${{ matrix.runner-index }}-test-results
+          path: 'acceptance-tests/tests/build/reports/tests/acceptanceTest/**'
           retention-days: 1
   referenceTestQbft:
     runs-on: [self-hosted, Linux, X64]
