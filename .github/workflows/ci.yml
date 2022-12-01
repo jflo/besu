@@ -392,6 +392,8 @@ jobs:
           name: junit-acceptance-${{ matrix.runner-index }}-test-results
           path: 'acceptance-tests/tests/build/test-results/acceptanceTest/TEST-*.xml'
           retention-days: 1
+      - name: where html
+        run: find . -name "*.html"
       - name: Acceptance Test Report html
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
