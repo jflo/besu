@@ -27,6 +27,7 @@ jobs:
       - name: Compile
         uses: gradle/gradle-build-action@v2
         with:
+          gradle-home-cache-cleanup: true
           cache-read-only: false
           arguments: compileJava compileTestJava --scan -Dorg.gradle.parallel=true
       - name: Correct Ownership in GITHUB_WORKSPACE directory
