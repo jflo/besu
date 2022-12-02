@@ -351,6 +351,11 @@ jobs:
     steps:
       - name: export runner UID
         run: echo "runner_uid=$UID" >> $GITHUB_ENV
+      - name: install native packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsodium23 libsodium-dev libjemalloc-dev apt-transport-https haveged libnss3-tools
+          sudo service haveged restart
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: Set up Java
@@ -371,6 +376,7 @@ jobs:
           glob: 'acceptance-tests/tests/src/test/java/org/hyperledger/besu/tests/acceptance/**/*Test.java'
           split-total: ${{ env.total-runners }}
           split-index: ${{ matrix.runner-index }}
+
       - name: write out test list
         run: echo "${{ steps.split-tests.outputs.test-suite }}" >> testList.txt
       - name: format gradle args
