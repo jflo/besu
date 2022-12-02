@@ -16,33 +16,23 @@ jobs:
     steps:
       - name: export runner UID
         run: echo "runner_uid=$UID" >> $GITHUB_ENV
-      - name: list perms
-        run: ls -la
       - name: Checkout Repo
         uses: actions/checkout@v3
-      - name: list perms
-        run: ls -la
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
           distribution: adopt
-          java-version: 17
+          java-version: 11
           cache: gradle
-      - name: list perms
-        run: ls -la
       - name: Compile
         uses: gradle/gradle-build-action@v2
         with:
           cache-read-only: false
           arguments: compileJava compileTestJava --scan -Dorg.gradle.parallel=true
-      - name: list perms
-        run: ls -la
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
           user_id: ${{env.runner_uid}}
-      - name: list perms
-        run: ls -la
       - name: Cache classes
         uses: actions/cache@v3
         with:
