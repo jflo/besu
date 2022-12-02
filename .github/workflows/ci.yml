@@ -29,7 +29,7 @@ jobs:
         with:
           gradle-home-cache-cleanup: true
           cache-read-only: false
-          arguments: compileJava compileTestJava --scan -Dorg.gradle.parallel=true
+          arguments: compileJava compileTestJava -Dorg.gradle.parallel=true
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
@@ -65,7 +65,7 @@ jobs:
       - name: Assemble
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: assemble --scan -Dorg.gradle.parallel=true
+          arguments: assemble -Dorg.gradle.parallel=true
       - uses: actions/upload-artifact@v3.1.0
         with:
           name: besu-zip
@@ -132,7 +132,7 @@ jobs:
       - name: test
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: test --scan
+          arguments: test
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
@@ -171,7 +171,7 @@ jobs:
       - name: test
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: integrationTest --scan
+          arguments: integrationTest
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
@@ -208,7 +208,7 @@ jobs:
 #      - name: javadoc
 #        uses: gradle/gradle-build-action@v2
 #        with:
-#          arguments: javadoc --scan
+#          arguments: javadoc
   compileJmh:
     runs-on: [self-hosted, Linux, X64]
     needs: compile
@@ -233,7 +233,7 @@ jobs:
       - name: test
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: compileJmh --scan
+          arguments: compileJmh
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
@@ -265,7 +265,7 @@ jobs:
       - name: generate ethereum reference tests
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: ethereum:referencetests:blockchainReferenceTests ethereum:referencetests:generalstateReferenceTests ethereum:referencetests:generalstateRegressionReferenceTests --scan
+          arguments: ethereum:referencetests:blockchainReferenceTests ethereum:referencetests:generalstateReferenceTests ethereum:referencetests:generalstateRegressionReferenceTests
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
@@ -316,7 +316,7 @@ jobs:
           split-total: ${{ env.total-runners }}
           split-index: ${{ matrix.runner-index }}
       - name: run reference tests
-        run: ./gradlew ethereum:referenceTests:referenceTests $(echo ${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /') --scan
+        run: ./gradlew ethereum:referenceTests:referenceTests $(echo ${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /')
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
@@ -375,7 +375,7 @@ jobs:
         #then drop file extension, then insert --tests option between each.
         run: cat testList.txt | sed -e 's@acceptance-tests/tests/src/test/java/@@g' -e 's@/@.@g' -e 's/\.java//g' -e 's/\ /\ --tests\ /g' >> gradleArgs.txt
       - name: run acceptance tests
-        run: ./gradlew acceptanceTest --tests `cat gradleArgs.txt` --scan
+        run: ./gradlew acceptanceTest --tests `cat gradleArgs.txt`
       - name: cleanup tempfiles
         run: rm testList.txt gradleArgs.txt
       - name: Correct Ownership in GITHUB_WORKSPACE directory
@@ -422,7 +422,7 @@ jobs:
       - name: qbft reference tests
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: consensus:qbft:referencetests --scan
+          arguments: consensus:qbft:referencetests
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
