@@ -65,6 +65,7 @@ public class PkiBlockCreationConfigurationProvider {
               null);
       LOG.info("Loaded PKI Block Creation KeyStore {}", pkiKeyStoreConfiguration.getKeyStorePath());
     } catch (Exception e) {
+      e.printStackTrace();
       throw new IllegalStateException("Error loading PKI Block Creation KeyStore", e);
     }
 
