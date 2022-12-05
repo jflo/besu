@@ -1,4 +1,4 @@
-name: checks
+name: "Pre-build checks"
 on:
   push:
     branches: [ main ]
@@ -6,6 +6,47 @@ on:
   workflow_dispatch:
 
 jobs:
+  dco:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    steps:
+      - name: Get PR Commits
+        id: 'get-pr-commits'
+        uses: tim-actions/get-pr-commits@v1.2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: DCO Check
+        uses: tim-actions/dco@v1.1.0
+        with:
+          commits: ${{ steps.get-pr-commits.outputs.commits }}
+  lint:
+    runs-on: [ self-hosted, Linux, X64 ]
+    steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      - name: 'Run Repolinter'
+        uses: newrelic/repolinter-action@v1
+        with:
+          config_url: https://raw.githubusercontent.com/hyperledger-labs/hyperledger-community-management-tools/main/repo_structure/repolint.json
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ env.runner_uid }}
+  validation:
+    name: "Gradle Wrapper Validation"
+    runs-on: [ self-hosted, Linux, X64 ]
+    steps:
+      - name: export runner UID
+        run: echo "runner_uid=$UID" >> $GITHUB_ENV
+      - uses: actions/checkout@v3
+      - uses: gradle/wrapper-validation-action@v1
+      - name: Correct Ownership in GITHUB_WORKSPACE directory
+        uses: peter-murray/reset-workspace-ownership-action@v1
+        with:
+          user_id: ${{ env.runner_uid }}
   spotless:
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 30
@@ -13,24 +54,16 @@ jobs:
     steps:
       - name: export runner UID
         run: echo "runner_uid=$UID" >> $GITHUB_ENV
-      - name: list perms
-        run: ls -la
       - name: Checkout Repo
         uses: actions/checkout@v3
-      - name: list perms
-        run: ls -la
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
           distribution: adopt
           java-version: 17
           cache: gradle
-      - name: list perms
-        run: ls -la
       - name: spotless
         run: ./gradlew --no-daemon --parallel clean spotlessCheck
-      - name: list perms
-        run: ls -la
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
