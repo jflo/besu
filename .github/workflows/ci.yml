@@ -183,32 +183,6 @@ jobs:
           name: junit-integration-test-results
           path: '**/build/test-results/integrationTest/TEST-*.xml'
           retention-days: 1
-
-# Disabled until javadoc warnings have been resolved.
-#  javadoc:
-#    runs-on: ubuntu-22.04
-#    container: hyperledger/besu-build:1.0
-#    needs: compile
-#    timeout-minutes: 30
-#    if: ${{ github.actor != 'dependabot[bot]' }}
-#    steps:
-#      - name: Checkout Repo
-#        uses: actions/checkout@v3
-#      - name: Set up Java
-#        uses: actions/setup-java@v3
-#        with:
-#          distribution: adopt
-#          java-version: 17
-#          cache: gradle
-#      - name: Cache classes
-#        uses: actions/cache@v3
-#        with:
-#          path: "**/*.class"
-#          key: ${{ runner.os }}-build-${{ github.sha }}
-#      - name: javadoc
-#        uses: gradle/gradle-build-action@v2
-#        with:
-#          arguments: javadoc
   compileJmh:
     runs-on: [self-hosted, Linux, X64]
     needs: compile
@@ -375,7 +349,7 @@ jobs:
         #then drop file extension, then insert --tests option between each.
         run: cat testList.txt | sed -e 's@acceptance-tests/tests/src/test/java/@@g' -e 's@/@.@g' -e 's/\.java//g' -e 's/\ /\ --tests\ /g' >> gradleArgs.txt
       - name: run acceptance tests
-        run: ./gradlew acceptanceTest --tests `cat gradleArgs.txt` -Dacctests.showStandardStreams=true -Dacctests.runBesuAsProcess=false
+        run: ./gradlew acceptanceTest --tests `cat gradleArgs.txt` -Dacctests.runBesuAsProcess=false
       - name: cleanup tempfiles
         run: rm testList.txt gradleArgs.txt
       - name: Correct Ownership in GITHUB_WORKSPACE directory
