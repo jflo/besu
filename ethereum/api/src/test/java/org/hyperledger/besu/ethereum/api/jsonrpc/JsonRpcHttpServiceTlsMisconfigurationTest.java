@@ -194,7 +194,7 @@ class JsonRpcHttpServiceTlsMisconfigurationTest {
               Assertions.fail("service.start should have failed");
             })
         .withCauseInstanceOf(JsonRpcServiceException.class)
-        .withMessageContaining("Tag number over 30 is not supported");
+        .withMessageContaining("Short read of DER length");
   }
 
   @Test
