@@ -50,11 +50,11 @@ public class TransactionDecoder {
     Transaction decode(final Bytes input);
 
     static Decoder rlpDecoder(final RLPDecoder rlpDecoder) {
-      return input -> rlpDecoder.decode(RLP.input(input));
+      return encoded -> rlpDecoder.decode(RLP.input(encoded));
     }
 
     static Decoder sszDecoder(final SSZDecoder sszDecoder) {
-      return input -> sszDecoder.decode(SSZ.input(input));
+      return encoded -> sszDecoder.decode(SSZ.input(encoded));
     }
   }
 

@@ -27,7 +27,7 @@ interface SSZ {
     return null;
   }
 
-  static SSZInput input(final Bytes input) {
+  static SSZInput input(final Bytes encoded) {
     // TODO: implement
     return null;
   }

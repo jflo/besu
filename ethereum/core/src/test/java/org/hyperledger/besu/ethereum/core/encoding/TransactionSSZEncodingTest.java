@@ -41,13 +41,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class TransactionSSZEncodingTest {
 
-  private static final String BLOB_TRANSACTIONS_TEST_VECTORS =
+  private static final String BLOB_TRANSACTIONS_TEST_VECTORS_JSON =
       "org/hyperledger/besu/ethereum/core/encoding/blob_transactions_test_vectors.json";
 
   private static Collection<Object[]> blobTransactionsTestVectors() throws IOException {
 
     ClassLoader classLoader = TransactionSSZEncodingTest.class.getClassLoader();
-    InputStream inputStream = classLoader.getResourceAsStream(BLOB_TRANSACTIONS_TEST_VECTORS);
+    InputStream inputStream = classLoader.getResourceAsStream(BLOB_TRANSACTIONS_TEST_VECTORS_JSON);
     JsonParser parser = new JsonFactory().createParser(inputStream);
     ObjectMapper mapper =
         JsonMapper.builder()
