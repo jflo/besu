@@ -258,8 +258,10 @@ jobs:
         #regex means: first truncate file paths to align with package name, then swap path delimiter with package delimiter,
         #then drop file extension, then insert --tests option between each.
         run: cat testList.txt | sed -e 's@acceptance-tests/tests/src/test/java/@@g' -e 's@/@.@g' -e 's/\.java//g' -e 's/\ /\ --tests\ /g' >> gradleArgs.txt
+      - name: list keystores
+        run: find . -name "*.jks"
       - name: run acceptance tests
-        run: ./gradlew acceptanceTest --tests `cat gradleArgs.txt`
+        run: ./gradlew acceptanceTest --tests `cat gradleArgs.txt` -Dacctests.showStandardStreams=true
       - name: cleanup tempfiles
         run: rm testList.txt gradleArgs.txt
       - name: Correct Ownership in GITHUB_WORKSPACE directory
