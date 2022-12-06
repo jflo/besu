@@ -59,9 +59,9 @@ public class TransactionEncoder {
       Map.of(
           TransactionType.ACCESS_LIST, Encoder.rlpEncoder(TransactionEncoder::encodeAccessList),
           TransactionType.EIP1559, Encoder.rlpEncoder(TransactionEncoder::encodeEIP1559),
-          TransactionType.BLOB_TX_TYPE, Encoder.sszEncoder(TransactionEncoder::encodeBlobTx));
+          TransactionType.BLOB_TX_TYPE, Encoder.sszEncoder(TransactionEncoder::encodeBlob));
 
-  private static void encodeBlobTx(final Transaction transaction, final SSZ.SSZOutput rlpOutput) {
+  public static void encodeBlob(final Transaction transaction, final SSZ.SSZOutput rlpOutput) {
     // todo: implement
   }
 

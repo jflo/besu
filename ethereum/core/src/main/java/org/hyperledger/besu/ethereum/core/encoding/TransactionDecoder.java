@@ -75,7 +75,7 @@ public class TransactionDecoder {
           TransactionType.BLOB_TX_TYPE,
           Decoder.sszDecoder(TransactionDecoder::decodeBlob));
 
-  private static Transaction decodeBlob(final SSZ.SSZInput sszInput) {
+  public static Transaction decodeBlob(final SSZ.SSZInput sszInput) {
     // todo: implement
     return null;
   }
