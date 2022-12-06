@@ -9,9 +9,20 @@ env:
   total-runners: 6
 
 jobs:
+  runner-indexes:
+    runs-on: ubuntu-22.04
+    name: Generate runner indexes
+    outputs:
+      json: ${{ steps.generate-index-list.outputs.json }}
+    steps:
+      - id: generate-index-list
+        run: |
+          MAX_INDEX=$((${{ env.total-runners }}-1))
+          INDEX_LIST=$(seq 0 ${MAX_INDEX})
+          INDEX_JSON=$(jq --null-input --compact-output '. |= [inputs]' <<< ${INDEX_LIST})
+          echo "::set-output name=json::${INDEX_JSON}"
   prepareReferenceTestEthereum:
     runs-on: [ self-hosted, Linux, X64 ]
-    needs: compile
     timeout-minutes: 30
     if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
