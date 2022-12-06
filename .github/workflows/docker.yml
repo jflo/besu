@@ -1,7 +1,5 @@
 name: "Container Images"
 on:
-  push:
-    branches: [ main, release-* ]
   pull_request:
 
 jobs:
@@ -42,13 +40,13 @@ jobs:
         with:
           arguments: testDocker
       - name: Login to DockerHub
-        if: ${{ github.actor != 'dependabot[bot]' && (contains('refs/heads/release-', github.ref) || github.ref == 'refs/heads/main') }}
+        if: ${{ github.actor != 'dependabot[bot]' }}
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USER_RW }}
           password: ${{ secrets.DOCKER_PASSWORD_RW }}
       - name: publish
-        if: ${{ github.actor != 'dependabot[bot]' && (contains('refs/heads/release-', github.ref) || github.ref == 'refs/heads/main') }}
+        if: ${{ github.actor != 'dependabot[bot]' }}
         run: ./gradlew --no-daemon "-Pbranch=${{ github.head_ref || github.ref_name }}" dockerUpload
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
@@ -69,9 +67,6 @@ jobs:
           architecture: arm64
           java-version: 11
           cache: gradle
-      - name: Docker login
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: buildDocker
         uses: gradle/gradle-build-action@v2
         env:
@@ -90,12 +85,12 @@ jobs:
           arguments: testDocker
       - name: Login to DockerHub
         uses: docker/login-action@v2
-        if: ${{ github.actor != 'dependabot[bot]' && (contains('refs/heads/release-', github.ref) || github.ref == 'refs/heads/main') }}
+        if: ${{ github.actor != 'dependabot[bot]'  }}
         with:
           username: ${{ secrets.DOCKER_USER_RW }}
           password: ${{ secrets.DOCKER_PASSWORD_RW }}
       - name: publish
-        if: ${{ github.actor != 'dependabot[bot]' && (contains('refs/heads/release-', github.ref) || github.ref == 'refs/heads/main') }}
+        if: ${{ github.actor != 'dependabot[bot]' }}
         uses: gradle/gradle-build-action@v2
         env:
           architecture: arm64
