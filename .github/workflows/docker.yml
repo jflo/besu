@@ -91,7 +91,7 @@ jobs:
         env:
           architecture: arm64
         with:
-          arguments: "-Pbranch=${{ github.head_ref || github.ref_name }} dockerUpload"
+          arguments: "-Pbranch=${{ github.head_ref || github.ref_name }} -PdockerImageName=robocopsgonemad/consensysdev dockerUpload"
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
