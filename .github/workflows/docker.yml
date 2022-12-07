@@ -29,7 +29,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: distDocker
-      - name: test image
+      - name: download image testing binary
         run: |
           mkdir -p docker/reports
           curl -L https://github.com/aelsabbahy/goss/releases/download/v0.3.9/goss-linux-amd64 -o ./docker/tests/goss-linux-amd64
@@ -43,7 +43,11 @@ jobs:
         run: echo ${{ secrets.DOCKER_PASSWORD_RW }} | docker login -u ${{ secrets.DOCKER_USER_RW }} --password-stdin
       - name: publish
         if: ${{ github.actor != 'dependabot[bot]' }}
-        run: ./gradlew --no-daemon "-Pbranch=${{ github.head_ref || github.ref_name }}" -PdockerImageName="robocopsgonemad/consensysdev" dockerUpload
+        uses: gradle/gradle-build-action@v2
+        env:
+          architecture: amd64
+        with:
+          arguments: -Pbranch=${{ github.head_ref || github.ref_name }} -PdockerHubOrg=${{secrets.DOCKER_USER_RW}} dockerUpload
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:
@@ -80,18 +84,14 @@ jobs:
         with:
           arguments: testDocker
       - name: Login to DockerHub
-        uses: docker/login-action@v2
-        if: ${{ github.actor != 'dependabot[bot]'  }}
-        with:
-          username: ${{ secrets.DOCKER_USER_RW }}
-          password: ${{ secrets.DOCKER_PASSWORD_RW }}
+        run: echo ${{ secrets.DOCKER_PASSWORD_RW }} | docker login -u ${{ secrets.DOCKER_USER_RW }} --password-stdin
       - name: publish
         if: ${{ github.actor != 'dependabot[bot]' }}
         uses: gradle/gradle-build-action@v2
         env:
           architecture: arm64
         with:
-          arguments: "-Pbranch=${{ github.head_ref || github.ref_name }} -PdockerImageName=robocopsgonemad/consensysdev dockerUpload"
+          arguments: -Pbranch=${{ github.head_ref || github.ref_name }} -PdockerHubOrg=${{secrets.DOCKER_USER_RW}} dockerUpload
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
         with:

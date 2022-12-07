@@ -605,7 +605,9 @@ artifactoryPublish {
 }
 
 def dockerBuildVersion = project.hasProperty('release.releaseVersion') ? project.property('release.releaseVersion') : "${rootProject.version}"
-def dockerImageName = project.hasProperty("dockerImageName") ? project.getProperty("dockerImageName") : "hyperledger/besu"
+def dockerHubOrg = project.hasProperty("dockerHubOrg") ? project.getProperty("dockerHubOrg") : "hyperledger"
+def dockerArtifactName = project.hasProperty("dockerImageName") ? project.getProperty("dockerImageName") : "besu"
+def dockerImageName = "${dockerHubOrg}/${dockerArtifactName}"
 def dockerVariants = project.hasProperty("dockerVariants") ? project.getProperty("dockerVariants").split(",") : [
   "openjdk-11",
   "openjdk-11-debug",
