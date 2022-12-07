@@ -112,10 +112,15 @@ jobs:
           echo "::set-output name=json::${INDEX_JSON}"
   run-tests:
     runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: 60
-    name: "Run test suite"
+    name: "Run junit test suite"
     needs:
       - compile
+      - runner-indexes
+    timeout-minutes: 60
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    strategy:
+      matrix:
+        runner-index: ${{ fromjson(needs.runner-indexes.outputs.json) }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -130,10 +135,18 @@ jobs:
         with:
           path: "**/*.class"
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
+      - name: Split tests
+        id: split-tests
+        uses: chaosaffe/split-tests@v1-alpha.1
+        with:
+          glob: '**/src/test/*.java'
+          exclude-glob: 'acceptance-tests/**'
+          split-total: ${{ env.total-runners }}
+          split-index: ${{ matrix.runner-index }}
       - name: test
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: test
+          arguments: test $(echo ${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /')
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
