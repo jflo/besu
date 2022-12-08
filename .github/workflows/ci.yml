@@ -135,6 +135,11 @@ jobs:
         with:
           path: "**/*.class"
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
+      - name: Restore junit results
+        uses: actions/cache#v3
+        with:
+          path: "**/build/test-results/test/TEST-*.xml"
+          key: last-junit-run
       - name: Split tests
         id: split-tests
         uses: chaosaffe/split-tests@v1-alpha.1
