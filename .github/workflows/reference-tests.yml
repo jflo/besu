@@ -1,8 +1,9 @@
 name: reference-tests
 on:
-  push:
-    branches: [ main ]
-  pull_request:
+  workflow_run:
+    workflows: [ci]
+    types:
+      - completed
 
 env:
   GRADLE_OPTS: "-Xmx6g -Dorg.gradle.daemon=false"

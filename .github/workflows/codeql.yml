@@ -12,15 +12,10 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-    paths-ignore:
-      - '**/*.json'
-      - '**/*.md'
-      - '**/*.properties'
-      - '**/*.txt'
+  workflow_run:
+    workflows: [ ci ]
+    types:
+      - completed
 jobs:
   analyze:
     name: Analyze

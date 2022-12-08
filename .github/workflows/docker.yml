@@ -1,6 +1,9 @@
 name: "Container Images"
 on:
-  pull_request:
+  workflow_run:
+    workflows: [ ci ]
+    types:
+      - completed
 
 jobs:
   buildX64Docker:
