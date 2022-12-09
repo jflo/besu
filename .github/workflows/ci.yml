@@ -136,7 +136,7 @@ jobs:
           path: "**/*.class"
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
       - name: Restore junit results
-        uses: actions/cache#v3
+        uses: actions/cache@v3
         with:
           path: "**/build/test-results/test/TEST-*.xml"
           key: last-junit-run
