@@ -151,7 +151,7 @@ jobs:
       - name: test
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: test $(echo ${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /')
+          arguments: test "$(echo ${{ steps.split-tests.outputs.test-suite }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /')"
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
