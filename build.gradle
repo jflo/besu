@@ -862,17 +862,6 @@ def buildTime() {
   return df.format(new Date())
 }
 
-// Takes the version, and if -SNAPSHOT is part of it replaces SNAPSHOT
-// with the git commit version.
-@Memoized
-def calculateVersion() {
-  String version = rootProject.version
-  if (version.endsWith("-SNAPSHOT")) {
-    version = version.replace("-SNAPSHOT", "-dev-" + getCheckedOutGitCommitHash())
-  }
-  return version
-}
-
 
 def getCheckedOutGitCommitHash(length = 8) {
   try {
