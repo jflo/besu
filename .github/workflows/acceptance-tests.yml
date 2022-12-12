@@ -72,6 +72,7 @@ jobs:
       - name: run acceptance tests
         run: ./gradlew acceptanceTest --tests `cat gradleArgs.txt`
       - name: cleanup tempfiles
+        if: always()
         run: rm testList.txt gradleArgs.txt
       - name: Correct Ownership in GITHUB_WORKSPACE directory
         uses: peter-murray/reset-workspace-ownership-action@v1
