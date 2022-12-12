@@ -99,12 +99,14 @@ tasks.register("dockerDistUntar") {
     file("${dockerBuildDir}/${distTarFileName}").renameTo("${dockerBuildDir}/besu-evmtool")
   }
 }
-def orgName = project.hasProperty("dockerHubOrg") ? project.getProperty("dockerHubOrg"): "hyperledger"
-def imageName = "$orgName/besu-evntool"
 
 task distDocker(type: Exec) {
   dependsOn dockerDistUntar
   def dockerBuildVersion = project.hasProperty('release.releaseVersion') ? project.property('release.releaseVersion') : "${rootProject.version}"
+  def dockerOrgName = project.hasProperty('dockerOrgName') ? project.getProperty("dockerOrgName") : "hyperledger"
+  def dockerArtifactName = project.hasProperty("dockerArtifactName") ? project.getProperty("dockerArtifactName") : "besu-evmtool"
+  def imageName = "${dockerOrgName}/${dockerArtifactName}"
+
   def image = "${imageName}:${dockerBuildVersion}"
   def dockerBuildDir = "${buildDir}/docker-besu-evmtool/"
   workingDir "${dockerBuildDir}"
@@ -123,6 +125,9 @@ task distDocker(type: Exec) {
 task dockerUpload(type: Exec) {
   dependsOn distDocker
   def dockerBuildVersion = project.hasProperty('release.releaseVersion') ? project.property('release.releaseVersion') : "${rootProject.version}"
+  def dockerOrgName = project.hasProperty('dockerOrgName') ? project.getProperty("dockerOrgName") : "hyperledger"
+  def dockerArtifactName = project.hasProperty("dockerArtifactName") ? project.getProperty("dockerArtifactName") : "besu-evmtool"
+  def imageName = "${dockerOrgName}/${dockerArtifactName}"
   def image = "${imageName}:${dockerBuildVersion}"
   def cmd = "docker push '${image}'"
   def additionalTags = []
