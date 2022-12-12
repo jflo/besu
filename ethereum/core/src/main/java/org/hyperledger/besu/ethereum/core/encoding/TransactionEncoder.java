@@ -16,6 +16,8 @@ package org.hyperledger.besu.ethereum.core.encoding;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.apache.tuweni.ssz.SSZ;
+import org.apache.tuweni.ssz.SSZWriter;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.core.Transaction;
@@ -52,7 +54,7 @@ public class TransactionEncoder {
   }
 
   interface SSZEncoder {
-    void encode(final Transaction transaction, final SSZ.SSZOutput output);
+    void encode(final Transaction transaction, final SSZWriter output);
   }
 
   private static final Map<TransactionType, Encoder> TYPED_TRANSACTION_ENCODERS =
@@ -61,7 +63,7 @@ public class TransactionEncoder {
           TransactionType.EIP1559, Encoder.rlpEncoder(TransactionEncoder::encodeEIP1559),
           TransactionType.BLOB_TX_TYPE, Encoder.sszEncoder(TransactionEncoder::encodeBlob));
 
-  public static void encodeBlob(final Transaction transaction, final SSZ.SSZOutput rlpOutput) {
+  public static void encodeBlob(final Transaction transaction, final SSZWriter rlpOutput) {
     // todo: implement
   }
 

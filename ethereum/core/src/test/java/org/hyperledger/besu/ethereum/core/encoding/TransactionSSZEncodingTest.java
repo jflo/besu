@@ -93,8 +93,7 @@ public class TransactionSSZEncodingTest {
     assertThat(transaction.getValue()).isEqualTo(Wei.fromEth(Long.parseLong(input.getValue())));
     assertThat(transaction.getData()).hasValue(Bytes.fromHexString(input.getData()));
 
-    final Bytes encodedBytes =
-        SSZ.encode(sszOutput -> TransactionEncoder.encodeOpaqueBytes(transaction));
+    final Bytes encodedBytes =TransactionEncoder.encodeOpaqueBytes(transaction);
     assertThat(encodedBytes).isNotNull();
     assertThat(encodedBytes.toHexString()).isEqualTo(rawTransaction);
   }

@@ -22,6 +22,8 @@ import static org.hyperledger.besu.ethereum.core.Transaction.REPLAY_UNPROTECTED_
 import static org.hyperledger.besu.ethereum.core.Transaction.REPLAY_UNPROTECTED_V_BASE_PLUS_1;
 import static org.hyperledger.besu.ethereum.core.Transaction.TWO;
 
+import org.apache.tuweni.ssz.SSZ;
+import org.apache.tuweni.ssz.SSZReader;
 import org.hyperledger.besu.config.GoQuorumOptions;
 import org.hyperledger.besu.crypto.SECPSignature;
 import org.hyperledger.besu.crypto.SignatureAlgorithm;
@@ -29,6 +31,8 @@ import org.hyperledger.besu.crypto.SignatureAlgorithmFactory;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.core.Transaction;
+import org.hyperledger.besu.ethereum.core.encoding.ssz.SignedBlobTransaction;
+import org.hyperledger.besu.ethereum.core.encoding.ssz.TransactionNetworkPayload;
 import org.hyperledger.besu.ethereum.rlp.RLP;
 import org.hyperledger.besu.ethereum.rlp.RLPInput;
 import org.hyperledger.besu.ethereum.transaction.GoQuorumPrivateTransactionDetector;
@@ -54,7 +58,7 @@ public class TransactionDecoder {
     }
 
     static Decoder sszDecoder(final SSZDecoder sszDecoder) {
-      return encoded -> sszDecoder.decode(SSZ.input(encoded));
+      return encoded -> SSZ.decode(encoded, (SSZReader reader) -> sszDecoder.decode(reader, encoded.size()));
     }
   }
 
@@ -63,7 +67,7 @@ public class TransactionDecoder {
   }
 
   interface SSZDecoder {
-    Transaction decode(final SSZ.SSZInput output);
+    Transaction decode(final SSZReader reader, int length);
   }
 
   private static final ImmutableMap<TransactionType, Decoder> TYPED_TRANSACTION_DECODERS =
@@ -75,9 +79,52 @@ public class TransactionDecoder {
           TransactionType.BLOB_TX_TYPE,
           Decoder.sszDecoder(TransactionDecoder::decodeBlob));
 
-  public static Transaction decodeBlob(final SSZ.SSZInput sszInput) {
-    // todo: implement
-    return null;
+  public static Transaction decodeBlob(final SSZReader input, final int length) {
+
+    TransactionNetworkPayload payload = new TransactionNetworkPayload();
+    payload.decodeFrom(input, length);
+
+    SignedBlobTransaction signedBlobTransaction = payload.getTransaction();
+
+
+    final Transaction.Builder builder =
+            Transaction.builder()
+                    .type(TransactionType.BLOB_TX_TYPE)
+                    .chainId(signedBlobTransaction.getMessage().getChainId().toUnsignedBigInteger())
+                    .nonce(signedBlobTransaction.getMessage().getNonce())
+                    .maxPriorityFeePerGas(Wei.of(signedBlobTransaction.getMessage().getMaxFeePerGas()))
+//                    .maxFeePerGas(Wei.of(input.readUInt256()))
+                    .gasLimit(signedBlobTransaction.getMessage().getGas())
+                    ;
+//    builder
+//                    .to((bytes==0)?null : Address.wrap(input.readAddress()))
+//                    .value(Wei.of(input.readUInt256Scalar()))
+//                    .payload(input.readBytes())
+//                    .accessList(
+//                            input.readList(
+//                                    accessListEntryRLPInput -> {
+//                                      accessListEntryRLPInput.enterList();
+//                                      final AccessListEntry accessListEntry =
+//                                              new AccessListEntry(
+//                                                      Address.wrap(accessListEntryRLPInput.readBytes()),
+//                                                      accessListEntryRLPInput.readList(RLPInput::readBytes32));
+//                                      accessListEntryRLPInput.leaveList();
+//                                      return accessListEntry;
+//                                    }))
+    ;
+//    final byte recId = (byte) input.readIntScalar();
+    final Transaction transaction =
+            builder
+//                    .signature(
+//                            SIGNATURE_ALGORITHM
+//                                    .get()
+//                                    .createSignature(
+//                                            input.readUInt256Scalar().toUnsignedBigInteger(),
+//                                            input.readUInt256Scalar().toUnsignedBigInteger(),
+//                                            recId))
+                    .build();
+//    input.leaveList();
+    return transaction;
   }
 
   private static final Supplier<SignatureAlgorithm> SIGNATURE_ALGORITHM =
