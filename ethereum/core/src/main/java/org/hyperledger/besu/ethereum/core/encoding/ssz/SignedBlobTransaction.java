@@ -61,7 +61,7 @@ public class SignedBlobTransaction implements SSZUtil.SSZType {
         SSZUtil.Uint256SSZWrapper maxPriorityFeePerGas = new SSZUtil.Uint256SSZWrapper();
         SSZUtil.Uint256SSZWrapper maxFeePerGas = new SSZUtil.Uint256SSZWrapper();
         SSZUtil.Uint64SSZWrapper gas = new SSZUtil.Uint64SSZWrapper();
-        SSZUtil.SSZUnion address = new SSZUtil.SSZUnion(List.of(SSZUtil.SSZNone.class, SSZUtil.SSZAddress.class));
+        MaybeAddress address = new MaybeAddress();
         SSZUtil.Uint256SSZWrapper value = new SSZUtil.Uint256SSZWrapper();
         SSZUtil.BytesListWrapper data = new SSZUtil.BytesListWrapper(MAX_CALL_DATA_SIZE);
 
@@ -69,12 +69,6 @@ public class SignedBlobTransaction implements SSZUtil.SSZType {
         SSZUtil.Uint256SSZWrapper maxFeePerData = new SSZUtil.Uint256SSZWrapper();
 
         SSZUtil.SSZVariableSizeList<SSZUtil.BytesWrapper> blobVersionedHashes = new SSZUtil.SSZVariableSizeList<>(()-> new SSZUtil.BytesWrapper(32));
-
-
-        @Override
-        public boolean isFixedSize() {
-            return false;
-        }
 
         @Override
         public long decodeFrom(final SSZReader input, final long length) {
@@ -103,8 +97,7 @@ public class SignedBlobTransaction implements SSZUtil.SSZType {
         }
 
         public Optional<Address> getAddress() {
-            return address.getType().equals(SSZUtil.SSZNone.class) ? Optional.empty() :
-                    Optional.of(((SSZUtil.SSZAddress)address.getValue()).getAddress());
+            return address.getAddress().map(SSZUtil.SSZAddress::getAddress);
         }
 
         public SSZUtil.Uint256SSZWrapper getValue() {
@@ -128,14 +121,26 @@ public class SignedBlobTransaction implements SSZUtil.SSZType {
         }
     }
 
+    public static class MaybeAddress implements SSZUtil.SSZType{
+
+        private SSZUtil.SSZAddress address;
+
+        @Override
+        public long decodeFrom(final SSZReader input, final long length) {
+            return SSZUtil.decodeUnion(input,length,List.of( SSZUtil.SSZNone::new, () -> {
+                address = new SSZUtil.SSZAddress();
+                return address;
+            }));
+        }
+
+        public Optional<SSZUtil.SSZAddress> getAddress() {
+            return Optional.ofNullable(address);
+        }
+    }
+
     public static class AccessTuple implements SSZUtil.SSZType {
         SSZUtil.SSZAddress address = new SSZUtil.SSZAddress();
         SSZUtil.SSZVariableSizeList<SSZUtil.Uint256SSZWrapper> storageKeys = new SSZUtil.SSZVariableSizeList<>(SSZUtil.Uint256SSZWrapper::new);
-
-        @Override
-        public boolean isFixedSize() {
-            return false;
-        }
 
         @Override
         public long decodeFrom(final SSZReader input, final long length) {

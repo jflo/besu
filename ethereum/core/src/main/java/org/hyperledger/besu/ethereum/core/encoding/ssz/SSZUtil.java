@@ -50,6 +50,12 @@ public class SSZUtil {
         return read;
     }
 
+    public static long decodeUnion(final SSZReader input, final long length, final List<Supplier<? extends SSZType>> types) {
+        final int index = input.readInt8();
+        SSZType value = types.get(index).get();
+        return value.decodeFrom(input, length - 1)+1;
+    }
+
     public static class OffsetElement <T extends SSZType> {
         final long offset;
         final T element;
@@ -69,7 +75,9 @@ public class SSZUtil {
     }
 
     public interface SSZType {
-        boolean isFixedSize();
+        default boolean isFixedSize(){
+            return false;
+        };
         long decodeFrom(SSZReader input, final long length);
     }
 
