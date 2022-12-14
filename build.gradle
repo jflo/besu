@@ -215,6 +215,9 @@ allprojects {
    *    This property additionally keeps the log files of successful tests.
    *
    */
+
+
+
   test {
     jvmArgs = [
       '-Xmx4g',
@@ -257,6 +260,8 @@ allprojects {
         systemProperty name, System.getProperty(name)
       }
     }
+      testResultsDirName
+              = "test-results"
     useJUnitPlatform {}
   }
 
@@ -860,6 +865,17 @@ def buildTime() {
   def df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'")
   df.setTimeZone(TimeZone.getTimeZone("UTC"))
   return df.format(new Date())
+}
+
+// Takes the version, and if -SNAPSHOT is part of it replaces SNAPSHOT
+// with the git commit version.
+@Memoized
+def calculateVersion() {
+  String version = rootProject.version
+  if (version.endsWith("-SNAPSHOT")) {
+    version = version.replace("-SNAPSHOT", "-dev-" + getCheckedOutGitCommitHash())
+  }
+  return version
 }
 
 
