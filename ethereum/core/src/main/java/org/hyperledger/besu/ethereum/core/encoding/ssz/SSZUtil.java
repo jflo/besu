@@ -18,6 +18,7 @@
 package org.hyperledger.besu.ethereum.core.encoding.ssz;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 import org.apache.tuweni.bytes.Bytes;
@@ -229,10 +230,10 @@ public class SSZUtil {
 
     public static class BytesListWrapper implements SSZType {
         private List<Bytes> value;
-        private final int length;
+        private final int maxLength;
 
-        public BytesListWrapper(final int length) {
-            this.length = length;
+        public BytesListWrapper(final int maxLength) {
+            this.maxLength = maxLength;
             value = new ArrayList<>();
         }
 
@@ -242,10 +243,14 @@ public class SSZUtil {
 
         @Override
         public long decodeFrom(final SSZReader input, final long length) {
-            if (length!= this.length) {
+            if (length > this.maxLength) {
                 throw new RuntimeException("Invalid length for BytesListWrapper");
             }
-            value = input.readFixedBytesList((int)length);
+            if (length ==0){
+                value = Collections.emptyList();
+            } else {
+                value = input.readFixedBytesList((int) length);
+            }
             return length;
         }
 
@@ -270,6 +275,9 @@ public class SSZUtil {
 
         @Override
         public long decodeFrom(final SSZReader input, final long length) {
+            if (length ==0){
+                return 0;
+            }
             final long firstOffset = input.readUInt32();
             if (firstOffset == 0) {
                 return 4;

@@ -127,6 +127,7 @@ public class TransactionSSZEncodingTest {
     String gasLimit;
     String gasPrice;
     String priorityGasPrice;
+    String maxFeePerDataGas;
     String data;
 
     public String getPrivateKey() {
@@ -183,6 +184,14 @@ public class TransactionSSZEncodingTest {
 
     public void setPriorityGasPrice(final String priorityGasPrice) {
       this.priorityGasPrice = priorityGasPrice;
+    }
+
+    public String getMaxFeePerDataGas() {
+      return maxFeePerDataGas;
+    }
+
+    public void setMaxFeePerDataGas(final String maxFeePerDataGas) {
+      this.maxFeePerDataGas = maxFeePerDataGas;
     }
 
     public String getData() {

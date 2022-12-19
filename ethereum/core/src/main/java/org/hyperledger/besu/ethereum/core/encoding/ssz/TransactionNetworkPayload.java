@@ -23,8 +23,8 @@ import org.apache.tuweni.ssz.SSZReader;
 public class TransactionNetworkPayload implements SSZUtil.SSZType {
     public static final int FIELD_ELEMENTS_PER_BLOB = 4096;
     SignedBlobTransaction transaction = new SignedBlobTransaction();
-    SSZUtil.SSZVariableSizeList<KZGCommitment> commitmentSSZVariableSizeList = new SSZUtil.SSZVariableSizeList<>(KZGCommitment::new);
-    SSZUtil.SSZVariableSizeList<Blob> blobSSZVariableSizeList = new SSZUtil.SSZVariableSizeList<>(Blob::new);
+    SSZUtil.SSZFixedSizeList<KZGCommitment> kzgCommitments = new SSZUtil.SSZFixedSizeList<>(KZGCommitment::new);
+    SSZUtil.SSZFixedSizeList<Blob> blobSSZVariableSizeList = new SSZUtil.SSZFixedSizeList<>(Blob::new);
 
     KZGProof kzgProof = new KZGProof();
 
@@ -35,18 +35,18 @@ public class TransactionNetworkPayload implements SSZUtil.SSZType {
 
     @Override
     public long decodeFrom(final SSZReader input, final long length) {
-        return SSZUtil.decodeContainer(input, length, transaction, commitmentSSZVariableSizeList, blobSSZVariableSizeList, kzgProof);
+        return SSZUtil.decodeContainer(input, length, transaction, kzgCommitments, blobSSZVariableSizeList, kzgProof);
     }
 
     public SignedBlobTransaction getTransaction() {
         return transaction;
     }
 
-    public SSZUtil.SSZVariableSizeList<KZGCommitment> getCommitmentSSZVariableSizeList() {
-        return commitmentSSZVariableSizeList;
+    public SSZUtil.SSZFixedSizeList<KZGCommitment> getKzgCommitments() {
+        return kzgCommitments;
     }
 
-    public SSZUtil.SSZVariableSizeList<Blob> getBlobSSZVariableSizeList() {
+    public SSZUtil.SSZFixedSizeList<Blob> getBlobSSZVariableSizeList() {
         return blobSSZVariableSizeList;
     }
 
@@ -74,19 +74,19 @@ public class TransactionNetworkPayload implements SSZUtil.SSZType {
         }
     }
 
-    public static class Blob implements SSZUtil.SSZType{
+    public static class Blob implements SSZUtil.SSZFixedType{
 
         SSZUtil.FixedSizeSSZVector<SSZUtil.Uint256SSZWrapper> vector = new SSZUtil.FixedSizeSSZVector<>(
                 SSZUtil.Uint256SSZWrapper::new,FIELD_ELEMENTS_PER_BLOB);
 
         @Override
-        public boolean isFixedSize() {
-            return false;
+        public long decodeFrom(final SSZReader input, final long length) {
+            return vector.decodeFrom(input, length);
         }
 
         @Override
-        public long decodeFrom(final SSZReader input, final long length) {
-            return vector.decodeFrom(input, length);
+        public int getFixedSize() {
+            return vector.getFixedSize();
         }
     }
 

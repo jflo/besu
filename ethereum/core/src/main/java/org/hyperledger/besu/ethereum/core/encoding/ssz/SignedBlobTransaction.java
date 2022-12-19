@@ -68,7 +68,7 @@ public class SignedBlobTransaction implements SSZUtil.SSZType {
         SSZUtil.SSZVariableSizeList<AccessTuple> accessList = new SSZUtil.SSZVariableSizeList<>(AccessTuple::new);
         SSZUtil.Uint256SSZWrapper maxFeePerData = new SSZUtil.Uint256SSZWrapper();
 
-        SSZUtil.SSZVariableSizeList<SSZUtil.BytesWrapper> blobVersionedHashes = new SSZUtil.SSZVariableSizeList<>(()-> new SSZUtil.BytesWrapper(32));
+        SSZUtil.SSZFixedSizeList<VersionedHash> blobVersionedHashes = new SSZUtil.SSZFixedSizeList<>(VersionedHash::new);
 
         @Override
         public long decodeFrom(final SSZReader input, final long length) {
@@ -116,7 +116,7 @@ public class SignedBlobTransaction implements SSZUtil.SSZType {
             return maxFeePerData;
         }
 
-        public SSZUtil.SSZVariableSizeList<SSZUtil.BytesWrapper> getBlobVersionedHashes() {
+        public SSZUtil.SSZFixedSizeList<VersionedHash> getBlobVersionedHashes() {
             return blobVersionedHashes;
         }
     }
@@ -190,7 +190,7 @@ public class SignedBlobTransaction implements SSZUtil.SSZType {
 
         @Override
         public long decodeFrom(final SSZReader input, final long length) {
-            bytes = input.readBytes(32);
+            bytes = input.readFixedBytes(32);
             return 32;
         }
 
