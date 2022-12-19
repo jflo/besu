@@ -19,94 +19,129 @@ package org.hyperledger.besu.ethereum.core.encoding.ssz;
 
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.ssz.SSZReader;
+import org.apache.tuweni.ssz.SSZWriter;
 
 public class TransactionNetworkPayload implements SSZUtil.SSZType {
-    public static final int FIELD_ELEMENTS_PER_BLOB = 4096;
-    SignedBlobTransaction transaction = new SignedBlobTransaction();
-    SSZUtil.SSZFixedSizeList<KZGCommitment> kzgCommitments = new SSZUtil.SSZFixedSizeList<>(KZGCommitment::new);
-    SSZUtil.SSZFixedSizeList<Blob> blobSSZVariableSizeList = new SSZUtil.SSZFixedSizeList<>(Blob::new);
+  public static final int FIELD_ELEMENTS_PER_BLOB = 4096;
+  SignedBlobTransaction transaction = new SignedBlobTransaction();
+  SSZUtil.SSZFixedSizeList<KZGCommitment> kzgCommitments =
+      new SSZUtil.SSZFixedSizeList<>(KZGCommitment::new);
+  SSZUtil.SSZFixedSizeList<Blob> blobSSZVariableSizeList =
+      new SSZUtil.SSZFixedSizeList<>(Blob::new);
 
-    KZGProof kzgProof = new KZGProof();
+  KZGProof kzgProof = new KZGProof();
+
+  @Override
+  public boolean isFixedSize() {
+    return false;
+  }
+
+  @Override
+  public long decodeFrom(final SSZReader input, final long length) {
+    return SSZUtil.decodeContainer(
+        input, length, transaction, kzgCommitments, blobSSZVariableSizeList, kzgProof);
+  }
+
+  @Override
+  public long encodeInto(final SSZWriter rlpOutput) {
+    return SSZUtil.encodeContainer(
+        rlpOutput, transaction, kzgCommitments, blobSSZVariableSizeList, kzgProof);
+  }
+
+  @Override
+  public long getSize() {
+    return transaction.getSize()
+        + kzgCommitments.getSize()
+        + blobSSZVariableSizeList.getSize()
+        + kzgProof.getSize();
+  }
+
+  public SignedBlobTransaction getTransaction() {
+    return transaction;
+  }
+
+  public SSZUtil.SSZFixedSizeList<KZGCommitment> getKzgCommitments() {
+    return kzgCommitments;
+  }
+
+  public SSZUtil.SSZFixedSizeList<Blob> getBlobSSZVariableSizeList() {
+    return blobSSZVariableSizeList;
+  }
+
+  public KZGProof getKzgProof() {
+    return kzgProof;
+  }
+
+  public static class KZGCommitment implements SSZUtil.SSZFixedType {
+    Bytes bytes;
 
     @Override
     public boolean isFixedSize() {
-        return false;
+      return true;
+    }
+
+    @Override
+    public int getFixedSize() {
+      return 48;
     }
 
     @Override
     public long decodeFrom(final SSZReader input, final long length) {
-        return SSZUtil.decodeContainer(input, length, transaction, kzgCommitments, blobSSZVariableSizeList, kzgProof);
+      bytes = input.readFixedBytes(48);
+      return 48;
     }
 
-    public SignedBlobTransaction getTransaction() {
-        return transaction;
+    @Override
+    public long encodeInto(final SSZWriter rlpOutput) {
+      rlpOutput.writeFixedBytes(bytes);
+      return 48;
+    }
+  }
+
+  public static class Blob implements SSZUtil.SSZFixedType {
+
+    SSZUtil.FixedSizeSSZVector<SSZUtil.Uint256SSZWrapper> vector =
+        new SSZUtil.FixedSizeSSZVector<>(SSZUtil.Uint256SSZWrapper::new, FIELD_ELEMENTS_PER_BLOB);
+
+    @Override
+    public long decodeFrom(final SSZReader input, final long length) {
+      return vector.decodeFrom(input, length);
     }
 
-    public SSZUtil.SSZFixedSizeList<KZGCommitment> getKzgCommitments() {
-        return kzgCommitments;
+    @Override
+    public long encodeInto(final SSZWriter rlpOutput) {
+      return vector.encodeInto(rlpOutput);
     }
 
-    public SSZUtil.SSZFixedSizeList<Blob> getBlobSSZVariableSizeList() {
-        return blobSSZVariableSizeList;
+    @Override
+    public int getFixedSize() {
+      return vector.getFixedSize();
+    }
+  }
+
+  public static class KZGProof implements SSZUtil.SSZFixedType {
+    Bytes bytes;
+
+    @Override
+    public boolean isFixedSize() {
+      return true;
     }
 
-    public KZGProof getKzgProof() {
-        return kzgProof;
+    @Override
+    public int getFixedSize() {
+      return 48;
     }
 
-    public static class KZGCommitment implements SSZUtil.SSZFixedType{
-        Bytes bytes;
-
-        @Override
-        public boolean isFixedSize() {
-            return true;
-        }
-
-        @Override
-        public int getFixedSize() {
-            return 48;
-        }
-
-        @Override
-        public long decodeFrom(final SSZReader input, final long length) {
-            bytes = input.readFixedBytes(48);
-            return 48;
-        }
+    @Override
+    public long decodeFrom(final SSZReader input, final long length) {
+      bytes = input.readFixedBytes(48);
+      return 48;
     }
 
-    public static class Blob implements SSZUtil.SSZFixedType{
-
-        SSZUtil.FixedSizeSSZVector<SSZUtil.Uint256SSZWrapper> vector = new SSZUtil.FixedSizeSSZVector<>(
-                SSZUtil.Uint256SSZWrapper::new,FIELD_ELEMENTS_PER_BLOB);
-
-        @Override
-        public long decodeFrom(final SSZReader input, final long length) {
-            return vector.decodeFrom(input, length);
-        }
-
-        @Override
-        public int getFixedSize() {
-            return vector.getFixedSize();
-        }
+    @Override
+    public long encodeInto(final SSZWriter rlpOutput) {
+      rlpOutput.writeFixedBytes(bytes);
+      return 48;
     }
-
-    public static class KZGProof implements SSZUtil.SSZFixedType{
-        Bytes bytes;
-
-        @Override
-        public boolean isFixedSize() {
-            return true;
-        }
-
-        @Override
-        public int getFixedSize() {
-            return 48;
-        }
-
-        @Override
-        public long decodeFrom(final SSZReader input, final long length) {
-            bytes = input.readFixedBytes(48);
-            return 48;
-        }
-    }
+  }
 }

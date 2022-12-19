@@ -22,8 +22,6 @@ import static org.hyperledger.besu.ethereum.core.Transaction.REPLAY_UNPROTECTED_
 import static org.hyperledger.besu.ethereum.core.Transaction.REPLAY_UNPROTECTED_V_BASE_PLUS_1;
 import static org.hyperledger.besu.ethereum.core.Transaction.TWO;
 
-import org.apache.tuweni.ssz.SSZ;
-import org.apache.tuweni.ssz.SSZReader;
 import org.hyperledger.besu.config.GoQuorumOptions;
 import org.hyperledger.besu.crypto.SECPSignature;
 import org.hyperledger.besu.crypto.SignatureAlgorithm;
@@ -42,10 +40,13 @@ import org.hyperledger.besu.plugin.data.TransactionType;
 import java.math.BigInteger;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.ssz.SSZ;
+import org.apache.tuweni.ssz.SSZReader;
 
 public class TransactionDecoder {
 
@@ -58,7 +59,8 @@ public class TransactionDecoder {
     }
 
     static Decoder sszDecoder(final SSZDecoder sszDecoder) {
-      return encoded -> SSZ.decode(encoded, (SSZReader reader) -> sszDecoder.decode(reader, encoded.size()));
+      return encoded ->
+          SSZ.decode(encoded, (SSZReader reader) -> sszDecoder.decode(reader, encoded.size()));
     }
   }
 
@@ -86,45 +88,33 @@ public class TransactionDecoder {
 
     SignedBlobTransaction signedBlobTransaction = payload.getTransaction();
 
-
-    final Transaction.Builder builder =
-            Transaction.builder()
-                    .type(TransactionType.BLOB_TX_TYPE)
-                    .chainId(signedBlobTransaction.getMessage().getChainId().toUnsignedBigInteger())
-                    .nonce(signedBlobTransaction.getMessage().getNonce())
-                    .maxPriorityFeePerGas(Wei.of(signedBlobTransaction.getMessage().getMaxFeePerGas()))
-//                    .maxFeePerGas(Wei.of(input.readUInt256()))
-                    .gasLimit(signedBlobTransaction.getMessage().getGas())
-                    ;
-//    builder
-//                    .to((bytes==0)?null : Address.wrap(input.readAddress()))
-//                    .value(Wei.of(input.readUInt256Scalar()))
-//                    .payload(input.readBytes())
-//                    .accessList(
-//                            input.readList(
-//                                    accessListEntryRLPInput -> {
-//                                      accessListEntryRLPInput.enterList();
-//                                      final AccessListEntry accessListEntry =
-//                                              new AccessListEntry(
-//                                                      Address.wrap(accessListEntryRLPInput.readBytes()),
-//                                                      accessListEntryRLPInput.readList(RLPInput::readBytes32));
-//                                      accessListEntryRLPInput.leaveList();
-//                                      return accessListEntry;
-//                                    }))
-    ;
-//    final byte recId = (byte) input.readIntScalar();
-    final Transaction transaction =
-            builder
-//                    .signature(
-//                            SIGNATURE_ALGORITHM
-//                                    .get()
-//                                    .createSignature(
-//                                            input.readUInt256Scalar().toUnsignedBigInteger(),
-//                                            input.readUInt256Scalar().toUnsignedBigInteger(),
-//                                            recId))
-                    .build();
-//    input.leaveList();
-    return transaction;
+    final SignedBlobTransaction.BlobTransaction blobTransaction =
+        signedBlobTransaction.getMessage();
+    return Transaction.builder()
+        .type(TransactionType.BLOB_TX_TYPE)
+        .chainId(blobTransaction.getChainId().toUnsignedBigInteger())
+        .nonce(blobTransaction.getNonce())
+        .maxPriorityFeePerGas(Wei.of(blobTransaction.getMaxPriorityFeePerGas()))
+        .maxFeePerGas(Wei.of(blobTransaction.getMaxFeePerGas()))
+        .gasLimit(blobTransaction.getGas())
+        .to(blobTransaction.getAddress().orElse(null))
+        .value(Wei.of(blobTransaction.getValue().getValue()))
+        .payload(blobTransaction.getData())
+        .accessList(
+            blobTransaction.getAccessList().stream()
+                .map(
+                    accessListEntry ->
+                        new AccessListEntry(
+                            accessListEntry.getAddress(), accessListEntry.getStorageKeys()))
+                .collect(Collectors.toList()))
+        .signature(
+            SIGNATURE_ALGORITHM
+                .get()
+                .createSignature(
+                    signedBlobTransaction.getSignature().getR().getValue().toUnsignedBigInteger(),
+                    signedBlobTransaction.getSignature().getS().getValue().toUnsignedBigInteger(),
+                    signedBlobTransaction.getSignature().getyParity().getValue() ? (byte) 1 : 0))
+        .build();
   }
 
   private static final Supplier<SignatureAlgorithm> SIGNATURE_ALGORITHM =

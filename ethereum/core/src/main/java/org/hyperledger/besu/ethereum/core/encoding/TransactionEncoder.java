@@ -16,11 +16,10 @@ package org.hyperledger.besu.ethereum.core.encoding;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.apache.tuweni.ssz.SSZ;
-import org.apache.tuweni.ssz.SSZWriter;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.core.Transaction;
+import org.hyperledger.besu.ethereum.core.encoding.ssz.SignedBlobTransaction;
 import org.hyperledger.besu.ethereum.rlp.RLP;
 import org.hyperledger.besu.ethereum.rlp.RLPOutput;
 import org.hyperledger.besu.evm.AccessListEntry;
@@ -32,6 +31,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.ssz.SSZ;
+import org.apache.tuweni.ssz.SSZWriter;
 
 public class TransactionEncoder {
 
@@ -64,7 +65,8 @@ public class TransactionEncoder {
           TransactionType.BLOB_TX_TYPE, Encoder.sszEncoder(TransactionEncoder::encodeBlob));
 
   public static void encodeBlob(final Transaction transaction, final SSZWriter rlpOutput) {
-    // todo: implement
+    SignedBlobTransaction signedBlobTransaction = new SignedBlobTransaction();
+    signedBlobTransaction.encodeInto(rlpOutput);
   }
 
   public static void encodeForWire(final Transaction transaction, final RLPOutput rlpOutput) {
