@@ -5,6 +5,7 @@
 ### Breaking Changes
 
 ### Additions and Improvements
+- Support for new DATAHASH opcode as part of EIP-4844
 
 ### Bug Fixes
 
