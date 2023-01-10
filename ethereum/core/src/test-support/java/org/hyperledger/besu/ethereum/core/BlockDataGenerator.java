@@ -627,7 +627,9 @@ public class BlockDataGenerator {
     private Optional<Long> timestamp = Optional.empty();
     private boolean hasOmmers = true;
     private boolean hasTransactions = true;
-    private TransactionType[] transactionTypes = TransactionType.values();
+    private TransactionType[] transactionTypes = {
+      TransactionType.FRONTIER, TransactionType.ACCESS_LIST, TransactionType.EIP1559
+    };
     private Optional<Address> coinbase = Optional.empty();
     private Optional<Optional<Wei>> maybeBaseFee = Optional.empty();
 
