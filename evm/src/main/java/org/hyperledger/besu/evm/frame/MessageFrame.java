@@ -289,7 +289,6 @@ public class MessageFrame {
     this.stack = new OperandStack(maxStackSize);
     this.returnStack = new ReturnStack();
     returnStack.push(new ReturnStack.ReturnStackItem(0, 0, 0));
-    pc = code.isValid() ? code.getCodeSection(0).getEntryPoint() : 0;
     this.output = Bytes.EMPTY;
     this.returnData = Bytes.EMPTY;
     this.logs = new ArrayList<>();
@@ -381,7 +380,7 @@ public class MessageFrame {
     } else {
       returnStack.push(
           new ReturnStack.ReturnStackItem(section, pc + 2, stack.size() - info.getInputs()));
-      pc = info.getEntryPoint() - 1; // will be +1ed at end of operations loop
+      pc = -1; // will be +1ed at end of operations loop
       this.section = calledSection;
       return null;
     }
@@ -1200,6 +1199,7 @@ public class MessageFrame {
     return versionedHashes;
   }
 
+
   public void reset() {
     maybeUpdatedMemory = Optional.empty();
     maybeUpdatedStorage = Optional.empty();
@@ -1408,7 +1408,7 @@ public class MessageFrame {
           maxStackSize,
           accessListWarmAddresses,
           accessListWarmStorage,
-          versionedHashes);
+              versionedHashes);
     }
   }
 }
