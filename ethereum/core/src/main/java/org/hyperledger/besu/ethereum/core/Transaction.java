@@ -767,6 +767,7 @@ public class Transaction
         preimage = frontierPreimage(nonce, gasPrice, gasLimit, to, value, payload, chainId);
         break;
       case EIP1559:
+      case BLOB_TX_TYPE:
         preimage =
             eip1559Preimage(
                 nonce,
@@ -1071,7 +1072,9 @@ public class Transaction
     }
 
     public Builder guessType() {
-      if (maxPriorityFeePerGas != null || maxFeePerGas != null) {
+      if (versionedHashes != null && versionedHashes.isPresent()) {
+        transactionType = TransactionType.BLOB_TX_TYPE;
+      } else if (maxPriorityFeePerGas != null || maxFeePerGas != null) {
         transactionType = TransactionType.EIP1559;
       } else if (accessList.isPresent()) {
         transactionType = TransactionType.ACCESS_LIST;
