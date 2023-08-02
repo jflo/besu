@@ -16,42 +16,24 @@
 
 package org.hyperledger.besu.components;
 
-import org.hyperledger.besu.cli.BesuCommand;
-import org.hyperledger.besu.metrics.MetricsSystemModule;
+import org.hyperledger.besu.ethereum.bonsai.cache.CachedMerkleTrieLoader;
+import org.hyperledger.besu.ethereum.bonsai.cache.CachedMerkleTrieLoaderModule;
 import org.hyperledger.besu.metrics.ObservableMetricsSystem;
-import org.hyperledger.besu.services.BesuPluginContextImpl;
 
-import javax.inject.Named;
-import javax.inject.Provider;
-import javax.inject.Singleton;
-
-import dagger.Component;
-import org.slf4j.Logger;
+import dagger.Subcomponent;
 
 /** An application context that knows how to provide dependencies based on Dagger setup. */
-@Singleton
-@Component(
+@Subcomponent(
     modules = {
-      BesuCommandModule.class,
-      BesuBonsaiModule.class,
-      MetricsSystemModule.class,
-      BesuPluginContextModule.class
+      CachedMerkleTrieLoaderModule.class,
     })
-public interface BesuComponent {
-
-  /**
-   * the configured and parsed representation of the user issued command to run Besu
-   *
-   * @return BesuCommand
-   */
-  BesuCommand getBesuCommand();
-
+public interface BonsaiComponent {
   /**
    * a cached trie node loader
    *
    * @return CachedMerkleTrieLoader
    */
-  Provider<BonsaiComponent.Builder> getBonsaiComponentBuilder();
+  CachedMerkleTrieLoader getCachedMerkleTrieLoader();
 
   /**
    * a metrics system that is observable by a Prometheus or OTEL metrics collection subsystem
@@ -60,19 +42,10 @@ public interface BesuComponent {
    */
   ObservableMetricsSystem getObservableMetricsSystem();
 
-  /**
-   * a Logger specifically configured to provide configuration feedback to users.
-   *
-   * @return Logger
-   */
-  @Named("besuCommandLogger")
-  Logger getBesuCommandLogger();
+  @Subcomponent.Builder
+  interface Builder {
+    Builder cachedMerkleTrieLoaderModule(CachedMerkleTrieLoaderModule module);
 
-  /**
-   * Besu plugin context for doing plugin service discovery.
-   *
-   * @return BesuComponent
-   */
-  @Named("besuPluginContext")
-  BesuPluginContextImpl getBesuPluginContext();
+    BonsaiComponent build();
+  }
 }

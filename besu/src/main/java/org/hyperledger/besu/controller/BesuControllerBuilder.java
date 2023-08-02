@@ -581,7 +581,7 @@ public abstract class BesuControllerBuilder implements MiningParameterOverrides 
 
     final CachedMerkleTrieLoader cachedMerkleTrieLoader =
         besuComponent
-            .map(BesuComponent::getCachedMerkleTrieLoader)
+            .map(bc -> bc.getBonsaiComponentBuilder().get().build().getCachedMerkleTrieLoader())
             .orElseGet(() -> new CachedMerkleTrieLoader(metricsSystem));
 
     final WorldStateArchive worldStateArchive =
