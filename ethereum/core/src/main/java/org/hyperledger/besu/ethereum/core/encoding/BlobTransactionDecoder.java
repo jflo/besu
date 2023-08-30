@@ -36,7 +36,7 @@ public class BlobTransactionDecoder {
   private static final Supplier<SignatureAlgorithm> SIGNATURE_ALGORITHM =
       Suppliers.memoize(SignatureAlgorithmFactory::getInstance);
 
-  static Transaction decode(final RLPInput input) {
+  public static Transaction decode(final RLPInput input) {
     Transaction transaction;
 
     input.enterList();

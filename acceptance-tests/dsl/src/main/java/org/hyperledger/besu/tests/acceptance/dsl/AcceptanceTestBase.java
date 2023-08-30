@@ -38,6 +38,7 @@ import org.hyperledger.besu.tests.acceptance.dsl.node.configuration.permissionin
 import org.hyperledger.besu.tests.acceptance.dsl.transaction.account.AccountTransactions;
 import org.hyperledger.besu.tests.acceptance.dsl.transaction.admin.AdminTransactions;
 import org.hyperledger.besu.tests.acceptance.dsl.transaction.bft.BftTransactions;
+import org.hyperledger.besu.tests.acceptance.dsl.transaction.blob.BlobTransactions;
 import org.hyperledger.besu.tests.acceptance.dsl.transaction.clique.CliqueTransactions;
 import org.hyperledger.besu.tests.acceptance.dsl.transaction.contract.ContractTransactions;
 import org.hyperledger.besu.tests.acceptance.dsl.transaction.eth.EthTransactions;
@@ -74,6 +75,7 @@ public class AcceptanceTestBase {
   protected final AccountTransactions accountTransactions;
   protected final AdminConditions admin;
   protected final AdminTransactions adminTransactions;
+  protected final BlobTransactions blobTransactions;
   protected final Blockchain blockchain;
   protected final CliqueConditions clique;
   protected final CliqueTransactions cliqueTransactions;
@@ -107,6 +109,7 @@ public class AcceptanceTestBase {
     cliqueTransactions = new CliqueTransactions();
     bftTransactions = new BftTransactions();
     accountTransactions = new AccountTransactions(accounts);
+    blobTransactions = new BlobTransactions();
     permissioningTransactions = new PermissioningTransactions();
     privacyTransactions = new PrivacyTransactions();
     contractTransactions = new ContractTransactions();

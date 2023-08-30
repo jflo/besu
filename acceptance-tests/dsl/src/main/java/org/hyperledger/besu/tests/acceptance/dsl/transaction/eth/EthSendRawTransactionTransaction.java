@@ -27,7 +27,7 @@ public class EthSendRawTransactionTransaction implements Transaction<String> {
 
   private final String transactionData;
 
-  EthSendRawTransactionTransaction(final String transactionData) {
+  public EthSendRawTransactionTransaction(final String transactionData) {
     this.transactionData = transactionData;
   }
 
