@@ -23,6 +23,7 @@ import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.RpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV2;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.WithdrawalParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
@@ -52,6 +53,12 @@ public class EngineNewPayloadV2 extends EngineNewPayloadV1 {
       final EthPeers ethPeers,
       final EngineCallListener engineCallListener) {
     super(vertx, protocolSchedule, protocolContext, mergeCoordinator, ethPeers, engineCallListener);
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  protected <P extends EngineExecutionPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request) {
+    return (P) request.getRequiredParameter(0, EngineExecutionPayloadParameterV2.class);
   }
 
   @Override

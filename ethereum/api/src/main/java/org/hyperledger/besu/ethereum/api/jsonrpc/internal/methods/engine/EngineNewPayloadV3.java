@@ -21,6 +21,7 @@ import org.hyperledger.besu.datatypes.VersionedHash;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.RpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV3;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
 import org.hyperledger.besu.ethereum.core.Block;
@@ -65,6 +66,11 @@ public class EngineNewPayloadV3 extends EngineNewPayloadV2 {
     return RpcMethod.ENGINE_NEW_PAYLOAD_V3.getMethodName();
   }
 
+  @Override
+  @SuppressWarnings("unchecked")
+  protected <P extends EngineExecutionPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request) {
+    return (P) request.getRequiredParameter(0, EngineExecutionPayloadParameterV3.class);
+  }
   @Override
   protected ValidationResult<RpcErrorType> validateRequest(
       final JsonRpcRequestContext requestContext) {

@@ -24,6 +24,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hyperledger.besu.datatypes.BlobGas;
 import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.BlockProcessingResult;
@@ -78,7 +80,7 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
 
 
   @Test
-  public void shouldReturnValidIfWithdrawalsIsNotNull_WhenWithdrawalsAllowed() {
+  public void shouldReturnValidIfWithdrawalsIsNotNull_WhenWithdrawalsAllowed() throws JsonProcessingException {
     final List<WithdrawalParameter> withdrawalsParam = List.of(WITHDRAWAL_PARAM_1);
     final List<Withdrawal> withdrawals = List.of(WITHDRAWAL_PARAM_1.toWithdrawal());
     when(protocolSpec.getWithdrawalsValidator())
@@ -101,7 +103,7 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
   }
 
   @Test
-  public void shouldReturnValidIfWithdrawalsIsNull_WhenWithdrawalsProhibited() {
+  public void shouldReturnValidIfWithdrawalsIsNull_WhenWithdrawalsProhibited() throws JsonProcessingException {
     final List<WithdrawalParameter> withdrawals = null;
     when(protocolSpec.getWithdrawalsValidator())
         .thenReturn(new WithdrawalsValidator.ProhibitedWithdrawals());
@@ -121,7 +123,7 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
   }
 
   @Test
-  public void shouldReturnInvalidIfWithdrawalsIsNotNull_WhenWithdrawalsProhibited() {
+  public void shouldReturnInvalidIfWithdrawalsIsNotNull_WhenWithdrawalsProhibited() throws JsonProcessingException {
     final List<WithdrawalParameter> withdrawals = List.of();
     lenient()
         .when(protocolSpec.getWithdrawalsValidator())
@@ -142,7 +144,7 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
   }
 
   @Test
-  public void shouldReturnInvalidIfWithdrawalsIsNull_WhenWithdrawalsAllowed() {
+  public void shouldReturnInvalidIfWithdrawalsIsNull_WhenWithdrawalsAllowed() throws JsonProcessingException {
     final List<WithdrawalParameter> withdrawals = null;
     when(protocolSpec.getWithdrawalsValidator())
         .thenReturn(new WithdrawalsValidator.AllowedWithdrawals());
@@ -161,17 +163,18 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
   }
 
   @Override
-  protected <P extends EngineExecutionPayloadParameterV1> P createNewPayloadParam(final BlockHeader header, final List<String> txs) {
+  protected String createNewPayloadParam(final BlockHeader header, final List<String> txs) {
     return createNewPayloadParam(header, txs, null);
   }
 
 
   @SuppressWarnings({"unchecked", "signedness:argument"})
-  protected <P extends EngineExecutionPayloadParameterV1> P createNewPayloadParam(
+  protected String createNewPayloadParam(
       final BlockHeader header,
       final List<String> txs,
-      final List<WithdrawalParameter> withdrawals) {
-    return (P) new EngineExecutionPayloadParameterV2(
+      final List<WithdrawalParameter> withdrawals)  {
+    ObjectMapper mapper = new ObjectMapper();
+    EngineExecutionPayloadParameterV2 retval = new EngineExecutionPayloadParameterV2(
         header.getHash(),
         header.getParentHash(),
         header.getCoinbase(),
@@ -187,5 +190,10 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
         header.getPrevRandao().map(Bytes32::toHexString).orElse("0x0"),
         txs,
         withdrawals);
+    try {
+      return mapper.writeValueAsString(retval);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

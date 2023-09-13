@@ -28,6 +28,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.tuweni.bytes.Bytes;
 import org.hyperledger.besu.consensus.merge.MergeContext;
 import org.hyperledger.besu.consensus.merge.blockcreation.MergeMiningCoordinator;
@@ -396,7 +397,7 @@ public abstract class AbstractEngineNewPayloadTest extends AbstractScheduledApiT
         new JsonRpcRequestContext(new JsonRpcRequest("2.0", this.method.getName(), params)));
   }
 
-  abstract protected <P extends EngineExecutionPayloadParameterV1> P createNewPayloadParam(
+  abstract protected String createNewPayloadParam(
       final BlockHeader header, final List<String> txs);
 
   protected BlockHeader prepChainForAddingNewBlock(

@@ -17,6 +17,8 @@ package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID_BLOCK_HASH;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod;
 
@@ -65,9 +67,10 @@ public class EngineNewPayloadV1Test extends AbstractEngineNewPayloadTest {
 
   @Override
   @SuppressWarnings({"unchecked", "signedness:argument"})
-  protected <P extends EngineExecutionPayloadParameterV1> P createNewPayloadParam(final BlockHeader header, final List<String> txs) {
+  protected String createNewPayloadParam(final BlockHeader header, final List<String> txs) {
     {
-      return (P) new EngineExecutionPayloadParameterV1(
+      ObjectMapper mapper = new ObjectMapper();
+      EngineExecutionPayloadParameterV1 retval =  new EngineExecutionPayloadParameterV1(
               header.getHash(),
               header.getParentHash(),
               header.getCoinbase(),
@@ -82,6 +85,12 @@ public class EngineNewPayloadV1Test extends AbstractEngineNewPayloadTest {
               header.getLogsBloom(),
               header.getPrevRandao().map(Bytes32::toHexString).orElse("0x0"),
               txs);
+      try {
+        return mapper.writeValueAsString(retval);
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
+
     }
   }
 }

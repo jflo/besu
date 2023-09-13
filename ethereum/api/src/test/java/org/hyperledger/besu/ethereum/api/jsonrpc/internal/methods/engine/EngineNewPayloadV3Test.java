@@ -23,6 +23,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hyperledger.besu.datatypes.BlobGas;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
@@ -214,10 +216,16 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
 
   @Override
   @SuppressWarnings("unchecked")
-  protected <P extends EngineExecutionPayloadParameterV1> P createNewPayloadParam(
+  protected String createNewPayloadParam(
           final BlockHeader header,
-          final List<String> txs){
-    return (P) createNewPayloadParamV3(header, txs, null);
+          final List<String> txs) {
+    ObjectMapper mapper = new ObjectMapper();
+    EngineExecutionPayloadParameterV3 retval = createNewPayloadParamV3(header, txs, null);
+    try {
+      return mapper.writeValueAsString(retval);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
   @SuppressWarnings("signedness:argument")
   protected EngineExecutionPayloadParameterV3 createNewPayloadParamV3(
