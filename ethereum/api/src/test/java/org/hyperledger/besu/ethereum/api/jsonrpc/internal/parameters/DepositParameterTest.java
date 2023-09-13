@@ -22,6 +22,7 @@ import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.Depo
 import org.hyperledger.besu.datatypes.BLSPublicKey;
 import org.hyperledger.besu.datatypes.BLSSignature;
 import org.hyperledger.besu.datatypes.GWei;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.DepositParameter;
 import org.hyperledger.besu.ethereum.core.Deposit;
 
 import org.apache.tuweni.bytes.Bytes32;

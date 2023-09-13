@@ -27,9 +27,9 @@ import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.EngineForkchoiceUpdatedParameter;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.EnginePayloadAttributesParameter;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.WithdrawalParameter;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineForkchoiceUpdatedParameter;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EnginePayloadAttributesParameter;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.WithdrawalParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcErrorResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcSuccessResponse;
@@ -46,14 +46,16 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 
 import io.vertx.core.Vertx;
+import org.checkerframework.checker.signedness.qual.Unsigned;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractEngineForkchoiceUpdated extends ExecutionEngineJsonRpcMethod {
   private static final Logger LOG = LoggerFactory.getLogger(AbstractEngineForkchoiceUpdated.class);
   private final MergeMiningCoordinator mergeCoordinator;
-  private final Long cancunTimestamp;
+  private final @Unsigned Long cancunTimestamp;
 
+  @SuppressWarnings("signedness")
   public AbstractEngineForkchoiceUpdated(
       final Vertx vertx,
       final ProtocolSchedule protocolSchedule,
@@ -65,7 +67,8 @@ public abstract class AbstractEngineForkchoiceUpdated extends ExecutionEngineJso
     this.mergeCoordinator = mergeCoordinator;
     Optional<ScheduledProtocolSpec.Hardfork> cancun =
         protocolSchedule.hardforkFor(s -> s.fork().name().equalsIgnoreCase("Cancun"));
-    cancunTimestamp = cancun.map(ScheduledProtocolSpec.Hardfork::milestone).orElse(Long.MAX_VALUE);
+    @Unsigned long max = Long.MAX_VALUE; // 2^63 - 1, still fallable
+    cancunTimestamp = cancun.map(ScheduledProtocolSpec.Hardfork::milestone).orElse(max);
   }
 
   protected ValidationResult<RpcErrorType> validateParameter(
@@ -74,6 +77,7 @@ public abstract class AbstractEngineForkchoiceUpdated extends ExecutionEngineJso
   }
 
   @Override
+  @SuppressWarnings("signedness:argument")
   public JsonRpcResponse syncResponse(final JsonRpcRequestContext requestContext) {
     engineCallListener.executionEngineCalled();
 
@@ -208,6 +212,7 @@ public abstract class AbstractEngineForkchoiceUpdated extends ExecutionEngineJso
             Optional.empty()));
   }
 
+  @SuppressWarnings("signedness:comparison.unsignedrhs")
   private boolean isPayloadAttributesValid(
       final EnginePayloadAttributesParameter payloadAttributes,
       final Optional<List<Withdrawal>> maybeWithdrawals,

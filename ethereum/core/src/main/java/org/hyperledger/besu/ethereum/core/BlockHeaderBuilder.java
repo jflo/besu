@@ -341,24 +341,28 @@ public class BlockHeaderBuilder {
     return this;
   }
 
+  @SuppressWarnings("signedness:argument")
   public BlockHeaderBuilder number(final long number) {
     checkArgument(number >= 0L);
     this.number = number;
     return this;
   }
 
+  @SuppressWarnings("signedness:argument")
   public BlockHeaderBuilder gasLimit(final long gasLimit) {
     checkArgument(gasLimit >= 0L);
     this.gasLimit = gasLimit;
     return this;
   }
 
+  @SuppressWarnings("signedness:argument")
   public BlockHeaderBuilder gasUsed(final long gasUsed) {
     checkArgument(gasUsed > -1L);
     this.gasUsed = gasUsed;
     return this;
   }
 
+  @SuppressWarnings("signedness:argument")
   public BlockHeaderBuilder timestamp(final long timestamp) {
     checkArgument(timestamp >= 0);
     this.timestamp = timestamp;

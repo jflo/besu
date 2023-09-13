@@ -66,6 +66,7 @@ public abstract class AbstractEngineGetPayload extends ExecutionEngineJsonRpcMet
   }
 
   @Override
+  @SuppressWarnings("signedness:argument")
   public JsonRpcResponse syncResponse(final JsonRpcRequestContext request) {
     engineCallListener.executionEngineCalled();
 

@@ -86,6 +86,7 @@ public class BlockAdapterBase extends AdapterBase {
     return header.getReceiptsRoot();
   }
 
+  @SuppressWarnings("signedness:argument")
   public AdapterBase getMiner(final DataFetchingEnvironment environment) {
 
     final BlockchainQueries query = getBlockchainQueries(environment);

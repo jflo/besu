@@ -17,14 +17,20 @@ package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID_BLOCK_HASH;
 
+import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod;
 
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
+import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+
+import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -55,5 +61,27 @@ public class EngineNewPayloadV1Test extends AbstractEngineNewPayloadTest {
   @Override
   protected ExecutionEngineJsonRpcMethod.EngineStatus getExpectedInvalidBlockHashStatus() {
     return INVALID_BLOCK_HASH;
+  }
+
+  @Override
+  @SuppressWarnings({"unchecked", "signedness:argument"})
+  protected <P extends EngineExecutionPayloadParameterV1> P createNewPayloadParam(final BlockHeader header, final List<String> txs) {
+    {
+      return (P) new EngineExecutionPayloadParameterV1(
+              header.getHash(),
+              header.getParentHash(),
+              header.getCoinbase(),
+              header.getStateRoot(),
+              new CheckerUnsignedLongParameter(header.getNumber()),
+              header.getBaseFee().map(w -> w.toHexString()).orElse("0x0"),
+              new CheckerUnsignedLongParameter(header.getGasLimit()),
+              new CheckerUnsignedLongParameter(header.getGasUsed()),
+              new CheckerUnsignedLongParameter(header.getTimestamp()),
+              header.getExtraData() == null || header.getExtraData().isEmpty() ? null : header.getExtraData().toHexString(),
+              header.getReceiptsRoot(),
+              header.getLogsBloom(),
+              header.getPrevRandao().map(Bytes32::toHexString).orElse("0x0"),
+              txs);
+    }
   }
 }

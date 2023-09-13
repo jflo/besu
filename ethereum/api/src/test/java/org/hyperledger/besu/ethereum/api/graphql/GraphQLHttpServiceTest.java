@@ -193,7 +193,7 @@ public class GraphQLHttpServiceTest {
       Assertions.assertThat(redirectUrl).isNotNull();
       final Request.Builder redirectBuilder = resp.request().newBuilder();
       redirectBuilder.get();
-      // resp.body().close();
+      // respondTo.body().close();
       try (final Response redirectResp =
           client.newCall(redirectBuilder.url(redirectUrl).build()).execute()) {
         Assertions.assertThat(redirectResp.code()).isEqualTo(HttpResponseStatus.BAD_REQUEST.code());

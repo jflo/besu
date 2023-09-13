@@ -31,6 +31,7 @@ import org.hyperledger.besu.ethereum.mainnet.ValidationResult;
 import java.util.Optional;
 
 import io.vertx.core.Vertx;
+import org.checkerframework.checker.signedness.qual.Unsigned;
 
 public class EngineGetPayloadV3 extends AbstractEngineGetPayload {
 
@@ -70,7 +71,9 @@ public class EngineGetPayloadV3 extends AbstractEngineGetPayload {
   }
 
   @Override
-  protected ValidationResult<RpcErrorType> validateForkSupported(final long blockTimestamp) {
+  @SuppressWarnings("signedness")
+  protected ValidationResult<RpcErrorType> validateForkSupported(
+      final @Unsigned long blockTimestamp) {
     if (protocolSchedule.isPresent()) {
       if (cancun.isPresent() && blockTimestamp >= cancun.get().milestone()) {
         return ValidationResult.valid();

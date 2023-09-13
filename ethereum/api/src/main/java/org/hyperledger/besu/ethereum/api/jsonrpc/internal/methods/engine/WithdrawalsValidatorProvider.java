@@ -23,10 +23,15 @@ import org.hyperledger.besu.ethereum.mainnet.WithdrawalsValidator;
 
 import java.util.Optional;
 
+import org.checkerframework.checker.signedness.qual.Unsigned;
+
 public class WithdrawalsValidatorProvider {
 
+  @SuppressWarnings("signedness:argument")
   static WithdrawalsValidator getWithdrawalsValidator(
-      final ProtocolSchedule protocolSchedule, final long blockTimestamp, final long blockNumber) {
+      final ProtocolSchedule protocolSchedule,
+      final @Unsigned long blockTimestamp,
+      final @Unsigned long blockNumber) {
 
     final BlockHeader blockHeader =
         BlockHeaderBuilder.createDefault()

@@ -78,6 +78,7 @@ public class TransactionAdapter extends AdapterBase {
     return transactionWithMetadata.getTransactionIndex();
   }
 
+  @SuppressWarnings("signedness:argument")
   public AccountAdapter getFrom(final DataFetchingEnvironment environment) {
     final BlockchainQueries query = getBlockchainQueries(environment);
     Long blockNumber = environment.getArgument("block");
@@ -95,6 +96,7 @@ public class TransactionAdapter extends AdapterBase {
         .get();
   }
 
+  @SuppressWarnings("signedness:argument")
   public Optional<AccountAdapter> getTo(final DataFetchingEnvironment environment) {
     final BlockchainQueries query = getBlockchainQueries(environment);
     Long blockNumber = environment.getArgument("block");

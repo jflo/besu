@@ -146,6 +146,7 @@ public class GraphQLDataFetchers {
     };
   }
 
+  @SuppressWarnings("signedness:argument")
   DataFetcher<List<NormalBlockAdapter>> getRangeBlockDataFetcher() {
 
     return dataFetchingEnvironment -> {
@@ -173,6 +174,7 @@ public class GraphQLDataFetchers {
     };
   }
 
+  @SuppressWarnings("signedness:argument")
   public DataFetcher<Optional<NormalBlockAdapter>> getBlockDataFetcher() {
 
     return dataFetchingEnvironment -> {
@@ -198,6 +200,7 @@ public class GraphQLDataFetchers {
     };
   }
 
+  @SuppressWarnings("signedness:argument")
   DataFetcher<Optional<AccountAdapter>> getAccountDataFetcher() {
     return dataFetchingEnvironment -> {
       final BlockchainQueries blockchainQuery =

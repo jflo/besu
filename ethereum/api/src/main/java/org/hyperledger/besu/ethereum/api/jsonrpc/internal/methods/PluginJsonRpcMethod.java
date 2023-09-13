@@ -48,6 +48,7 @@ public class PluginJsonRpcMethod implements JsonRpcMethod {
   }
 
   @Override
+  @SuppressWarnings("signedness:argument")
   public JsonRpcResponse response(final JsonRpcRequestContext request) {
     try {
       final Object result = function.apply(() -> request.getRequest().getParams());

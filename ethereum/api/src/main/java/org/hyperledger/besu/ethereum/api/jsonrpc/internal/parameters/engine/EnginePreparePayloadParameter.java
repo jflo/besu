@@ -12,10 +12,11 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters;
+package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine;
 
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.UnsignedLongParameter;
 
 import java.util.Collections;
 import java.util.List;

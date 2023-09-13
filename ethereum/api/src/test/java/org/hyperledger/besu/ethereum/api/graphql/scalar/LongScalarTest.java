@@ -99,6 +99,7 @@ public class LongScalarTest {
   }
 
   @Test
+  @SuppressWarnings("signedness:argument")
   public void parseLiteralTest() {
     final Long result =
         (Long)
@@ -113,6 +114,7 @@ public class LongScalarTest {
   }
 
   @Test
+  @SuppressWarnings("signedness:argument")
   public void parseLiteralStringTest() {
     final Long result =
         (Long)

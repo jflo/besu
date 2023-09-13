@@ -30,7 +30,10 @@ import org.hyperledger.besu.datatypes.BlobGas;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.BlockProcessingResult;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.DepositParameter;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.DepositParameter;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterEIP6110;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.WithdrawalParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcError;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.BlockHeaderTestFixture;
@@ -63,7 +66,7 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
     super.before();
     maybeParentBeaconBlockRoot = Optional.of(Bytes32.ZERO);
     this.method =
-        new EngineNewPayloadV3(
+        new EngineNewPayloadEIP6110(
             vertx,
             protocolSchedule,
             protocolContext,
@@ -78,7 +81,7 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
 
   @Override
   public void shouldReturnExpectedMethodName() {
-    assertThat(method.getName()).isEqualTo("engine_newPayloadV3");
+    assertThat(method.getName()).isEqualTo("engine_newPayloadEIP6110");
   }
 
   @Test
@@ -88,7 +91,7 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
         .thenReturn(new DepositsValidator.ProhibitedDeposits());
 
     BlockHeader mockHeader =
-        setupValidPayload(
+        prepChainForAddingNewBlock(
             new BlockProcessingResult(Optional.of(new BlockProcessingOutputs(null, List.of()))),
             Optional.empty(),
             Optional.empty());
@@ -97,7 +100,13 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
     when(mergeCoordinator.getLatestValidAncestor(mockHeader))
         .thenReturn(Optional.of(mockHeader.getHash()));
 
-    var resp = resp(mockEnginePayload(mockHeader, Collections.emptyList(), null, deposits));
+    var resp =
+        respondTo(
+            new Object[] {
+              createNewEngineParam(mockHeader, Collections.emptyList(), null, deposits),
+              Collections.emptyList(),
+              Bytes32.ZERO.toHexString()
+            });
 
     assertValidResponse(mockHeader, resp);
   }
@@ -110,12 +119,14 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
         .thenReturn(new DepositsValidator.AllowedDeposits(depositContractAddress));
 
     var resp =
-        resp(
-            mockEnginePayload(
-                createBlockHeader(Optional.empty(), Optional.empty()),
-                Collections.emptyList(),
-                null,
-                deposits));
+        respondTo(
+            new Object[] {
+              createNewEngineParam(
+                  createBlockHeader(Optional.empty(), Optional.empty()),
+                  Collections.emptyList(),
+                  null,
+                  deposits)
+            });
 
     assertThat(fromErrorResp(resp).getCode()).isEqualTo(INVALID_PARAMS.getCode());
     verify(engineCallListener, times(1)).executionEngineCalled();
@@ -128,7 +139,7 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
     when(protocolSpec.getDepositsValidator())
         .thenReturn(new DepositsValidator.AllowedDeposits(depositContractAddress));
     BlockHeader mockHeader =
-        setupValidPayload(
+        prepChainForAddingNewBlock(
             new BlockProcessingResult(Optional.of(new BlockProcessingOutputs(null, List.of()))),
             Optional.empty(),
             Optional.of(deposits));
@@ -136,7 +147,11 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
         .thenReturn(Optional.of(mock(BlockHeader.class)));
     when(mergeCoordinator.getLatestValidAncestor(mockHeader))
         .thenReturn(Optional.of(mockHeader.getHash()));
-    var resp = resp(mockEnginePayload(mockHeader, Collections.emptyList(), null, depositsParam));
+    var resp =
+        respondTo(
+            new Object[] {
+              createNewEngineParam(mockHeader, Collections.emptyList(), null, depositsParam)
+            });
 
     assertValidResponse(mockHeader, resp);
   }
@@ -149,12 +164,14 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
         .thenReturn(new DepositsValidator.ProhibitedDeposits());
 
     var resp =
-        resp(
-            mockEnginePayload(
-                createBlockHeader(Optional.empty(), Optional.of(Collections.emptyList())),
-                Collections.emptyList(),
-                null,
-                deposits));
+        respondTo(
+            new Object[] {
+              createNewEngineParam(
+                  createBlockHeader(Optional.empty(), Optional.of(Collections.emptyList())),
+                  Collections.emptyList(),
+                  null,
+                  deposits)
+            });
 
     final JsonRpcError jsonRpcError = fromErrorResp(resp);
     assertThat(jsonRpcError.getCode()).isEqualTo(INVALID_PARAMS.getCode());
@@ -162,6 +179,7 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
   }
 
   @Override
+  @SuppressWarnings("signedness:argument")
   protected BlockHeader createBlockHeader(
       final Optional<List<Withdrawal>> maybeWithdrawals,
       final Optional<List<Deposit>> maybeDeposits) {
@@ -187,5 +205,32 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
                 maybeParentBeaconBlockRoot.isPresent() ? maybeParentBeaconBlockRoot : null)
             .buildHeader();
     return mockHeader;
+  }
+
+  @SuppressWarnings("signedness:argument")
+  protected EngineExecutionPayloadParameterEIP6110 createNewEngineParam(
+      final BlockHeader header,
+      final List<String> txs,
+      final List<WithdrawalParameter> withdrawals,
+      final List<DepositParameter> deposits) {
+    return new EngineExecutionPayloadParameterEIP6110(
+        header.getHash(),
+        header.getParentHash(),
+        header.getCoinbase(),
+        header.getStateRoot(),
+        new CheckerUnsignedLongParameter(header.getNumber()),
+        header.getBaseFee().map(w -> w.toHexString()).orElse("0x0"),
+        new CheckerUnsignedLongParameter(header.getGasLimit()),
+        new CheckerUnsignedLongParameter(header.getGasUsed()),
+        new CheckerUnsignedLongParameter(header.getTimestamp()),
+        header.getExtraData() == null ? null : header.getExtraData().toHexString(),
+        header.getReceiptsRoot(),
+        header.getLogsBloom(),
+        header.getPrevRandao().map(Bytes32::toHexString).orElse("0x0"),
+        txs,
+        withdrawals,
+        new CheckerUnsignedLongParameter(header.getBlobGasUsed().orElse(0L)),
+        header.getExcessBlobGas().map(BlobGas::toHexString).orElse("0x0"),
+        deposits);
   }
 }

@@ -16,6 +16,7 @@
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters;
 
 import org.hyperledger.besu.datatypes.GWei;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.WithdrawalParameter;
 
 public class WithdrawalParameterTestFixture {
 

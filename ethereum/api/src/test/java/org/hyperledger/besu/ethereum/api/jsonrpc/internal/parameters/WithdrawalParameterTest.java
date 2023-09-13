@@ -20,6 +20,7 @@ import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.With
 
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.GWei;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.WithdrawalParameter;
 import org.hyperledger.besu.ethereum.core.Withdrawal;
 
 import org.apache.tuweni.units.bigints.UInt64;

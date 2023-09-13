@@ -55,6 +55,7 @@ public class LogAdapter extends AdapterBase {
     return tran.map(TransactionAdapter::new).orElseThrow();
   }
 
+  @SuppressWarnings("signedness:argument")
   public AccountAdapter getAccount(final DataFetchingEnvironment environment) {
     final BlockchainQueries query = getBlockchainQueries(environment);
     long blockNumber = logWithMetadata.getBlockNumber();

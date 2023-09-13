@@ -47,12 +47,14 @@ public class JsonResponseStreamer extends OutputStream {
   }
 
   @Override
+  @SuppressWarnings("signedness:override.param")
   public void write(final int b) throws IOException {
     singleByteBuf[0] = (byte) b;
     write(singleByteBuf, 0, 1);
   }
 
   @Override
+  @SuppressWarnings("signedness:override.param")
   public void write(final byte[] bbuf, final int off, final int len) throws IOException {
     stopOnFailureOrClosed();
 

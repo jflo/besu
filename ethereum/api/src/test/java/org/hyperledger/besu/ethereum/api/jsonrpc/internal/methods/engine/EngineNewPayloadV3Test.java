@@ -30,7 +30,10 @@ import org.hyperledger.besu.ethereum.BlockProcessingResult;
 import org.hyperledger.besu.ethereum.api.jsonrpc.RpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequest;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.EnginePayloadParameter;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV3;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.WithdrawalParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcError;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
@@ -85,7 +88,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
   public void shouldInvalidVersionedHash_whenShortVersionedHash() {
     final Bytes shortHash = Bytes.fromHexString("0x" + "69".repeat(31));
 
-    final EnginePayloadParameter payload = mock(EnginePayloadParameter.class);
+    final EngineExecutionPayloadParameterV3 payload = mock(EngineExecutionPayloadParameterV3.class);
     when(payload.getTimestamp()).thenReturn(cancunHardfork.milestone());
     when(payload.getExcessBlobGas()).thenReturn("99");
     when(payload.getBlobGasUsed()).thenReturn(9l);
@@ -109,22 +112,29 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
   @Test
   public void shouldValidVersionedHash_whenListIsEmpty() {
     final BlockHeader mockHeader =
-        setupValidPayload(
+        prepChainForAddingNewBlock(
             new BlockProcessingResult(Optional.of(new BlockProcessingOutputs(null, List.of()))),
             Optional.empty(),
             Optional.empty());
-    final EnginePayloadParameter payload =
-        mockEnginePayload(mockHeader, Collections.emptyList(), null, null);
+    final EngineExecutionPayloadParameterV3 payload =
+        createNewPayloadParamV3(mockHeader, Collections.emptyList(), Collections.emptyList());
 
-    ValidationResult<RpcErrorType> res =
-        method.validateParameters(
-            payload,
-            Optional.of(List.of()),
-            Optional.of("0x0000000000000000000000000000000000000000000000000000000000000000"));
+    JsonRpcRequest req =
+        new JsonRpcRequest(
+            "2.0",
+            "engine_newPayloadV3",
+            new Object[] {
+              payload,
+              Optional.of(List.of()),
+              Optional.of("0x0000000000000000000000000000000000000000000000000000000000000000")
+            });
+    JsonRpcRequestContext ctx = new JsonRpcRequestContext(req);
+    ValidationResult<RpcErrorType> res = method.validateRequest(ctx);
     assertThat(res.isValid()).isTrue();
   }
 
   @Override
+  @SuppressWarnings("signedness:argument")
   protected BlockHeader createBlockHeader(
       final Optional<List<Withdrawal>> maybeWithdrawals,
       final Optional<List<Deposit>> maybeDeposits) {
@@ -153,23 +163,23 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
     return mockHeader;
   }
 
-  @Override
   @Test
-  public void shouldReturnValidIfProtocolScheduleIsEmpty() {
-    // no longer the case, blob validation requires a protocol schedule
-  }
-
-  @Test
-  @Override
   public void shouldValidateBlobGasUsedCorrectly() {
     // V3 must return error if null blobGasUsed
-    BlockHeader blockHeader =
-        createBlockHeaderFixture(Optional.of(Collections.emptyList()), Optional.empty())
-            .excessBlobGas(BlobGas.MAX_BLOB_GAS)
-            .blobGasUsed(null)
-            .buildHeader();
+    BlockHeader blockHeader = createBlockHeaderFixture().buildHeader();
 
-    var resp = resp(mockEnginePayload(blockHeader, Collections.emptyList(), List.of(), null));
+    var resp =
+        method.response(
+            new JsonRpcRequestContext(
+                new JsonRpcRequest(
+                    "2.0",
+                    "engine_newPayloadV3",
+                    new Object[] {
+                      createNewPayloadParamV3(
+                          blockHeader, Collections.emptyList(), Collections.emptyList()),
+                      Collections.emptyList(),
+                      Collections.emptyList()
+                    })));
 
     final JsonRpcError jsonRpcError = fromErrorResp(resp);
     assertThat(jsonRpcError.getCode()).isEqualTo(INVALID_PARAMS.getCode());
@@ -178,20 +188,59 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
   }
 
   @Test
-  @Override
   public void shouldValidateExcessBlobGasCorrectly() {
     // V3 must return error if null excessBlobGas
     BlockHeader blockHeader =
-        createBlockHeaderFixture(Optional.of(Collections.emptyList()), Optional.empty())
-            .excessBlobGas(null)
-            .blobGasUsed(100L)
-            .buildHeader();
+        createBlockHeaderFixture().excessBlobGas(null).blobGasUsed(100L).buildHeader();
 
-    var resp = resp(mockEnginePayload(blockHeader, Collections.emptyList(), List.of(), null));
+    var resp =
+        method.response(
+            new JsonRpcRequestContext(
+                new JsonRpcRequest(
+                    "2.0",
+                    "engine_newPayloadV3",
+                    new Object[] {
+                      createNewPayloadParamV3(
+                          blockHeader, Collections.emptyList(), Collections.emptyList()),
+                      Collections.emptyList(),
+                      Collections.emptyList()
+                    })));
 
     final JsonRpcError jsonRpcError = fromErrorResp(resp);
     assertThat(jsonRpcError.getCode()).isEqualTo(INVALID_PARAMS.getCode());
     assertThat(jsonRpcError.getData()).isEqualTo("Missing blob gas fields");
     verify(engineCallListener, times(1)).executionEngineCalled();
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  protected <P extends EngineExecutionPayloadParameterV1> P createNewPayloadParam(
+          final BlockHeader header,
+          final List<String> txs){
+    return (P) createNewPayloadParamV3(header, txs, null);
+  }
+  @SuppressWarnings("signedness:argument")
+  protected EngineExecutionPayloadParameterV3 createNewPayloadParamV3(
+      final BlockHeader header,
+      final List<String> txs,
+      final List<WithdrawalParameter> withdrawals) {
+    return new EngineExecutionPayloadParameterV3(
+        header.getHash(),
+        header.getParentHash(),
+        header.getCoinbase(),
+        header.getStateRoot(),
+        new CheckerUnsignedLongParameter(header.getNumber()),
+        header.getBaseFee().map(w -> w.toHexString()).orElse("0x0"),
+        new CheckerUnsignedLongParameter(header.getGasLimit()),
+        new CheckerUnsignedLongParameter(header.getGasUsed()),
+        new CheckerUnsignedLongParameter(header.getTimestamp()),
+        header.getExtraData() == null ? null : header.getExtraData().toHexString(),
+        header.getReceiptsRoot(),
+        header.getLogsBloom(),
+        header.getPrevRandao().map(Bytes32::toHexString).orElse("0x0"),
+        txs,
+        withdrawals,
+        new CheckerUnsignedLongParameter(header.getBlobGasUsed().orElse(0L)),
+        header.getExcessBlobGas().orElse(BlobGas.ZERO).toHexString());
   }
 }

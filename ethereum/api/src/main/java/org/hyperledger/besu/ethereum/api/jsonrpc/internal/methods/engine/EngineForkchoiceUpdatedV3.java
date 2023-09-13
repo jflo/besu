@@ -17,7 +17,7 @@ package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine;
 import org.hyperledger.besu.consensus.merge.blockcreation.MergeMiningCoordinator;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.RpcMethod;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.EngineForkchoiceUpdatedParameter;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineForkchoiceUpdatedParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule;
 import org.hyperledger.besu.ethereum.mainnet.ScheduledProtocolSpec;
@@ -26,6 +26,7 @@ import org.hyperledger.besu.ethereum.mainnet.ValidationResult;
 import java.util.Optional;
 
 import io.vertx.core.Vertx;
+import org.checkerframework.checker.signedness.qual.Unsigned;
 
 public class EngineForkchoiceUpdatedV3 extends AbstractEngineForkchoiceUpdated {
 
@@ -60,7 +61,9 @@ public class EngineForkchoiceUpdatedV3 extends AbstractEngineForkchoiceUpdated {
   }
 
   @Override
-  protected ValidationResult<RpcErrorType> validateForkSupported(final long blockTimestamp) {
+  @SuppressWarnings("signedness")
+  protected ValidationResult<RpcErrorType> validateForkSupported(
+      final @Unsigned long blockTimestamp) {
     if (protocolSchedule.isPresent()) {
       if (cancun.isPresent() && blockTimestamp >= cancun.get().milestone()) {
         return ValidationResult.valid();

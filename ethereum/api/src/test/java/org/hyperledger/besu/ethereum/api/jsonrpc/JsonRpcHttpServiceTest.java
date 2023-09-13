@@ -1720,6 +1720,7 @@ public class JsonRpcHttpServiceTest extends JsonRpcHttpServiceTestBase {
     assertThat(Bytes.fromHexString(result.getString("input"))).isEqualTo(transaction.getPayload());
   }
 
+  @SuppressWarnings("signedness:argument")
   private void assertBlockResultMatchesBlock(final JsonObject result, final Block block) {
     final BlockHeader header = block.getHeader();
     assertThat(Hash.fromHexString(result.getString("parentHash")))

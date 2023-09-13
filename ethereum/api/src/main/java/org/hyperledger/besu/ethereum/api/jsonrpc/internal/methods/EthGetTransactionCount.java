@@ -54,6 +54,7 @@ public class EthGetTransactionCount extends AbstractBlockParameterOrBlockHashMet
   }
 
   @Override
+  @SuppressWarnings("signedness:argument")
   protected Object pendingResult(final JsonRpcRequestContext request) {
     final Address address = request.getRequiredParameter(0, Address.class);
     final long pendingNonce =

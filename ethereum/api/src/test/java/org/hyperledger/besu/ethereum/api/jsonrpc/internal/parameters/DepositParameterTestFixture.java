@@ -15,6 +15,8 @@
 
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters;
 
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.DepositParameter;
+
 public class DepositParameterTestFixture {
 
   public static final DepositParameter DEPOSIT_PARAM_1 =

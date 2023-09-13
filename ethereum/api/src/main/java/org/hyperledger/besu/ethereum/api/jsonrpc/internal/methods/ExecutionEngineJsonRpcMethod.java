@@ -14,13 +14,21 @@
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods;
 
+import org.apache.tuweni.bytes.Bytes32;
+import org.checkerframework.checker.signedness.qual.Unsigned;
 import org.hyperledger.besu.consensus.merge.MergeContext;
+import org.hyperledger.besu.consensus.merge.blockcreation.MergeMiningCoordinator;
+import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine.AbstractEngineNewPayload;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine.EngineCallListener;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcErrorResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcResponse;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcSuccessResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.EnginePayloadStatusResult;
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule;
 import org.hyperledger.besu.ethereum.mainnet.ValidationResult;
 
@@ -33,7 +41,13 @@ import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID;
+import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID_BLOCK_HASH;
+
 public abstract class ExecutionEngineJsonRpcMethod implements JsonRpcMethod {
+  // engine api calls are synchronous, no need for volatile
+  protected long lastInvalidWarn = 0;
+
   public enum EngineStatus {
     VALID,
     INVALID,
@@ -43,7 +57,7 @@ public abstract class ExecutionEngineJsonRpcMethod implements JsonRpcMethod {
   }
 
   public static final long ENGINE_API_LOGGING_THRESHOLD = 60000L;
-  private final Vertx syncVertx;
+  protected final Vertx syncVertx;
   private static final Logger LOG = LoggerFactory.getLogger(ExecutionEngineJsonRpcMethod.class);
   protected final Optional<MergeContext> mergeContextOptional;
   protected final Supplier<MergeContext> mergeContext;
@@ -77,7 +91,7 @@ public abstract class ExecutionEngineJsonRpcMethod implements JsonRpcMethod {
   }
 
   @Override
-  public final JsonRpcResponse response(final JsonRpcRequestContext request) {
+  public JsonRpcResponse response(final JsonRpcRequestContext request) {
 
     final CompletableFuture<JsonRpcResponse> cf = new CompletableFuture<>();
 
@@ -127,4 +141,39 @@ public abstract class ExecutionEngineJsonRpcMethod implements JsonRpcMethod {
   protected ValidationResult<RpcErrorType> validateForkSupported(final long blockTimestamp) {
     return ValidationResult.valid();
   }
+
+  public record BlockIdentifier(@Unsigned long number, Bytes32 blockHash, Bytes32 parentHash) {}
+
+  protected JsonRpcResponse respondWithInvalid(
+          final Object requestId,
+          final BlockIdentifier param,
+          final Hash latestValidHash,
+          final EngineStatus invalidStatus,
+          final String validationError) {
+    if (!INVALID.equals(invalidStatus) && !INVALID_BLOCK_HASH.equals(invalidStatus)) {
+      throw new IllegalArgumentException(
+              "Don't call respondWithInvalid() with non-invalid status of " + invalidStatus.toString());
+    }
+    final String invalidBlockLogMessage =
+            String.format(
+                    "Invalid new payload: number: %s, hash: %s, parentHash: %s, latestValidHash: %s, status: %s, validationError: %s",
+                    Long.toUnsignedString(param.number()),
+                    param.blockHash(),
+                    param.parentHash(),
+                    latestValidHash == null ? null : latestValidHash.toHexString(),
+                    invalidStatus.name(),
+                    validationError);
+    // always log invalid at DEBUG
+    LOG.debug(invalidBlockLogMessage);
+    // periodically log at WARN
+    if (lastInvalidWarn + ENGINE_API_LOGGING_THRESHOLD < System.currentTimeMillis()) {
+      lastInvalidWarn = System.currentTimeMillis();
+      LOG.warn(invalidBlockLogMessage);
+    }
+    return new JsonRpcSuccessResponse(
+            requestId,
+            new EnginePayloadStatusResult(
+                    invalidStatus, latestValidHash, Optional.of(validationError)));
+  }
+
 }

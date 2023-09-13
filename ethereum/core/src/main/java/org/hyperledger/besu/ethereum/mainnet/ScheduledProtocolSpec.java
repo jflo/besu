@@ -16,6 +16,8 @@ package org.hyperledger.besu.ethereum.mainnet;
 
 import org.hyperledger.besu.ethereum.core.ProcessableBlockHeader;
 
+import org.checkerframework.checker.signedness.qual.Unsigned;
+
 /**
  * Associates a {@link ProtocolSpec} with a given block number or timestamp level starting point
  * Knows how to query the timestamp or block number of a given block header
@@ -29,7 +31,7 @@ public interface ScheduledProtocolSpec {
 
   ProtocolSpec spec();
 
-  public record Hardfork(String name, long milestone) implements Comparable<Hardfork> {
+  record Hardfork(String name, @Unsigned long milestone) implements Comparable<Hardfork> {
     @Override
     public int compareTo(final Hardfork h) {
       if (h == null) { // all non-null hardforks are greater than null

@@ -49,6 +49,7 @@ public class ContextKeyTest<T> {
 
   @ParameterizedTest
   @MethodSource("data")
+  @SuppressWarnings("signedness:argument")
   public void test(
       final ContextKey key,
       final RoutingContext ctx,

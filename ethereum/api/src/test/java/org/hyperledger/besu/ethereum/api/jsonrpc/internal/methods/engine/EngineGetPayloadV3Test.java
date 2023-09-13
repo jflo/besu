@@ -89,6 +89,7 @@ public class EngineGetPayloadV3Test extends AbstractEngineGetPayloadTest {
 
   @Override
   @Test
+  @SuppressWarnings("signedness:argument")
   public void shouldReturnBlockForKnownPayloadId() {
 
     BlockHeader cancunHeader =

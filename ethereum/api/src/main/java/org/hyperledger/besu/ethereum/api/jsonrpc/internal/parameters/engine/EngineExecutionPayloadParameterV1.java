@@ -12,11 +12,12 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters;
+package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine;
 
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
 import org.hyperledger.besu.evm.log.LogsBloomFilter;
 
 import java.util.List;
@@ -24,26 +25,23 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.tuweni.bytes.Bytes32;
+import org.checkerframework.checker.signedness.qual.Unsigned;
 
-public class EnginePayloadParameter {
+public class EngineExecutionPayloadParameterV1 {
   private final Hash blockHash;
   private final Hash parentHash;
   private final Address feeRecipient;
   private final Hash stateRoot;
-  private final long blockNumber;
+  private final @Unsigned long blockNumber;
   private final Bytes32 prevRandao;
   private final Wei baseFeePerGas;
-  private final long gasLimit;
-  private final long gasUsed;
-  private final long timestamp;
+  private final @Unsigned long gasLimit;
+  private final @Unsigned long gasUsed;
+  private final @Unsigned long timestamp;
   private final String extraData;
   private final Hash receiptsRoot;
   private final LogsBloomFilter logsBloom;
   private final List<String> transactions;
-  private final List<WithdrawalParameter> withdrawals;
-  private final Long blobGasUsed;
-  private final String excessBlobGas;
-  private final List<DepositParameter> deposits;
 
   /**
    * Creates an instance of EnginePayloadParameter.
@@ -62,31 +60,23 @@ public class EnginePayloadParameter {
    * @param logsBloom DATA, 256 Bytes
    * @param prevRandao DATA, 32 Bytes
    * @param transactions Array of DATA
-   * @param withdrawals Array of Withdrawal
-   * @param blobGasUsed QUANTITY, 64 Bits
-   * @param excessBlobGas QUANTITY, 64 Bits
-   * @param deposits List of deposit parameters.
    */
   @JsonCreator
-  public EnginePayloadParameter(
+  public EngineExecutionPayloadParameterV1(
       @JsonProperty("blockHash") final Hash blockHash,
       @JsonProperty("parentHash") final Hash parentHash,
       @JsonProperty("feeRecipient") final Address feeRecipient,
       @JsonProperty("stateRoot") final Hash stateRoot,
-      @JsonProperty("blockNumber") final UnsignedLongParameter blockNumber,
+      @JsonProperty("blockNumber") final CheckerUnsignedLongParameter blockNumber,
       @JsonProperty("baseFeePerGas") final String baseFeePerGas,
-      @JsonProperty("gasLimit") final UnsignedLongParameter gasLimit,
-      @JsonProperty("gasUsed") final UnsignedLongParameter gasUsed,
-      @JsonProperty("timestamp") final UnsignedLongParameter timestamp,
+      @JsonProperty("gasLimit") final CheckerUnsignedLongParameter gasLimit,
+      @JsonProperty("gasUsed") final CheckerUnsignedLongParameter gasUsed,
+      @JsonProperty("timestamp") final CheckerUnsignedLongParameter timestamp,
       @JsonProperty("extraData") final String extraData,
       @JsonProperty("receiptsRoot") final Hash receiptsRoot,
       @JsonProperty("logsBloom") final LogsBloomFilter logsBloom,
       @JsonProperty("prevRandao") final String prevRandao,
-      @JsonProperty("transactions") final List<String> transactions,
-      @JsonProperty("withdrawals") final List<WithdrawalParameter> withdrawals,
-      @JsonProperty("blobGasUsed") final UnsignedLongParameter blobGasUsed,
-      @JsonProperty("excessBlobGas") final String excessBlobGas,
-      @JsonProperty("deposits") final List<DepositParameter> deposits) {
+      @JsonProperty("transactions") final List<String> transactions) {
     this.blockHash = blockHash;
     this.parentHash = parentHash;
     this.feeRecipient = feeRecipient;
@@ -101,10 +91,6 @@ public class EnginePayloadParameter {
     this.logsBloom = logsBloom;
     this.prevRandao = Bytes32.fromHexString(prevRandao);
     this.transactions = transactions;
-    this.withdrawals = withdrawals;
-    this.blobGasUsed = blobGasUsed == null ? null : blobGasUsed.getValue();
-    this.excessBlobGas = excessBlobGas;
-    this.deposits = deposits;
   }
 
   public Hash getBlockHash() {
@@ -123,7 +109,7 @@ public class EnginePayloadParameter {
     return stateRoot;
   }
 
-  public long getBlockNumber() {
+  public @Unsigned long getBlockNumber() {
     return blockNumber;
   }
 
@@ -131,15 +117,15 @@ public class EnginePayloadParameter {
     return baseFeePerGas;
   }
 
-  public long getGasLimit() {
+  public @Unsigned long getGasLimit() {
     return gasLimit;
   }
 
-  public long getGasUsed() {
+  public @Unsigned long getGasUsed() {
     return gasUsed;
   }
 
-  public long getTimestamp() {
+  public @Unsigned long getTimestamp() {
     return timestamp;
   }
 
@@ -161,21 +147,5 @@ public class EnginePayloadParameter {
 
   public List<String> getTransactions() {
     return transactions;
-  }
-
-  public List<WithdrawalParameter> getWithdrawals() {
-    return withdrawals;
-  }
-
-  public Long getBlobGasUsed() {
-    return blobGasUsed;
-  }
-
-  public String getExcessBlobGas() {
-    return excessBlobGas;
-  }
-
-  public List<DepositParameter> getDeposits() {
-    return deposits;
   }
 }

@@ -23,10 +23,15 @@ import org.hyperledger.besu.ethereum.mainnet.ProtocolSpec;
 
 import java.util.Optional;
 
+import org.checkerframework.checker.signedness.qual.Unsigned;
+
 public class DepositsValidatorProvider {
 
+  @SuppressWarnings("signedness:argument")
   static DepositsValidator getDepositsValidator(
-      final ProtocolSchedule protocolSchedule, final long blockTimestamp, final long blockNumber) {
+      final ProtocolSchedule protocolSchedule,
+      final @Unsigned long blockTimestamp,
+      final @Unsigned long blockNumber) {
 
     final BlockHeader blockHeader =
         BlockHeaderBuilder.createDefault()
