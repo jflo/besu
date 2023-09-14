@@ -237,18 +237,18 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
         header.getParentHash(),
         header.getCoinbase(),
         header.getStateRoot(),
-        new CheckerUnsignedLongParameter(header.getNumber()),
+        header.getNumber(),
         header.getBaseFee().map(w -> w.toHexString()).orElse("0x0"),
-        new CheckerUnsignedLongParameter(header.getGasLimit()),
-        new CheckerUnsignedLongParameter(header.getGasUsed()),
-        new CheckerUnsignedLongParameter(header.getTimestamp()),
+        header.getGasLimit(),
+        header.getGasUsed(),
+        header.getTimestamp(),
         header.getExtraData() == null ? null : header.getExtraData().toHexString(),
         header.getReceiptsRoot(),
         header.getLogsBloom(),
         header.getPrevRandao().map(Bytes32::toHexString).orElse("0x0"),
         txs,
         withdrawals,
-        new CheckerUnsignedLongParameter(header.getBlobGasUsed().orElse(0L)),
+        header.getBlobGasUsed().orElse(0L),
         header.getExcessBlobGas().orElse(BlobGas.ZERO).toHexString());
   }
 }

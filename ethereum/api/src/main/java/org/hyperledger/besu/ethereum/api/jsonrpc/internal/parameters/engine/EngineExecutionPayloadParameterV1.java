@@ -14,6 +14,8 @@
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
@@ -27,6 +29,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.tuweni.bytes.Bytes32;
 import org.checkerframework.checker.signedness.qual.Unsigned;
 
+@JsonSerialize(using = NewPayloadV1Serializer.class)
+@JsonDeserialize(using = NewPayloadV1Deserializer.class)
 public class EngineExecutionPayloadParameterV1 {
   private final Hash blockHash;
   private final Hash parentHash;
@@ -67,12 +71,12 @@ public class EngineExecutionPayloadParameterV1 {
       @JsonProperty("parentHash") final Hash parentHash,
       @JsonProperty("feeRecipient") final Address feeRecipient,
       @JsonProperty("stateRoot") final Hash stateRoot,
-      @JsonProperty("blockNumber") final CheckerUnsignedLongParameter blockNumber,
+      @JsonProperty("blockNumber") final @Unsigned long blockNumber,
       @JsonProperty("baseFeePerGas") final String baseFeePerGas,
-      @JsonProperty("gasLimit") final CheckerUnsignedLongParameter gasLimit,
-      @JsonProperty("gasUsed") final CheckerUnsignedLongParameter gasUsed,
-      @JsonProperty("timestamp") final CheckerUnsignedLongParameter timestamp,
-      @JsonProperty("extraData") final String extraData,
+      @JsonProperty("gasLimit") final @Unsigned long gasLimit,
+      @JsonProperty("gasUsed") final @Unsigned long gasUsed,
+      @JsonProperty("timestamp") final @Unsigned long timestamp,
+      @JsonProperty(value = "extraData", required = true) final String extraData,
       @JsonProperty("receiptsRoot") final Hash receiptsRoot,
       @JsonProperty("logsBloom") final LogsBloomFilter logsBloom,
       @JsonProperty("prevRandao") final String prevRandao,
@@ -81,11 +85,11 @@ public class EngineExecutionPayloadParameterV1 {
     this.parentHash = parentHash;
     this.feeRecipient = feeRecipient;
     this.stateRoot = stateRoot;
-    this.blockNumber = blockNumber.getValue();
+    this.blockNumber = blockNumber;
     this.baseFeePerGas = Wei.fromHexString(baseFeePerGas);
-    this.gasLimit = gasLimit.getValue();
-    this.gasUsed = gasUsed.getValue();
-    this.timestamp = timestamp.getValue();
+    this.gasLimit = gasLimit;
+    this.gasUsed = gasUsed;
+    this.timestamp = timestamp;
     this.extraData = extraData;
     this.receiptsRoot = receiptsRoot;
     this.logsBloom = logsBloom;

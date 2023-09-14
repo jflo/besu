@@ -14,6 +14,7 @@
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.exception.InvalidJsonRpcParameters;
 
 import java.util.List;
@@ -71,10 +72,16 @@ public class JsonRpcParameter {
       // If we're dealing with a simple type, just cast the value
       param = (T) rawParam;
     } else {
-      // Otherwise, serialize param back to json and then deserialize to the paramClass type
+
       try {
-        final String json = mapper.writeValueAsString(rawParam);
-        param = mapper.readValue(json, paramClass);
+        if(paramClass.isAnnotationPresent(JsonDeserialize.class) && rawParam instanceof String) {
+          // If the paramClass has a JsonDeserialize annotation, then deserialize the rawParam using it
+          param = mapper.readValue((String)rawParam, paramClass);
+        } else {
+          // Otherwise, serialize param back to json and then deserialize to the paramClass type
+          final String json = mapper.writeValueAsString(rawParam);
+          param = mapper.readValue(json, paramClass);
+        }
       } catch (final JsonProcessingException e) {
         throw new InvalidJsonRpcParameters(
             String.format(

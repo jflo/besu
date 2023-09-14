@@ -60,7 +60,8 @@ public class EngineNewPayloadV1 extends AbstractEngineNewPayload {
   @Override
   @SuppressWarnings("unchecked")
   protected <P extends EngineExecutionPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request) {
-    return (P) request.getRequiredParameter(0, EngineExecutionPayloadParameterV1.class);
+    EngineExecutionPayloadParameterV1 param =  request.getRequiredParameter(0, EngineExecutionPayloadParameterV1.class);
+    return (P) param;
   }
 
   @Override

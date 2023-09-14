@@ -59,13 +59,13 @@ public class EngineExecutionPayloadParameterV3 extends EngineExecutionPayloadPar
       @JsonProperty(value = "feeRecipient", required = true) final Address feeRecipient,
       @JsonProperty(value = "stateRoot", required = true) final Hash stateRoot,
       @JsonProperty(value = "blockNumber", required = true)
-          final CheckerUnsignedLongParameter blockNumber,
+          final @Unsigned long blockNumber,
       @JsonProperty(value = "baseFeePerGas", required = true) final String baseFeePerGas,
       @JsonProperty(value = "gasLimit", required = true)
-          final CheckerUnsignedLongParameter gasLimit,
-      @JsonProperty(value = "gasUsed", required = true) final CheckerUnsignedLongParameter gasUsed,
+          final @Unsigned long gasLimit,
+      @JsonProperty(value = "gasUsed", required = true) final @Unsigned long gasUsed,
       @JsonProperty(value = "timestamp", required = true)
-          final CheckerUnsignedLongParameter timestamp,
+          final @Unsigned long timestamp,
       @JsonProperty(value = "extraData", required = true) final String extraData,
       @JsonProperty(value = "receiptsRoot", required = true) final Hash receiptsRoot,
       @JsonProperty(value = "logsBloom", required = true) final LogsBloomFilter logsBloom,
@@ -74,7 +74,7 @@ public class EngineExecutionPayloadParameterV3 extends EngineExecutionPayloadPar
       @JsonProperty(value = "withdrawals", required = true)
           final List<WithdrawalParameter> withdrawals,
       @JsonProperty(value = "blobGasUsed", required = true)
-          final CheckerUnsignedLongParameter blobGasUsed,
+          final @Unsigned long blobGasUsed,
       @JsonProperty(value = "excessBlobGas", required = true) final String excessBlobGas) {
 
     super(
@@ -93,7 +93,7 @@ public class EngineExecutionPayloadParameterV3 extends EngineExecutionPayloadPar
         prevRandao,
         transactions,
         withdrawals);
-    this.blobGasUsed = blobGasUsed.getValue();
+    this.blobGasUsed = blobGasUsed;
     this.excessBlobGas = excessBlobGas;
   }
 

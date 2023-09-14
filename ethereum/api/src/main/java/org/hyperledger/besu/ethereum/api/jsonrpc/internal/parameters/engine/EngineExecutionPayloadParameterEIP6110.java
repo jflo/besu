@@ -14,6 +14,7 @@
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine;
 
+import org.checkerframework.checker.signedness.qual.Unsigned;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
@@ -56,18 +57,18 @@ public class EngineExecutionPayloadParameterEIP6110 extends EngineExecutionPaylo
       @JsonProperty("parentHash") final Hash parentHash,
       @JsonProperty("feeRecipient") final Address feeRecipient,
       @JsonProperty("stateRoot") final Hash stateRoot,
-      @JsonProperty("blockNumber") final CheckerUnsignedLongParameter blockNumber,
+      @JsonProperty("blockNumber") final @Unsigned long blockNumber,
       @JsonProperty("baseFeePerGas") final String baseFeePerGas,
-      @JsonProperty("gasLimit") final CheckerUnsignedLongParameter gasLimit,
-      @JsonProperty("gasUsed") final CheckerUnsignedLongParameter gasUsed,
-      @JsonProperty("timestamp") final CheckerUnsignedLongParameter timestamp,
+      @JsonProperty("gasLimit") final @Unsigned long gasLimit,
+      @JsonProperty("gasUsed") final @Unsigned long gasUsed,
+      @JsonProperty("timestamp") final @Unsigned long timestamp,
       @JsonProperty("extraData") final String extraData,
       @JsonProperty("receiptsRoot") final Hash receiptsRoot,
       @JsonProperty("logsBloom") final LogsBloomFilter logsBloom,
       @JsonProperty("prevRandao") final String prevRandao,
       @JsonProperty("transactions") final List<String> transactions,
       @JsonProperty("withdrawals") final List<WithdrawalParameter> withdrawals,
-      @JsonProperty("blobGasUsed") final CheckerUnsignedLongParameter blobGasUsed,
+      @JsonProperty("blobGasUsed") final @Unsigned long blobGasUsed,
       @JsonProperty("excessBlobGas") final String excessBlobGas,
       @JsonProperty("deposits") final List<DepositParameter> deposits) {
 

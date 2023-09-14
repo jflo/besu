@@ -29,6 +29,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.tuweni.bytes.Bytes;
 import org.hyperledger.besu.consensus.merge.MergeContext;
 import org.hyperledger.besu.consensus.merge.blockcreation.MergeMiningCoordinator;
@@ -64,6 +67,7 @@ import org.hyperledger.besu.ethereum.mainnet.WithdrawalsValidator;
 import org.hyperledger.besu.ethereum.trie.MerkleTrieException;
 import org.hyperledger.besu.plugin.services.exception.StorageException;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -345,18 +349,19 @@ public abstract class AbstractEngineNewPayloadTest extends AbstractScheduledApiT
   }
 
   @Test
-  public void shouldRespondWithInvalidIfExtraDataIsNull() {
+  public void shouldRespondWithInvalidIfExtraDataIsNull() throws IOException {
     BlockHeader realHeader = createBlockHeader(Optional.empty(), Optional.empty());
     BlockHeader paramHeader = spy(realHeader);
     when(paramHeader.getHash()).thenReturn(Hash.fromHexStringLenient("0x1337"));
-    when(paramHeader.getExtraData()).thenReturn(null);
-    //when(paramHeader.getExtraData().toHexString()).thenReturn(null);
-
+    ObjectMapper mapper = new ObjectMapper();
+    String paramJson = createNewPayloadParam(paramHeader, Collections.emptyList());
+    JsonNode paramNode = mapper.createParser(paramJson).readValueAsTree();
+    ((ObjectNode) paramNode).put("extraData", (String) null);
+    String nulledOutExtraData = mapper.writeValueAsString(paramNode);
     var resp =
-        respondTo(new Object[] {createNewPayloadParam(paramHeader, Collections.emptyList())});
+        respondTo(new Object[] {nulledOutExtraData});
 
     EnginePayloadStatusResult res = fromSuccessResp(resp);
-    //assertThat(res.getLatestValidHash()).isEmpty();
     assertThat(res.getStatusAsString()).isEqualTo(INVALID.name());
     assertThat(res.getError()).isEqualTo("argument cannot be null");
     verify(engineCallListener, times(1)).executionEngineCalled();
