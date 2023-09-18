@@ -16,13 +16,15 @@ public class NewPayloadV2Serializer extends StdSerializer<NewPayloadParameterV2>
     protected void serializeToOpenObject(final NewPayloadParameterV2 value, final JsonGenerator gen, final SerializerProvider provider) throws IOException {
         v1Serializer.serializeToOpenObject(value, gen, provider);
 
-        gen.writeArrayFieldStart("withdrawals");
+
         if(value.getWithdrawals() != null) {
+            gen.writeArrayFieldStart("withdrawals");
             for (WithdrawalParameter withdrawal : value.getWithdrawals()) {
                 gen.writeObject(withdrawal);
             }
+            gen.writeEndArray();
         }
-        gen.writeEndArray();
+
     }
 
     @Override

@@ -63,8 +63,16 @@ public class EngineNewPayloadV2 extends EngineNewPayloadV1 {
 
   @Override
   @SuppressWarnings("unchecked")
-  protected <P extends NewPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request) {
-    return (P) request.getRequiredParameter(0, NewPayloadParameterV2.class);
+  protected <P extends NewPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext requestContext) {
+    final NewPayloadParameterV1 newPayloadParam =
+            requestContext.getRequiredParameter(0, NewPayloadParameterV1.class);
+    WithdrawalsValidator validator = getWithdrawalsValidator(
+            protocolSchedule.get(), newPayloadParam.getTimestamp(), newPayloadParam.getBlockNumber());
+    if(validator instanceof WithdrawalsValidator.AllowedWithdrawals) {
+      return (P) requestContext.getRequiredParameter(0, NewPayloadParameterV2.class);
+    } else {
+      return (P) newPayloadParam;
+    }
   }
 
   @Override
@@ -100,16 +108,17 @@ public class EngineNewPayloadV2 extends EngineNewPayloadV1 {
   }
 
   @Override
-  protected BlockHeaderBuilder composeNewHeader(
-      final JsonRpcRequestContext requestContext, final Hash txRoot) {
-    BlockHeaderBuilder builder = super.composeNewHeader(requestContext, txRoot);
-    NewPayloadParameterV2 blockParam =
-        requestContext.getRequiredParameter(0, NewPayloadParameterV2.class);
-    final Optional<List<Withdrawal>> maybeWithdrawals =
-        Optional.ofNullable(blockParam.getWithdrawals())
-            .map(ws -> ws.stream().map(WithdrawalParameter::toWithdrawal).collect(toList()));
+  protected <P extends NewPayloadParameterV1> BlockHeaderBuilder composeNewHeader(
+      final JsonRpcRequestContext requestContext, final P newPayloadParam, final Hash txRoot) {
+    BlockHeaderBuilder builder = super.composeNewHeader(requestContext, newPayloadParam, txRoot);
+    if(newPayloadParam instanceof NewPayloadParameterV2) {
+      final Optional<List<Withdrawal>> maybeWithdrawals =
+              Optional.ofNullable(((NewPayloadParameterV2)newPayloadParam).getWithdrawals())
+                      .map(ws -> ws.stream().map(WithdrawalParameter::toWithdrawal).collect(toList()));
 
-    builder.withdrawalsRoot(maybeWithdrawals.map(BodyValidation::withdrawalsRoot).orElse(BodyValidation.withdrawalsRoot(Collections.emptyList())));
+      builder.withdrawalsRoot(maybeWithdrawals.map(BodyValidation::withdrawalsRoot).orElse(BodyValidation.withdrawalsRoot(Collections.emptyList())));
+    }
+
     return builder;
   }
 

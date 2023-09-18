@@ -25,6 +25,7 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.RpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.DepositParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterEIP6110;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV1;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
 import org.hyperledger.besu.ethereum.core.BlockHeaderBuilder;
 import org.hyperledger.besu.ethereum.core.Deposit;
@@ -105,15 +106,14 @@ public class EngineNewPayloadEIP6110 extends EngineNewPayloadV3 {
   }
 
   @Override
-  protected BlockHeaderBuilder composeNewHeader(
-      final JsonRpcRequestContext context, final Hash txRoot) {
-    final NewPayloadParameterEIP6110 blockParam =
-        context.getRequiredParameter(0, NewPayloadParameterEIP6110.class);
+  protected <P extends NewPayloadParameterV1> BlockHeaderBuilder composeNewHeader(
+      final JsonRpcRequestContext context, final P newPayloadParam, final Hash txRoot) {
+
 
     final Optional<List<Deposit>> maybeDeposits =
-        Optional.ofNullable(blockParam.getDeposits())
+        Optional.ofNullable(((NewPayloadParameterEIP6110)newPayloadParam).getDeposits())
             .map(ds -> ds.stream().map(DepositParameter::toDeposit).collect(toList()));
-    final BlockHeaderBuilder builder = super.composeNewHeader(context, txRoot);
+    final BlockHeaderBuilder builder = super.composeNewHeader(context, newPayloadParam, txRoot);
     builder.depositsRoot(maybeDeposits.map(BodyValidation::depositsRoot).orElse(null));
     return builder;
   }

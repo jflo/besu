@@ -92,27 +92,26 @@ public class EngineNewPayloadV1 extends AbstractEngineNewPayload {
 
   @Override
   @SuppressWarnings("signedness:argument")
-  protected BlockHeaderBuilder composeNewHeader(
-      final JsonRpcRequestContext requestContext, final Hash txRoot) {
-    NewPayloadParameterV1 blockParam =
-        requestContext.getRequiredParameter(0, NewPayloadParameterV1.class);
+  protected <P extends NewPayloadParameterV1> BlockHeaderBuilder composeNewHeader(
+      final JsonRpcRequestContext requestContext, final P newPayloadParam, final Hash txRoot) {
+
     final BlockHeaderBuilder builder = new BlockHeaderBuilder();
     builder
-        .parentHash(blockParam.getParentHash())
+        .parentHash(newPayloadParam.getParentHash())
         .ommersHash(OMMERS_HASH_CONSTANT)
-        .coinbase(blockParam.getFeeRecipient())
-        .stateRoot(blockParam.getStateRoot())
+        .coinbase(newPayloadParam.getFeeRecipient())
+        .stateRoot(newPayloadParam.getStateRoot())
         .transactionsRoot(txRoot)
-        .receiptsRoot(blockParam.getReceiptsRoot())
-        .logsBloom(blockParam.getLogsBloom())
+        .receiptsRoot(newPayloadParam.getReceiptsRoot())
+        .logsBloom(newPayloadParam.getLogsBloom())
         .difficulty(Difficulty.ZERO)
-        .number(blockParam.getBlockNumber())
-        .gasLimit(blockParam.getGasLimit())
-        .gasUsed(blockParam.getGasUsed())
-        .timestamp(blockParam.getTimestamp())
-        .extraData(Bytes.fromHexString(blockParam.getExtraData()))
-        .baseFee(blockParam.getBaseFeePerGas())
-        .prevRandao(blockParam.getPrevRandao())
+        .number(newPayloadParam.getBlockNumber())
+        .gasLimit(newPayloadParam.getGasLimit())
+        .gasUsed(newPayloadParam.getGasUsed())
+        .timestamp(newPayloadParam.getTimestamp())
+        .extraData(Bytes.fromHexString(newPayloadParam.getExtraData()))
+        .baseFee(newPayloadParam.getBaseFeePerGas())
+        .prevRandao(newPayloadParam.getPrevRandao())
         .nonce(0)
         .blockHeaderFunctions(headerFunctions);
     return builder;

@@ -184,7 +184,7 @@ public abstract class AbstractEngineNewPayload extends ExecutionEngineJsonRpcMet
                 "Failed to parse block body: "+rlpE.getMessage());
     }
     Hash txRoot = BodyValidation.transactionsRoot(allegedBody.getTransactions());
-    BlockHeader allegedHeader = composeNewHeader(requestContext, txRoot).buildBlockHeader();
+    BlockHeader allegedHeader = composeNewHeader(requestContext, newPayloadParam, txRoot).buildBlockHeader();
 
     Block allegedBlock = new Block(allegedHeader, allegedBody);
 
@@ -207,20 +207,8 @@ public abstract class AbstractEngineNewPayload extends ExecutionEngineJsonRpcMet
       return respondWith(reqId, blockId, null, SYNCING);
     }
 
-    /*
-    if (allegedHeader.getExtraData() == null) {
-      return respondWithInvalid(
-          reqId,
-          allegedHeader,
-          mergeCoordinator.getLatestValidAncestor(allegedHeader.getParentHash()).orElse(null),
-          INVALID,
-          "Field extraData must not be null");
-    }
-
-     */
-
     // ensure the block hash matches the blockParam hash
-    // this must be done before any other check
+    // this must be done before other block validity checks
     if (!allegedHeader.getHash().equals(blockId.blockHash())) {
       String errorMessage =
           String.format(
@@ -341,8 +329,8 @@ public abstract class AbstractEngineNewPayload extends ExecutionEngineJsonRpcMet
   public record EngineBlockValidationResult(EngineStatus status, BlockValidationResult validationResult) {};
   protected abstract <P extends NewPayloadParameterV1> EngineBlockValidationResult validateBlock(P payload);
 
-  protected abstract BlockHeaderBuilder composeNewHeader(
-      final JsonRpcRequestContext requestContext, final Hash txroot);
+  protected abstract <P extends NewPayloadParameterV1> BlockHeaderBuilder composeNewHeader(
+      final JsonRpcRequestContext requestContext, final  P newPayloadParam, final Hash txroot);
 
   protected abstract ValidationResult<RpcErrorType> validateBlobs(
       final Block newBlock,

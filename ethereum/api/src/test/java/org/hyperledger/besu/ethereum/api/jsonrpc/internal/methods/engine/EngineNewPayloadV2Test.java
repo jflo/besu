@@ -106,8 +106,7 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
   }
 
   @Test
-  public void shouldReturnValidIfWithdrawalsIsNull_WhenWithdrawalsProhibited() throws JsonProcessingException {
-    final List<WithdrawalParameter> withdrawals = null;
+  public void shouldReturnValidIfWithdrawalsIsNull_WhenWithdrawalsProhibited() {
     when(protocolSpec.getWithdrawalsValidator())
         .thenReturn(new WithdrawalsValidator.ProhibitedWithdrawals());
     BlockHeader mockHeader =
@@ -120,7 +119,7 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
         .thenReturn(Optional.of(mock(BlockHeader.class)));
     var resp =
         respondTo(
-            new Object[] {createNewPayloadParam(mockHeader, Collections.emptyList(), withdrawals)});
+            new Object[] {createNewPayloadParam(mockHeader, Collections.emptyList())});
 
     assertValidResponse(mockHeader, resp);
   }
@@ -207,15 +206,18 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
           final Optional<List<Deposit>> maybeDeposits) {
     BlockHeader parentBlockHeader =
             new BlockHeaderTestFixture().baseFeePerGas(Wei.ONE).buildHeader();
-    return new BlockHeaderTestFixture()
+    BlockHeaderTestFixture testFixture = new BlockHeaderTestFixture()
             .baseFeePerGas(Wei.ONE)
             .parentHash(parentBlockHeader.getParentHash())
             .number(parentBlockHeader.getNumber() + 1)
             .timestamp(parentBlockHeader.getTimestamp() + 1)
             .extraData(Bytes.fromHexString("0xDEADBEEF"))
-            .withdrawalsRoot(maybeWithdrawals.map(BodyValidation::withdrawalsRoot).orElse(null))
             .depositsRoot(maybeDeposits.map(BodyValidation::depositsRoot).orElse(null))
             .transactionsRoot(BodyValidation.transactionsRoot(maybeTransactions))
             .parentBeaconBlockRoot(maybeParentBeaconBlockRoot);
+    if(maybeWithdrawals.isPresent() && maybeWithdrawals.get().size() > 0) {
+      testFixture.withdrawalsRoot(maybeWithdrawals.map(BodyValidation::withdrawalsRoot).orElse(null));
+    }
+    return testFixture;
   }
 }

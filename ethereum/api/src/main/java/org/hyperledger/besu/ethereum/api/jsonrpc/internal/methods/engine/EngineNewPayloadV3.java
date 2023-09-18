@@ -222,16 +222,14 @@ public class EngineNewPayloadV3 extends EngineNewPayloadV2 {
 
   @Override
   @SuppressWarnings("signedness:argument")
-  protected BlockHeaderBuilder composeNewHeader(
-      final JsonRpcRequestContext context, final Hash txRoot) {
-    final NewPayloadParameterV3 blockParam =
-        context.getRequiredParameter(0, NewPayloadParameterV3.class);
+  protected <P extends NewPayloadParameterV1> BlockHeaderBuilder composeNewHeader(
+      final JsonRpcRequestContext context, final P newPayloadParam, final Hash txRoot) {
     String parentBeaconBlockRootParam = context.getRequiredParameter(2, String.class);
 
-    final BlockHeaderBuilder builder = super.composeNewHeader(context, txRoot);
+    final BlockHeaderBuilder builder = super.composeNewHeader(context, newPayloadParam, txRoot);
     builder
-        .blobGasUsed(blockParam.getBlobGasUsed())
-        .excessBlobGas(BlobGas.fromHexString(blockParam.getExcessBlobGas()))
+        .blobGasUsed(((NewPayloadParameterV3)newPayloadParam).getBlobGasUsed())
+        .excessBlobGas(BlobGas.fromHexString(((NewPayloadParameterV3)newPayloadParam).getExcessBlobGas()))
         .parentBeaconBlockRoot(Bytes32.fromHexString(parentBeaconBlockRootParam));
     return builder;
   }
