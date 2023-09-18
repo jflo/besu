@@ -19,12 +19,18 @@ import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.Executi
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
+import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod;
 
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV1;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
+import org.hyperledger.besu.ethereum.core.BlockHeaderTestFixture;
+import org.hyperledger.besu.ethereum.core.Deposit;
+import org.hyperledger.besu.ethereum.core.Transaction;
+import org.hyperledger.besu.ethereum.core.Withdrawal;
+import org.hyperledger.besu.ethereum.mainnet.BodyValidation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +39,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.util.List;
+import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -70,7 +77,7 @@ public class EngineNewPayloadV1Test extends AbstractEngineNewPayloadTest {
   protected String createNewPayloadParam(final BlockHeader header, final List<String> txs) {
     {
       ObjectMapper mapper = new ObjectMapper();
-      EngineExecutionPayloadParameterV1 retval =  new EngineExecutionPayloadParameterV1(
+      NewPayloadParameterV1 retval =  new NewPayloadParameterV1(
               header.getHash(),
               header.getParentHash(),
               header.getCoinbase(),
@@ -93,4 +100,20 @@ public class EngineNewPayloadV1Test extends AbstractEngineNewPayloadTest {
 
     }
   }
+
+    @Override
+    protected BlockHeaderTestFixture createBlockHeaderTestFixture(
+            final List<Transaction> maybeTransactions,
+        final Optional<List<Withdrawal>> maybeWithdrawals,
+        final Optional<List<Deposit>> maybeDeposits) {
+      BlockHeader parentBlockHeader =
+          new BlockHeaderTestFixture().baseFeePerGas(Wei.ONE).buildHeader();
+      return new BlockHeaderTestFixture()
+              .baseFeePerGas(Wei.ONE)
+              .parentHash(parentBlockHeader.getParentHash())
+              .number(parentBlockHeader.getNumber() + 1)
+              .timestamp(parentBlockHeader.getTimestamp() + 1)
+              .extraData(Bytes.fromHexString("0xDEADBEEF0001"))
+              .transactionsRoot(BodyValidation.transactionsRoot(maybeTransactions));
+    }
 }

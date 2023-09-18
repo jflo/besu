@@ -6,14 +6,13 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 import java.io.IOException;
 
-public class NewPayloadV1Serializer extends StdSerializer<EngineExecutionPayloadParameterV1>
-{
+public class NewPayloadV1Serializer extends StdSerializer<NewPayloadParameterV1> {
 
     public NewPayloadV1Serializer() {
-        super(EngineExecutionPayloadParameterV1.class);
+        super(NewPayloadParameterV1.class);
     }
-    @Override
-    public void serialize(final EngineExecutionPayloadParameterV1 value, final JsonGenerator gen, final SerializerProvider provider) throws IOException {
+
+    protected void serializeToOpenObject(final NewPayloadParameterV1 value, final JsonGenerator gen, final SerializerProvider provider) throws IOException {
         gen.writeStartObject();
         gen.writeStringField("blockHash", value.getBlockHash().toHexString());
         gen.writeStringField("parentHash", value.getParentHash().toHexString());
@@ -33,6 +32,12 @@ public class NewPayloadV1Serializer extends StdSerializer<EngineExecutionPayload
             gen.writeString(tx);
         }
         gen.writeEndArray();
+
+    }
+
+    @Override
+    public void serialize(final NewPayloadParameterV1 value, final JsonGenerator gen, final SerializerProvider provider) throws IOException {
+        serializeToOpenObject(value, gen, provider);
         gen.writeEndObject();
     }
 }

@@ -32,9 +32,7 @@ import org.hyperledger.besu.ethereum.BlockProcessingResult;
 import org.hyperledger.besu.ethereum.api.jsonrpc.RpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequest;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV3;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV3;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.WithdrawalParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcError;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcResponse;
@@ -43,6 +41,7 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.EnginePayloadS
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.BlockHeaderTestFixture;
 import org.hyperledger.besu.ethereum.core.Deposit;
+import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.Withdrawal;
 import org.hyperledger.besu.ethereum.mainnet.BodyValidation;
 import org.hyperledger.besu.ethereum.mainnet.ValidationResult;
@@ -90,7 +89,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
   public void shouldInvalidVersionedHash_whenShortVersionedHash() {
     final Bytes shortHash = Bytes.fromHexString("0x" + "69".repeat(31));
 
-    final EngineExecutionPayloadParameterV3 payload = mock(EngineExecutionPayloadParameterV3.class);
+    final NewPayloadParameterV3 payload = mock(NewPayloadParameterV3.class);
     when(payload.getTimestamp()).thenReturn(cancunHardfork.milestone());
     when(payload.getExcessBlobGas()).thenReturn("99");
     when(payload.getBlobGasUsed()).thenReturn(9l);
@@ -118,7 +117,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
             new BlockProcessingResult(Optional.of(new BlockProcessingOutputs(null, List.of()))),
             Optional.empty(),
             Optional.empty());
-    final EngineExecutionPayloadParameterV3 payload =
+    final NewPayloadParameterV3 payload =
         createNewPayloadParamV3(mockHeader, Collections.emptyList(), Collections.emptyList());
 
     JsonRpcRequest req =
@@ -137,7 +136,8 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
 
   @Override
   @SuppressWarnings("signedness:argument")
-  protected BlockHeader createBlockHeader(
+  protected BlockHeaderTestFixture createBlockHeaderTestFixture(
+          final List<Transaction> maybeTransactions,
       final Optional<List<Withdrawal>> maybeWithdrawals,
       final Optional<List<Deposit>> maybeDeposits) {
     BlockHeader parentBlockHeader =
@@ -149,26 +149,26 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
     when(blockchain.getBlockHeader(parentBlockHeader.getBlockHash()))
         .thenReturn(Optional.of(parentBlockHeader));
     when(protocolContext.getBlockchain()).thenReturn(blockchain);
-    BlockHeader mockHeader =
-        new BlockHeaderTestFixture()
+
+    return    new BlockHeaderTestFixture()
             .baseFeePerGas(Wei.ONE)
             .parentHash(parentBlockHeader.getParentHash())
             .number(parentBlockHeader.getNumber() + 1)
             .timestamp(parentBlockHeader.getTimestamp() + 12)
             .withdrawalsRoot(maybeWithdrawals.map(BodyValidation::withdrawalsRoot).orElse(null))
             .depositsRoot(maybeDeposits.map(BodyValidation::depositsRoot).orElse(null))
+            .transactionsRoot(BodyValidation.transactionsRoot(maybeTransactions))
             .excessBlobGas(BlobGas.ZERO)
             .blobGasUsed(0L)
             .parentBeaconBlockRoot(
-                maybeParentBeaconBlockRoot.isPresent() ? maybeParentBeaconBlockRoot : null)
-            .buildHeader();
-    return mockHeader;
+                maybeParentBeaconBlockRoot.isPresent() ? maybeParentBeaconBlockRoot : null);
+
   }
 
   @Test
   public void shouldValidateBlobGasUsedCorrectly() {
     // V3 must return error if null blobGasUsed
-    BlockHeader blockHeader = createBlockHeaderFixture().buildHeader();
+    BlockHeader blockHeader = createBlockHeaderTestFixture(Collections.emptyList(),Optional.empty(), Optional.empty()).buildHeader();
 
     var resp =
         method.response(
@@ -193,7 +193,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
   public void shouldValidateExcessBlobGasCorrectly() {
     // V3 must return error if null excessBlobGas
     BlockHeader blockHeader =
-        createBlockHeaderFixture().excessBlobGas(null).blobGasUsed(100L).buildHeader();
+        createBlockHeaderTestFixture(Collections.emptyList(), Optional.empty(), Optional.empty()).excessBlobGas(null).blobGasUsed(100L).buildHeader();
 
     var resp =
         method.response(
@@ -220,7 +220,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
           final BlockHeader header,
           final List<String> txs) {
     ObjectMapper mapper = new ObjectMapper();
-    EngineExecutionPayloadParameterV3 retval = createNewPayloadParamV3(header, txs, null);
+    NewPayloadParameterV3 retval = createNewPayloadParamV3(header, txs, null);
     try {
       return mapper.writeValueAsString(retval);
     } catch (JsonProcessingException e) {
@@ -228,11 +228,11 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
     }
   }
   @SuppressWarnings("signedness:argument")
-  protected EngineExecutionPayloadParameterV3 createNewPayloadParamV3(
+  protected NewPayloadParameterV3 createNewPayloadParamV3(
       final BlockHeader header,
       final List<String> txs,
       final List<WithdrawalParameter> withdrawals) {
-    return new EngineExecutionPayloadParameterV3(
+    return new NewPayloadParameterV3(
         header.getHash(),
         header.getParentHash(),
         header.getCoinbase(),

@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
 import org.hyperledger.besu.evm.log.LogsBloomFilter;
 
 import java.util.List;
@@ -31,7 +30,7 @@ import org.checkerframework.checker.signedness.qual.Unsigned;
 
 @JsonSerialize(using = NewPayloadV1Serializer.class)
 @JsonDeserialize(using = NewPayloadV1Deserializer.class)
-public class EngineExecutionPayloadParameterV1 {
+public class NewPayloadParameterV1 {
   private final Hash blockHash;
   private final Hash parentHash;
   private final Address feeRecipient;
@@ -66,7 +65,7 @@ public class EngineExecutionPayloadParameterV1 {
    * @param transactions Array of DATA
    */
   @JsonCreator
-  public EngineExecutionPayloadParameterV1(
+  public NewPayloadParameterV1(
       @JsonProperty("blockHash") final Hash blockHash,
       @JsonProperty("parentHash") final Hash parentHash,
       @JsonProperty("feeRecipient") final Address feeRecipient,

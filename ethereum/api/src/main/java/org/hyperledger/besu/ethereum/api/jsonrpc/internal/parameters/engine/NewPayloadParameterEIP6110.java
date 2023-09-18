@@ -17,7 +17,6 @@ package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine;
 import org.checkerframework.checker.signedness.qual.Unsigned;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
 import org.hyperledger.besu.evm.log.LogsBloomFilter;
 
 import java.util.List;
@@ -25,7 +24,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class EngineExecutionPayloadParameterEIP6110 extends EngineExecutionPayloadParameterV3 {
+public class NewPayloadParameterEIP6110 extends NewPayloadParameterV3 {
 
   private final List<DepositParameter> deposits;
 
@@ -52,7 +51,7 @@ public class EngineExecutionPayloadParameterEIP6110 extends EngineExecutionPaylo
    * @param deposits List of deposit parameters.
    */
   @JsonCreator
-  public EngineExecutionPayloadParameterEIP6110(
+  public NewPayloadParameterEIP6110(
       @JsonProperty("blockHash") final Hash blockHash,
       @JsonProperty("parentHash") final Hash parentHash,
       @JsonProperty("feeRecipient") final Address feeRecipient,

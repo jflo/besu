@@ -14,17 +14,17 @@ import org.hyperledger.besu.evm.log.LogsBloomFilter;
 import java.io.IOException;
 import java.util.List;
 
-public class NewPayloadV1Deserializer extends StdDeserializer<EngineExecutionPayloadParameterV1> {
+public class NewPayloadV1Deserializer extends StdDeserializer<NewPayloadParameterV1> {
 
     public NewPayloadV1Deserializer() {
-        super(EngineExecutionPayloadParameterV1.class);
+        super(NewPayloadParameterV1.class);
     }
     @Override
-    public EngineExecutionPayloadParameterV1 deserialize(final JsonParser p, final DeserializationContext ctxt) throws IOException, JacksonException {
+    public NewPayloadParameterV1 deserialize(final JsonParser p, final DeserializationContext ctxt) throws IOException, JacksonException {
         JsonNode root = p.getCodec().readTree(p);
         ObjectMapper mapper = new ObjectMapper();
         List<String> txs = mapper.convertValue(root.get("transactions"), new TypeReference<List<String>>(){});
-        return new EngineExecutionPayloadParameterV1(
+        return new NewPayloadParameterV1(
                 Hash.fromHexString(root.get("blockHash").asText()),
                 Hash.fromHexString(root.get("parentHash").asText()),
                 Address.fromHexString(root.get("feeRecipient").asText()),

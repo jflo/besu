@@ -15,7 +15,6 @@
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.WithdrawalParameterTestFixture.WITHDRAWAL_PARAM_1;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType.INVALID_PARAMS;
 import static org.mockito.Mockito.lenient;
@@ -26,17 +25,21 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.hyperledger.besu.datatypes.BlobGas;
+import org.apache.tuweni.bytes.Bytes;
+import org.assertj.core.util.Lists;
+import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.BlockProcessingResult;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV2;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV2;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.WithdrawalParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcError;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcResponse;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
+import org.hyperledger.besu.ethereum.core.BlockHeaderTestFixture;
+import org.hyperledger.besu.ethereum.core.Deposit;
+import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.Withdrawal;
+import org.hyperledger.besu.ethereum.mainnet.BodyValidation;
 import org.hyperledger.besu.ethereum.mainnet.WithdrawalsValidator;
 
 import java.util.Collections;
@@ -129,11 +132,11 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
         .when(protocolSpec.getWithdrawalsValidator())
         .thenReturn(new WithdrawalsValidator.ProhibitedWithdrawals());
 
-    var resp =
+    JsonRpcResponse resp =
         respondTo(
             new Object[] {
               createNewPayloadParam(
-                  createBlockHeader(Optional.of(Collections.emptyList()), Optional.empty()),
+                  createBlockHeaderTestFixture(Collections.emptyList(),Optional.of(Collections.emptyList()), Optional.empty()).buildHeader(),
                   Collections.emptyList(),
                   withdrawals)
             });
@@ -153,7 +156,7 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
         respondTo(
             new Object[] {
               createNewPayloadParam(
-                  createBlockHeader(Optional.empty(), Optional.empty()),
+                  createBlockHeaderTestFixture(Collections.emptyList(),Optional.empty(), Optional.empty()).buildHeader(),
                   Collections.emptyList(),
                   withdrawals)
             });
@@ -164,7 +167,7 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
 
   @Override
   protected String createNewPayloadParam(final BlockHeader header, final List<String> txs) {
-    return createNewPayloadParam(header, txs, null);
+    return super.createNewPayloadParam(header, txs);
   }
 
 
@@ -174,7 +177,7 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
       final List<String> txs,
       final List<WithdrawalParameter> withdrawals)  {
     ObjectMapper mapper = new ObjectMapper();
-    EngineExecutionPayloadParameterV2 retval = new EngineExecutionPayloadParameterV2(
+    NewPayloadParameterV2 retval = new NewPayloadParameterV2(
         header.getHash(),
         header.getParentHash(),
         header.getCoinbase(),
@@ -195,5 +198,24 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  protected BlockHeaderTestFixture createBlockHeaderTestFixture(
+          final List<Transaction> maybeTransactions,
+          final Optional<List<Withdrawal>> maybeWithdrawals,
+          final Optional<List<Deposit>> maybeDeposits) {
+    BlockHeader parentBlockHeader =
+            new BlockHeaderTestFixture().baseFeePerGas(Wei.ONE).buildHeader();
+    return new BlockHeaderTestFixture()
+            .baseFeePerGas(Wei.ONE)
+            .parentHash(parentBlockHeader.getParentHash())
+            .number(parentBlockHeader.getNumber() + 1)
+            .timestamp(parentBlockHeader.getTimestamp() + 1)
+            .extraData(Bytes.fromHexString("0xDEADBEEF"))
+            .withdrawalsRoot(maybeWithdrawals.map(BodyValidation::withdrawalsRoot).orElse(null))
+            .depositsRoot(maybeDeposits.map(BodyValidation::depositsRoot).orElse(null))
+            .transactionsRoot(BodyValidation.transactionsRoot(maybeTransactions))
+            .parentBeaconBlockRoot(maybeParentBeaconBlockRoot);
   }
 }

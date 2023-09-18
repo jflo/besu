@@ -17,14 +17,17 @@ package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine;
 import static java.util.stream.Collectors.toList;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine.WithdrawalsValidatorProvider.getWithdrawalsValidator;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType.INVALID_PARAMS;
+import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType.INVALID_REQUEST;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hyperledger.besu.consensus.merge.blockcreation.MergeMiningCoordinator;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.RpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV2;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV1;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV2;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.WithdrawalParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
 import org.hyperledger.besu.ethereum.core.Block;
@@ -37,11 +40,14 @@ import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule;
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSpec;
 import org.hyperledger.besu.ethereum.mainnet.ValidationResult;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import io.vertx.core.Vertx;
 import org.hyperledger.besu.ethereum.mainnet.WithdrawalsValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EngineNewPayloadV2 extends EngineNewPayloadV1 {
 
@@ -57,40 +63,53 @@ public class EngineNewPayloadV2 extends EngineNewPayloadV1 {
 
   @Override
   @SuppressWarnings("unchecked")
-  protected <P extends EngineExecutionPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request) {
-    return (P) request.getRequiredParameter(0, EngineExecutionPayloadParameterV2.class);
+  protected <P extends NewPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request) {
+    return (P) request.getRequiredParameter(0, NewPayloadParameterV2.class);
   }
 
   @Override
   protected ValidationResult<RpcErrorType> validateRequest(
       final JsonRpcRequestContext requestContext) {
 
-    EngineExecutionPayloadParameterV2 blockParam =
-        requestContext.getRequiredParameter(0, EngineExecutionPayloadParameterV2.class);
-    final Optional<List<Withdrawal>> maybeWithdrawals =
-        Optional.ofNullable(blockParam.getWithdrawals())
-            .map(ws -> ws.stream().map(WithdrawalParameter::toWithdrawal).collect(toList()));
+    final NewPayloadParameterV2 newPayloadParam =
+        requestContext.getRequiredParameter(0, NewPayloadParameterV2.class);
+    WithdrawalsValidator validator = getWithdrawalsValidator(
+            protocolSchedule.get(), newPayloadParam.getTimestamp(), newPayloadParam.getBlockNumber());
+    Optional<List<Withdrawal>> maybeWithdrawals = Optional.empty();
+    String errorMessage = "Invalid withdrawals";
+    if(validator instanceof WithdrawalsValidator.AllowedWithdrawals) {
+       maybeWithdrawals =
+              Optional.ofNullable(newPayloadParam.getWithdrawals())
+                      .map(ws -> ws.stream().map(WithdrawalParameter::toWithdrawal).collect(toList()));
 
-    if (!getWithdrawalsValidator(
-            protocolSchedule.get(), blockParam.getTimestamp(), blockParam.getBlockNumber())
-        .validateWithdrawals(maybeWithdrawals)) {
-      return ValidationResult.invalid(INVALID_PARAMS, "Invalid withdrawals");
+
+    } else {
+      if(newPayloadParam.getWithdrawals() != null) {
+        errorMessage = errorMessage + ", shanghai fork not enabled yet, payload had withdrawals field";
+        return ValidationResult.invalid(INVALID_PARAMS, errorMessage);
+      }
+
+    }
+
+    if (!validator.validateWithdrawals(maybeWithdrawals)) {
+      return ValidationResult.invalid(INVALID_PARAMS, errorMessage);
     } else {
       return ValidationResult.valid();
     }
+
   }
 
   @Override
   protected BlockHeaderBuilder composeNewHeader(
       final JsonRpcRequestContext requestContext, final Hash txRoot) {
     BlockHeaderBuilder builder = super.composeNewHeader(requestContext, txRoot);
-    EngineExecutionPayloadParameterV2 blockParam =
-        requestContext.getRequiredParameter(0, EngineExecutionPayloadParameterV2.class);
+    NewPayloadParameterV2 blockParam =
+        requestContext.getRequiredParameter(0, NewPayloadParameterV2.class);
     final Optional<List<Withdrawal>> maybeWithdrawals =
         Optional.ofNullable(blockParam.getWithdrawals())
             .map(ws -> ws.stream().map(WithdrawalParameter::toWithdrawal).collect(toList()));
 
-    builder.withdrawalsRoot(maybeWithdrawals.map(BodyValidation::withdrawalsRoot).orElse(null));
+    builder.withdrawalsRoot(maybeWithdrawals.map(BodyValidation::withdrawalsRoot).orElse(BodyValidation.withdrawalsRoot(Collections.emptyList())));
     return builder;
   }
 

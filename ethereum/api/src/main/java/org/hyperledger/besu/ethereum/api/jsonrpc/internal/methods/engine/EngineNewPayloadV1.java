@@ -15,15 +15,15 @@
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine;
 
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID_BLOCK_HASH;
-import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType.INVALID_PARAMS;
 
 import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.consensus.merge.blockcreation.MergeMiningCoordinator;
 import org.hyperledger.besu.datatypes.Hash;
+import org.hyperledger.besu.ethereum.BlockValidationResult;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.RpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV1;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
 import org.hyperledger.besu.ethereum.core.Block;
@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 
 import io.vertx.core.Vertx;
 import org.apache.tuweni.bytes.Bytes;
+import org.hyperledger.besu.ethereum.rlp.RLPException;
 
 public class EngineNewPayloadV1 extends AbstractEngineNewPayload {
 
@@ -59,8 +60,8 @@ public class EngineNewPayloadV1 extends AbstractEngineNewPayload {
 
   @Override
   @SuppressWarnings("unchecked")
-  protected <P extends EngineExecutionPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request) {
-    EngineExecutionPayloadParameterV1 param =  request.getRequiredParameter(0, EngineExecutionPayloadParameterV1.class);
+  protected <P extends NewPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request) {
+    NewPayloadParameterV1 param =  request.getRequiredParameter(0, NewPayloadParameterV1.class);
     return (P) param;
   }
 
@@ -75,22 +76,26 @@ public class EngineNewPayloadV1 extends AbstractEngineNewPayload {
   }
 
   @Override
-  protected ValidationResult<RpcErrorType> validateRequest(
-      final JsonRpcRequestContext requestContext) {
-    EngineExecutionPayloadParameterV1 blockParam =
-        requestContext.getRequiredParameter(0, EngineExecutionPayloadParameterV1.class);
-    if(blockParam.getExtraData() == null) {
-      return ValidationResult.invalid(INVALID_PARAMS, "missing extraData");
-    }
+  protected ValidationResult<RpcErrorType> validateRequest(final JsonRpcRequestContext requestContext) {
     return ValidationResult.valid();
+  }
+
+  @Override
+  protected <P extends NewPayloadParameterV1> EngineBlockValidationResult validateBlock( final P payload) {
+    if(payload.getExtraData() == null) {
+      return new EngineBlockValidationResult(EngineStatus.INVALID, new BlockValidationResult("extraData is null"));
+    } else if(Bytes32.fromHexString(payload.getExtraData()).size() > 32) {
+      return new EngineBlockValidationResult(EngineStatus.INVALID, new BlockValidationResult("extraData is too big: "+payload.getExtraData()));
+    }
+    return new EngineBlockValidationResult(EngineStatus.VALID, new BlockValidationResult());
   }
 
   @Override
   @SuppressWarnings("signedness:argument")
   protected BlockHeaderBuilder composeNewHeader(
       final JsonRpcRequestContext requestContext, final Hash txRoot) {
-    EngineExecutionPayloadParameterV1 blockParam =
-        requestContext.getRequiredParameter(0, EngineExecutionPayloadParameterV1.class);
+    NewPayloadParameterV1 blockParam =
+        requestContext.getRequiredParameter(0, NewPayloadParameterV1.class);
     final BlockHeaderBuilder builder = new BlockHeaderBuilder();
     builder
         .parentHash(blockParam.getParentHash())
@@ -114,9 +119,9 @@ public class EngineNewPayloadV1 extends AbstractEngineNewPayload {
   }
 
   @Override
-  protected BlockBodyBuilder composeBody(final JsonRpcRequestContext requestContext) {
-    EngineExecutionPayloadParameterV1 blockParam =
-        requestContext.getRequiredParameter(0, EngineExecutionPayloadParameterV1.class);
+  protected BlockBodyBuilder composeBody(final JsonRpcRequestContext requestContext) throws RLPException {
+    NewPayloadParameterV1 blockParam =
+        requestContext.getRequiredParameter(0, NewPayloadParameterV1.class);
     final List<Transaction> transactions;
 
     transactions =
@@ -138,8 +143,4 @@ public class EngineNewPayloadV1 extends AbstractEngineNewPayload {
     return ValidationResult.valid();
   }
 
-  @Override
-  public JsonRpcResponse syncResponse(final JsonRpcRequestContext request) {
-    throw new IllegalStateException("caller should have been overridden");
-  }
 }

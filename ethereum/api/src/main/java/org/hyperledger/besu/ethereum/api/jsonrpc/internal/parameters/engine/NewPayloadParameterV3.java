@@ -16,7 +16,6 @@ package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine;
 
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
 import org.hyperledger.besu.evm.log.LogsBloomFilter;
 
 import java.util.List;
@@ -25,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.checkerframework.checker.signedness.qual.Unsigned;
 
-public class EngineExecutionPayloadParameterV3 extends EngineExecutionPayloadParameterV2 {
+public class NewPayloadParameterV3 extends NewPayloadParameterV2 {
 
   private final @Unsigned long blobGasUsed;
   private final String excessBlobGas;
@@ -53,7 +52,7 @@ public class EngineExecutionPayloadParameterV3 extends EngineExecutionPayloadPar
    * @param excessBlobGas QUANTITY, 64 Bits
    */
   @JsonCreator
-  public EngineExecutionPayloadParameterV3(
+  public NewPayloadParameterV3(
       @JsonProperty(value = "blockHash", required = true) final Hash blockHash,
       @JsonProperty(value = "parentHash", required = true) final Hash parentHash,
       @JsonProperty(value = "feeRecipient", required = true) final Address feeRecipient,

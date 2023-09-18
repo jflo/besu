@@ -21,8 +21,8 @@ import org.hyperledger.besu.datatypes.VersionedHash;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.RpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV3;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV1;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV3;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
 import org.hyperledger.besu.ethereum.core.Block;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
@@ -68,14 +68,14 @@ public class EngineNewPayloadV3 extends EngineNewPayloadV2 {
 
   @Override
   @SuppressWarnings("unchecked")
-  protected <P extends EngineExecutionPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request) {
-    return (P) request.getRequiredParameter(0, EngineExecutionPayloadParameterV3.class);
+  protected <P extends NewPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request) {
+    return (P) request.getRequiredParameter(0, NewPayloadParameterV3.class);
   }
   @Override
   protected ValidationResult<RpcErrorType> validateRequest(
       final JsonRpcRequestContext requestContext) {
-    EngineExecutionPayloadParameterV3 newPayloadParam =
-        requestContext.getRequiredParameter(0, EngineExecutionPayloadParameterV3.class);
+    NewPayloadParameterV3 newPayloadParam =
+        requestContext.getRequiredParameter(0, NewPayloadParameterV3.class);
 
     final Optional<List<String>> maybeVersionedHashParam =
         requestContext.getOptionalList(1, String.class);
@@ -224,8 +224,8 @@ public class EngineNewPayloadV3 extends EngineNewPayloadV2 {
   @SuppressWarnings("signedness:argument")
   protected BlockHeaderBuilder composeNewHeader(
       final JsonRpcRequestContext context, final Hash txRoot) {
-    final EngineExecutionPayloadParameterV3 blockParam =
-        context.getRequiredParameter(0, EngineExecutionPayloadParameterV3.class);
+    final NewPayloadParameterV3 blockParam =
+        context.getRequiredParameter(0, NewPayloadParameterV3.class);
     String parentBeaconBlockRootParam = context.getRequiredParameter(2, String.class);
 
     final BlockHeaderBuilder builder = super.composeNewHeader(context, txRoot);

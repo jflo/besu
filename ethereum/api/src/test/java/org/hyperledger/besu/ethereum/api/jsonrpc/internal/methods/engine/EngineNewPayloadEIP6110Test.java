@@ -30,14 +30,14 @@ import org.hyperledger.besu.datatypes.BlobGas;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.BlockProcessingResult;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.DepositParameter;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterEIP6110;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterEIP6110;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.WithdrawalParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcError;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.BlockHeaderTestFixture;
 import org.hyperledger.besu.ethereum.core.Deposit;
+import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.Withdrawal;
 import org.hyperledger.besu.ethereum.mainnet.BodyValidation;
 import org.hyperledger.besu.ethereum.mainnet.DepositsValidator;
@@ -122,7 +122,7 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
         respondTo(
             new Object[] {
               createNewEngineParam(
-                  createBlockHeader(Optional.empty(), Optional.empty()),
+                  createBlockHeaderTestFixture(Collections.emptyList(), Optional.empty(), Optional.empty()).buildHeader(),
                   Collections.emptyList(),
                   null,
                   deposits)
@@ -167,7 +167,7 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
         respondTo(
             new Object[] {
               createNewEngineParam(
-                  createBlockHeader(Optional.empty(), Optional.of(Collections.emptyList())),
+                  createBlockHeaderTestFixture(Collections.emptyList(), Optional.empty(), Optional.of(Collections.emptyList())).buildHeader(),
                   Collections.emptyList(),
                   null,
                   deposits)
@@ -180,7 +180,8 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
 
   @Override
   @SuppressWarnings("signedness:argument")
-  protected BlockHeader createBlockHeader(
+  protected BlockHeaderTestFixture createBlockHeaderTestFixture(
+          final List<Transaction> maybeTransactions,
       final Optional<List<Withdrawal>> maybeWithdrawals,
       final Optional<List<Deposit>> maybeDeposits) {
     BlockHeader parentBlockHeader =
@@ -191,7 +192,7 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
             .blobGasUsed(100L)
             .buildHeader();
 
-    BlockHeader mockHeader =
+    return
         new BlockHeaderTestFixture()
             .baseFeePerGas(Wei.ONE)
             .parentHash(parentBlockHeader.getParentHash())
@@ -201,19 +202,19 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
             .excessBlobGas(BlobGas.ZERO)
             .blobGasUsed(100L)
             .depositsRoot(maybeDeposits.map(BodyValidation::depositsRoot).orElse(null))
+                .transactionsRoot(BodyValidation.transactionsRoot(maybeTransactions))
             .parentBeaconBlockRoot(
-                maybeParentBeaconBlockRoot.isPresent() ? maybeParentBeaconBlockRoot : null)
-            .buildHeader();
-    return mockHeader;
+                maybeParentBeaconBlockRoot.isPresent() ? maybeParentBeaconBlockRoot : null);
+
   }
 
   @SuppressWarnings("signedness:argument")
-  protected EngineExecutionPayloadParameterEIP6110 createNewEngineParam(
+  protected NewPayloadParameterEIP6110 createNewEngineParam(
       final BlockHeader header,
       final List<String> txs,
       final List<WithdrawalParameter> withdrawals,
       final List<DepositParameter> deposits) {
-    return new EngineExecutionPayloadParameterEIP6110(
+    return new NewPayloadParameterEIP6110(
         header.getHash(),
         header.getParentHash(),
         header.getCoinbase(),

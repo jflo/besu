@@ -24,7 +24,7 @@ import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.RpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.DepositParameter;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterEIP6110;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterEIP6110;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
 import org.hyperledger.besu.ethereum.core.BlockHeaderBuilder;
 import org.hyperledger.besu.ethereum.core.Deposit;
@@ -64,8 +64,8 @@ public class EngineNewPayloadEIP6110 extends EngineNewPayloadV3 {
   @Override
   protected ValidationResult<RpcErrorType> validateRequest(
       final JsonRpcRequestContext requestContext) {
-    EngineExecutionPayloadParameterEIP6110 newPayloadParam =
-        requestContext.getRequiredParameter(0, EngineExecutionPayloadParameterEIP6110.class);
+    NewPayloadParameterEIP6110 newPayloadParam =
+        requestContext.getRequiredParameter(0, NewPayloadParameterEIP6110.class);
     final Optional<List<Deposit>> maybeDeposits =
         Optional.ofNullable(newPayloadParam.getDeposits())
             .map(ds -> ds.stream().map(DepositParameter::toDeposit).collect(toList()));
@@ -107,8 +107,8 @@ public class EngineNewPayloadEIP6110 extends EngineNewPayloadV3 {
   @Override
   protected BlockHeaderBuilder composeNewHeader(
       final JsonRpcRequestContext context, final Hash txRoot) {
-    final EngineExecutionPayloadParameterEIP6110 blockParam =
-        context.getRequiredParameter(0, EngineExecutionPayloadParameterEIP6110.class);
+    final NewPayloadParameterEIP6110 blockParam =
+        context.getRequiredParameter(0, NewPayloadParameterEIP6110.class);
 
     final Optional<List<Deposit>> maybeDeposits =
         Optional.ofNullable(blockParam.getDeposits())

@@ -24,10 +24,11 @@ import org.hyperledger.besu.consensus.merge.blockcreation.MergeMiningCoordinator
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.BlockProcessingResult;
+import org.hyperledger.besu.ethereum.BlockValidationResult;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.EngineExecutionPayloadParameterV1;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV1;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcErrorResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcSuccessResponse;
@@ -80,11 +81,11 @@ public abstract class AbstractEngineNewPayload extends ExecutionEngineJsonRpcMet
     this.ethPeers = ethPeers;
   }
 
-  protected abstract <P extends EngineExecutionPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request);
+  protected abstract <P extends NewPayloadParameterV1> P parseVersionedParam(final JsonRpcRequestContext request);
 
   @Override
   public final JsonRpcResponse response(final JsonRpcRequestContext request) {
-    final EngineExecutionPayloadParameterV1 blockParam = parseVersionedParam(request);
+    var blockParam = parseVersionedParam(request);
     final BlockIdentifier blockId = new BlockIdentifier(blockParam.getBlockNumber(), blockParam.getBlockHash(), blockParam.getParentHash());
     final CompletableFuture<JsonRpcResponse> cf = new CompletableFuture<>();
     final Optional<Hash> latestValidHash = mergeCoordinator.getLatestValidAncestor(Hash.wrap(blockId.parentHash()));
@@ -95,7 +96,7 @@ public abstract class AbstractEngineNewPayload extends ExecutionEngineJsonRpcMet
                       "execution engine JSON-RPC request {} {}",
                       this.getName(),
                       request.getRequest().getParams());
-              z.tryComplete(syncResponse(blockParam, request));
+              z.tryComplete(syncResponse(request));
             },
             true,
             resp ->
@@ -141,38 +142,49 @@ public abstract class AbstractEngineNewPayload extends ExecutionEngineJsonRpcMet
   }
 
 
-  public JsonRpcResponse syncResponse(final EngineExecutionPayloadParameterV1 minimumPayloadDefinition, final JsonRpcRequestContext requestContext) {
+  @Override
+  public JsonRpcResponse syncResponse(final JsonRpcRequestContext requestContext) {
     engineCallListener.executionEngineCalled();
     final Object reqId = requestContext.getRequest().getId();
-
-    BlockIdentifier blockId =
-            new BlockIdentifier(
-                    minimumPayloadDefinition.getBlockNumber(),
-                    minimumPayloadDefinition.getBlockHash(),
-                    minimumPayloadDefinition.getParentHash());
-
     final ValidationResult<RpcErrorType> parameterValidationResult =
-        validateRequest(requestContext);
+            validateRequest(requestContext);
 
     if (!parameterValidationResult.isValid()) {
-      respondWithInvalid(reqId, blockId, mergeCoordinator.getLatestValidAncestor(Hash.wrap(blockId.parentHash())).orElse(null), INVALID, parameterValidationResult.getErrorMessage());
+      return new JsonRpcErrorResponse(reqId, parameterValidationResult);
+    }
+    var newPayloadParam = parseVersionedParam(requestContext);
+    BlockIdentifier blockId =
+            new BlockIdentifier(
+                    newPayloadParam.getBlockNumber(),
+                    newPayloadParam.getBlockHash(),
+                    newPayloadParam.getParentHash());
+
+    Hash latestValidHash = mergeCoordinator.getLatestValidAncestor(Hash.wrap(blockId.parentHash())).orElse(Hash.ZERO);
+
+
+    final EngineBlockValidationResult blockValidationResult = validateBlock(newPayloadParam);
+    if(blockValidationResult.status().equals(INVALID)) {
+      return respondWithInvalid(
+              reqId,
+              blockId,
+              latestValidHash,
+              INVALID,
+              blockValidationResult.validationResult().toString());
     }
 
     BlockBody allegedBody;
-    BlockHeader allegedHeader;
-
     try {
       allegedBody = composeBody(requestContext).build();
-      Hash txRoot = BodyValidation.transactionsRoot(allegedBody.getTransactions());
-      allegedHeader = composeNewHeader(requestContext, txRoot).buildBlockHeader();
-    } catch (final RLPException | IllegalArgumentException e) {
-      return respondWithInvalid(
-          reqId,
-          blockId,
-          mergeCoordinator.getLatestValidAncestor(Hash.wrap(blockId.parentHash())).orElse(null),
-          INVALID,
-          "Failed to decode transactions from block parameter");
+    } catch(RLPException rlpE) {
+        return respondWithInvalid(
+                reqId,
+                blockId,
+                latestValidHash,
+                INVALID,
+                "Failed to parse block body: "+rlpE.getMessage());
     }
+    Hash txRoot = BodyValidation.transactionsRoot(allegedBody.getTransactions());
+    BlockHeader allegedHeader = composeNewHeader(requestContext, txRoot).buildBlockHeader();
 
     Block allegedBlock = new Block(allegedHeader, allegedBody);
 
@@ -215,7 +227,7 @@ public abstract class AbstractEngineNewPayload extends ExecutionEngineJsonRpcMet
               "Computed block hash %s does not match block hash parameter %s",
               allegedHeader.getBlockHash(), blockId.blockHash());
       LOG.debug(errorMessage);
-      return respondWithInvalid(reqId, blockId, null, getInvalidBlockHashStatus(), errorMessage);
+      return respondWithInvalid(reqId, blockId, latestValidHash, getInvalidBlockHashStatus(), errorMessage);
     }
 
     // do we already have this payload
@@ -325,6 +337,9 @@ public abstract class AbstractEngineNewPayload extends ExecutionEngineJsonRpcMet
 
   protected abstract ValidationResult<RpcErrorType> validateRequest(
       final JsonRpcRequestContext requestContext);
+
+  public record EngineBlockValidationResult(EngineStatus status, BlockValidationResult validationResult) {};
+  protected abstract <P extends NewPayloadParameterV1> EngineBlockValidationResult validateBlock(P payload);
 
   protected abstract BlockHeaderBuilder composeNewHeader(
       final JsonRpcRequestContext requestContext, final Hash txroot);

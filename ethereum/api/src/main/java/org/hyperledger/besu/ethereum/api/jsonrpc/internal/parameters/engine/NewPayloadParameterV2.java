@@ -14,10 +14,11 @@
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.checkerframework.checker.signedness.qual.Unsigned;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
-import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.CheckerUnsignedLongParameter;
 import org.hyperledger.besu.evm.log.LogsBloomFilter;
 
 import java.util.List;
@@ -25,7 +26,9 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class EngineExecutionPayloadParameterV2 extends EngineExecutionPayloadParameterV1 {
+@JsonSerialize(using = NewPayloadV2Serializer.class)
+@JsonDeserialize(using = NewPayloadV2Deserializer.class)
+public class NewPayloadParameterV2 extends NewPayloadParameterV1 {
 
   private final List<WithdrawalParameter> withdrawals;
 
@@ -49,7 +52,7 @@ public class EngineExecutionPayloadParameterV2 extends EngineExecutionPayloadPar
    * @param withdrawals Array of Withdrawal
    */
   @JsonCreator
-  public EngineExecutionPayloadParameterV2(
+  public NewPayloadParameterV2(
       @JsonProperty("blockHash") final Hash blockHash,
       @JsonProperty("parentHash") final Hash parentHash,
       @JsonProperty("feeRecipient") final Address feeRecipient,
@@ -59,12 +62,12 @@ public class EngineExecutionPayloadParameterV2 extends EngineExecutionPayloadPar
       @JsonProperty("gasLimit") final @Unsigned long gasLimit,
       @JsonProperty("gasUsed") final @Unsigned long gasUsed,
       @JsonProperty("timestamp") final @Unsigned long timestamp,
-      @JsonProperty("extraData") final String extraData,
+      @JsonProperty(value = "extraData", required = true) final String extraData,
       @JsonProperty("receiptsRoot") final Hash receiptsRoot,
       @JsonProperty("logsBloom") final LogsBloomFilter logsBloom,
       @JsonProperty("prevRandao") final String prevRandao,
       @JsonProperty("transactions") final List<String> transactions,
-      @JsonProperty("withdrawals") final List<WithdrawalParameter> withdrawals) {
+      @JsonProperty(value = "withdrawals", required = true) final List<WithdrawalParameter> withdrawals) {
     super(
         blockHash,
         parentHash,
@@ -81,6 +84,26 @@ public class EngineExecutionPayloadParameterV2 extends EngineExecutionPayloadPar
         prevRandao,
         transactions);
     this.withdrawals = withdrawals;
+  }
+
+  public NewPayloadParameterV2(final NewPayloadParameterV1 initFrom, final List<WithdrawalParameter> withdrawals) {
+    this(
+        initFrom.getBlockHash(),
+        initFrom.getParentHash(),
+        initFrom.getFeeRecipient(),
+        initFrom.getStateRoot(),
+        initFrom.getBlockNumber(),
+        initFrom.getBaseFeePerGas().toHexString(),
+        initFrom.getGasLimit(),
+        initFrom.getGasUsed(),
+        initFrom.getTimestamp(),
+        initFrom.getExtraData(),
+        initFrom.getReceiptsRoot(),
+        initFrom.getLogsBloom(),
+        initFrom.getPrevRandao().toHexString(),
+        initFrom.getTransactions(),
+        withdrawals);
+
   }
 
   public List<WithdrawalParameter> getWithdrawals() {
