@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.Quantity;
 import org.hyperledger.besu.evm.log.LogsBloomFilter;
 
 import java.io.IOException;
@@ -29,11 +30,11 @@ public class NewPayloadV1Deserializer extends StdDeserializer<NewPayloadParamete
                 Hash.fromHexString(root.get("parentHash").asText()),
                 Address.fromHexString(root.get("feeRecipient").asText()),
                 Hash.fromHexString(root.get("stateRoot").asText()),
-                Long.parseUnsignedLong(root.get("blockNumber").asText(), 16),
+                Long.parseUnsignedLong(Quantity.trim(root.get("blockNumber").asText()), 16),
                 root.get("baseFeePerGas").asText(),
-                Long.parseUnsignedLong(root.get("gasLimit").asText(), 16),
-                Long.parseUnsignedLong(root.get("gasUsed").asText(), 16),
-                Long.parseUnsignedLong(root.get("timestamp").asText(), 16),
+                Long.parseUnsignedLong(Quantity.trim(root.get("gasLimit").asText()), 16),
+                Long.parseUnsignedLong(Quantity.trim(root.get("gasUsed").asText()), 16),
+                Long.parseUnsignedLong(Quantity.trim(root.get("timestamp").asText()), 16),
                 root.get("extraData").textValue(),
                 Hash.fromHexString(root.get("receiptsRoot").asText()),
                 LogsBloomFilter.fromHexString(root.get("logsBloom").asText()),

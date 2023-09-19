@@ -22,6 +22,7 @@ import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
 import org.apache.tuweni.units.bigints.UInt256Value;
 import org.apache.tuweni.units.bigints.UInt64Value;
+import org.checkerframework.checker.signedness.qual.Unsigned;
 
 /**
  * Utility for formatting "quantity" fields and results to be returned. Quantity fields are
@@ -51,6 +52,10 @@ public class Quantity {
     return uint256ToHex(UInt256.fromHexString(Long.toHexString(value)));
   }
 
+  public static String createUnsigned(final @Unsigned long value) {
+    return uint256ToHex(UInt256.fromHexString(Long.toUnsignedString(value, 16)));
+  }
+
   public static String create(final Bytes value) {
     return create(value.toArrayUnsafe());
   }
@@ -65,6 +70,10 @@ public class Quantity {
 
   public static String create(final byte value) {
     return formatMinimalValue(Integer.toHexString(value));
+  }
+
+  public static String trim(final String toTrim) {
+    return toTrim.startsWith(HEX_PREFIX) ? toTrim.substring(2) : toTrim;
   }
 
   /**

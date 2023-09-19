@@ -14,6 +14,7 @@
  */
 package org.hyperledger.besu.ethereum.mainnet.feemarket;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.hyperledger.besu.datatypes.BlobGas;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSpec;
@@ -29,7 +30,7 @@ public class ExcessBlobGasCalculator {
    * @return The excess blob gas.
    */
   public static BlobGas calculateExcessBlobGasForParent(
-      final ProtocolSpec protocolSpec, final BlockHeader parentHeader) {
+          final @NonNull ProtocolSpec  protocolSpec, final BlockHeader parentHeader) {
     // Blob Data Excess
     long headerExcess =
         protocolSpec

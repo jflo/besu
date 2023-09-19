@@ -14,6 +14,8 @@
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.evm.log.LogsBloomFilter;
@@ -24,6 +26,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.checkerframework.checker.signedness.qual.Unsigned;
 
+@JsonDeserialize(using = NewPayloadV3Deserializer.class)
+@JsonSerialize(using = NewPayloadV3Serializer.class)
 public class NewPayloadParameterV3 extends NewPayloadParameterV2 {
 
   private final @Unsigned long blobGasUsed;
@@ -96,6 +100,26 @@ public class NewPayloadParameterV3 extends NewPayloadParameterV2 {
     this.excessBlobGas = excessBlobGas;
   }
 
+  public NewPayloadParameterV3(final NewPayloadParameterV2 payload, final @Unsigned long blobGasUsed, final String excessBlobGas) {
+    super(
+        payload.getBlockHash(),
+        payload.getParentHash(),
+        payload.getFeeRecipient(),
+        payload.getStateRoot(),
+        payload.getBlockNumber(),
+        payload.getBaseFeePerGas().toHexString(),
+        payload.getGasLimit(),
+        payload.getGasUsed(),
+        payload.getTimestamp(),
+        payload.getExtraData(),
+        payload.getReceiptsRoot(),
+        payload.getLogsBloom(),
+        payload.getPrevRandao().toHexString(),
+        payload.getTransactions(),
+        payload.getWithdrawals());
+    this.blobGasUsed = blobGasUsed;
+    this.excessBlobGas = excessBlobGas;
+  }
   public @Unsigned Long getBlobGasUsed() {
     return blobGasUsed;
   }

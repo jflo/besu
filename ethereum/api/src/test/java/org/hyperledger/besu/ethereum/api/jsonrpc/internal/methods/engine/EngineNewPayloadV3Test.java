@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hyperledger.besu.datatypes.BlobGas;
+import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.BlockProcessingResult;
@@ -73,6 +74,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
   @Override
   public void before() {
     super.before();
+    lenient().when(protocolSpec.getGasCalculator()).thenReturn(new CancunGasCalculator());
     maybeParentBeaconBlockRoot = Optional.of(Bytes32.ZERO);
     this.method =
         new EngineNewPayloadV3(
@@ -82,17 +84,17 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
             mergeCoordinator,
             ethPeers,
             engineCallListener);
-    lenient().when(protocolSpec.getGasCalculator()).thenReturn(new CancunGasCalculator());
+
   }
 
   @Test
   public void shouldInvalidVersionedHash_whenShortVersionedHash() {
     final Bytes shortHash = Bytes.fromHexString("0x" + "69".repeat(31));
 
-    final NewPayloadParameterV3 payload = mock(NewPayloadParameterV3.class);
-    when(payload.getTimestamp()).thenReturn(cancunHardfork.milestone());
-    when(payload.getExcessBlobGas()).thenReturn("99");
-    when(payload.getBlobGasUsed()).thenReturn(9l);
+    BlockHeader header = createBlockHeaderTestFixture(Collections.emptyList(), Optional.of(Collections.emptyList()), Optional.empty()).buildHeader();
+    //final NewPayloadParameterV3 payload = mock(NewPayloadParameterV3.class);
+    final NewPayloadParameterV3 payload =
+            createNewPayloadParamV3(header, Collections.emptyList(), Collections.emptyList());
 
     final JsonRpcResponse badParam =
         method.response(
@@ -180,7 +182,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
                       createNewPayloadParamV3(
                           blockHeader, Collections.emptyList(), Collections.emptyList()),
                       Collections.emptyList(),
-                      Collections.emptyList()
+                            Hash.EMPTY_TRIE_HASH.toHexString()
                     })));
 
     final JsonRpcError jsonRpcError = fromErrorResp(resp);
@@ -205,7 +207,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
                       createNewPayloadParamV3(
                           blockHeader, Collections.emptyList(), Collections.emptyList()),
                       Collections.emptyList(),
-                      Collections.emptyList()
+                            Hash.EMPTY_TRIE_HASH.toHexString()
                     })));
 
     final JsonRpcError jsonRpcError = fromErrorResp(resp);
@@ -250,5 +252,14 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
         withdrawals,
         header.getBlobGasUsed().orElse(0L),
         header.getExcessBlobGas().orElse(BlobGas.ZERO).toHexString());
+  }
+
+  @Override
+  protected JsonRpcResponse respondTo(final Object[] params) {
+    return method.response(
+            new JsonRpcRequestContext(
+                    new JsonRpcRequest("2.0",
+                            this.method.getName(),
+                            new Object[]{params[0], Optional.of(Collections.emptyList()),maybeParentBeaconBlockRoot.get().toHexString()})));
   }
 }
