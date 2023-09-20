@@ -26,6 +26,7 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.DepositParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterEIP6110;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV1;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.engine.NewPayloadParameterV3;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
 import org.hyperledger.besu.ethereum.core.BlockHeaderBuilder;
 import org.hyperledger.besu.ethereum.core.Deposit;
@@ -63,15 +64,15 @@ public class EngineNewPayloadEIP6110 extends EngineNewPayloadV3 {
   }
 
   @Override
-  protected ValidationResult<RpcErrorType> validateRequest(
+  protected <P extends NewPayloadParameterV1> ValidationResult<RpcErrorType> validateRequest(final P newPayloadParam,
       final JsonRpcRequestContext requestContext) {
-    NewPayloadParameterEIP6110 newPayloadParam =
-        requestContext.getRequiredParameter(0, NewPayloadParameterEIP6110.class);
-    final Optional<List<Deposit>> maybeDeposits =
-        Optional.ofNullable(newPayloadParam.getDeposits())
-            .map(ds -> ds.stream().map(DepositParameter::toDeposit).collect(toList()));
 
-    ValidationResult<RpcErrorType> v3Validity = super.validateRequest(requestContext);
+    ValidationResult<RpcErrorType> v3Validity = super.validateRequest((NewPayloadParameterV3)newPayloadParam, requestContext);
+
+    final Optional<List<Deposit>> maybeDeposits =
+            Optional.ofNullable(((NewPayloadParameterEIP6110)newPayloadParam).getDeposits())
+                    .map(ds -> ds.stream().map(DepositParameter::toDeposit).collect(toList()));
+
     if (!v3Validity.isValid()) {
       return v3Validity;
     } else if (!getDepositsValidator(

@@ -28,6 +28,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -39,6 +40,7 @@ import org.hyperledger.besu.ethereum.BlockProcessingResult;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequest;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestId;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcError;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcErrorResponse;
@@ -93,7 +95,7 @@ public abstract class AbstractEngineNewPayloadTest extends AbstractScheduledApiT
   }
 
   protected AbstractEngineNewPayload method;
-  protected Optional<Bytes32> maybeParentBeaconBlockRoot = Optional.empty();
+  //protected Optional<Bytes32> maybeParentBeaconBlockRoot = Optional.empty();
 
   public AbstractEngineNewPayloadTest() {}
 
@@ -113,6 +115,8 @@ public abstract class AbstractEngineNewPayloadTest extends AbstractScheduledApiT
   @Mock protected EthPeers ethPeers;
 
   @Mock protected EngineCallListener engineCallListener;
+
+  protected final ObjectMapper mapper = new ObjectMapper();
 
   @BeforeEach
   @Override
@@ -398,7 +402,7 @@ public abstract class AbstractEngineNewPayloadTest extends AbstractScheduledApiT
 
   protected JsonRpcResponse respondTo(final Object[] params) {
     return method.response(
-        new JsonRpcRequestContext(new JsonRpcRequest("2.0", this.method.getName(), params)));
+        new JsonRpcRequestContext(new JsonRpcRequest("2.0", this.method.getName(), new JsonRpcRequestId(1), params)));
   }
 
   abstract protected String createNewPayloadParam(

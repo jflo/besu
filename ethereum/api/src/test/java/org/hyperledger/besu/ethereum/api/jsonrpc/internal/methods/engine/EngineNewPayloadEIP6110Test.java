@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.BlobGas;
+import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.BlockProcessingResult;
@@ -64,7 +65,6 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
   @Override
   public void before() {
     super.before();
-    maybeParentBeaconBlockRoot = Optional.of(Bytes32.ZERO);
     this.method =
         new EngineNewPayloadEIP6110(
             vertx,
@@ -203,8 +203,7 @@ public class EngineNewPayloadEIP6110Test extends EngineNewPayloadV3Test {
             .blobGasUsed(100L)
             .depositsRoot(maybeDeposits.map(BodyValidation::depositsRoot).orElse(null))
                 .transactionsRoot(BodyValidation.transactionsRoot(maybeTransactions))
-            .parentBeaconBlockRoot(
-                maybeParentBeaconBlockRoot.isPresent() ? maybeParentBeaconBlockRoot : null);
+            .parentBeaconBlockRoot(Optional.of(Hash.EMPTY_TRIE_HASH));
 
   }
 

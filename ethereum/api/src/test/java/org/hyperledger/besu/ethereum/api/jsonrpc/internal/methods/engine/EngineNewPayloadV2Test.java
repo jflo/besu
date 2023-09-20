@@ -213,8 +213,8 @@ public class EngineNewPayloadV2Test extends EngineNewPayloadV1Test {
             .timestamp(parentBlockHeader.getTimestamp() + 1)
             .extraData(Bytes.fromHexString("0xDEADBEEF"))
             .depositsRoot(maybeDeposits.map(BodyValidation::depositsRoot).orElse(null))
-            .transactionsRoot(BodyValidation.transactionsRoot(maybeTransactions))
-            .parentBeaconBlockRoot(maybeParentBeaconBlockRoot);
+            .transactionsRoot(BodyValidation.transactionsRoot(maybeTransactions));
+
     if(maybeWithdrawals.isPresent() && maybeWithdrawals.get().size() > 0) {
       testFixture.withdrawalsRoot(maybeWithdrawals.map(BodyValidation::withdrawalsRoot).orElse(null));
     }

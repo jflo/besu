@@ -46,6 +46,7 @@ import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.Withdrawal;
 import org.hyperledger.besu.ethereum.mainnet.BodyValidation;
 import org.hyperledger.besu.ethereum.mainnet.ValidationResult;
+import org.hyperledger.besu.ethereum.mainnet.WithdrawalsValidator;
 import org.hyperledger.besu.evm.gascalculator.CancunGasCalculator;
 
 import java.util.Collections;
@@ -75,7 +76,9 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
   public void before() {
     super.before();
     lenient().when(protocolSpec.getGasCalculator()).thenReturn(new CancunGasCalculator());
-    maybeParentBeaconBlockRoot = Optional.of(Bytes32.ZERO);
+    when(protocolSpec.getWithdrawalsValidator())
+            .thenReturn(new WithdrawalsValidator.AllowedWithdrawals());
+    //maybeParentBeaconBlockRoot = Optional.of(Bytes32.ZERO);
     this.method =
         new EngineNewPayloadV3(
             vertx,
@@ -88,7 +91,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
   }
 
   @Test
-  public void shouldInvalidVersionedHash_whenShortVersionedHash() {
+  public void shouldInvalidVersionedHash_whenShortVersionedHash() throws JsonProcessingException {
     final Bytes shortHash = Bytes.fromHexString("0x" + "69".repeat(31));
 
     BlockHeader header = createBlockHeaderTestFixture(Collections.emptyList(), Optional.of(Collections.emptyList()), Optional.empty()).buildHeader();
@@ -103,7 +106,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
                     "2.0",
                     RpcMethod.ENGINE_NEW_PAYLOAD_V3.getMethodName(),
                     new Object[] {
-                      payload,
+                      mapper.writeValueAsString(payload),
                       List.of(shortHash.toHexString()),
                       "0x0000000000000000000000000000000000000000000000000000000000000000"
                     })));
@@ -113,7 +116,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
   }
 
   @Test
-  public void shouldValidVersionedHash_whenListIsEmpty() {
+  public void shouldValidVersionedHash_whenListIsEmpty() throws JsonProcessingException {
     final BlockHeader mockHeader =
         prepChainForAddingNewBlock(
             new BlockProcessingResult(Optional.of(new BlockProcessingOutputs(null, List.of()))),
@@ -127,12 +130,12 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
             "2.0",
             "engine_newPayloadV3",
             new Object[] {
-              payload,
+              mapper.writeValueAsString(payload),
               Optional.of(List.of()),
               Optional.of("0x0000000000000000000000000000000000000000000000000000000000000000")
             });
     JsonRpcRequestContext ctx = new JsonRpcRequestContext(req);
-    ValidationResult<RpcErrorType> res = method.validateRequest(ctx);
+    ValidationResult<RpcErrorType> res = method.validateRequest(payload, ctx);
     assertThat(res.isValid()).isTrue();
   }
 
@@ -146,6 +149,8 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
         new BlockHeaderTestFixture()
             .baseFeePerGas(Wei.ONE)
             .timestamp(super.cancunHardfork.milestone())
+            .excessBlobGas(BlobGas.ZERO)
+            .blobGasUsed(0L)
             .buildHeader();
 
     when(blockchain.getBlockHeader(parentBlockHeader.getBlockHash()))
@@ -162,8 +167,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
             .transactionsRoot(BodyValidation.transactionsRoot(maybeTransactions))
             .excessBlobGas(BlobGas.ZERO)
             .blobGasUsed(0L)
-            .parentBeaconBlockRoot(
-                maybeParentBeaconBlockRoot.isPresent() ? maybeParentBeaconBlockRoot : null);
+            .parentBeaconBlockRoot(Optional.of(Hash.EMPTY_TRIE_HASH));
 
   }
 
@@ -192,11 +196,12 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
   }
 
   @Test
-  public void shouldValidateExcessBlobGasCorrectly() {
+  public void shouldValidateExcessBlobGasCorrectly() throws JsonProcessingException {
     // V3 must return error if null excessBlobGas
     BlockHeader blockHeader =
-        createBlockHeaderTestFixture(Collections.emptyList(), Optional.empty(), Optional.empty()).excessBlobGas(null).blobGasUsed(100L).buildHeader();
-
+        createBlockHeaderTestFixture(Collections.emptyList(), Optional.of(Collections.emptyList()), Optional.empty()).excessBlobGas(null).blobGasUsed(100L).buildHeader();
+    NewPayloadParameterV3 payload = createNewPayloadParamV3(
+            blockHeader, Collections.emptyList(), Collections.emptyList());
     var resp =
         method.response(
             new JsonRpcRequestContext(
@@ -204,8 +209,7 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
                     "2.0",
                     "engine_newPayloadV3",
                     new Object[] {
-                      createNewPayloadParamV3(
-                          blockHeader, Collections.emptyList(), Collections.emptyList()),
+                      mapper.writeValueAsString(payload),
                       Collections.emptyList(),
                             Hash.EMPTY_TRIE_HASH.toHexString()
                     })));
@@ -217,19 +221,46 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
   }
 
   @Override
+  @Test
+  public void shouldReturnInvalidIfWithdrawalsIsNotNull_WhenWithdrawalsProhibited() {
+
+  }
+
+  @Override
+  @Test
+  public void shouldReturnValidIfWithdrawalsIsNull_WhenWithdrawalsProhibited() {
+
+  }
+
+  @Override
   @SuppressWarnings("unchecked")
   protected String createNewPayloadParam(
           final BlockHeader header,
           final List<String> txs) {
-    ObjectMapper mapper = new ObjectMapper();
-    NewPayloadParameterV3 retval = createNewPayloadParamV3(header, txs, null);
+
+    NewPayloadParameterV3 retval = createNewPayloadParamV3(header, txs, Collections.emptyList());
     try {
       return mapper.writeValueAsString(retval);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
   }
-  @SuppressWarnings("signedness:argument")
+
+  @Override
+  protected String createNewPayloadParam(
+          final BlockHeader header,
+          final List<String> txs,
+          final List<WithdrawalParameter> withdrawals) {
+
+    NewPayloadParameterV3 retval = createNewPayloadParamV3(header, txs, withdrawals);
+    try {
+      return mapper.writeValueAsString(retval);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+    @SuppressWarnings("signedness:argument")
   protected NewPayloadParameterV3 createNewPayloadParamV3(
       final BlockHeader header,
       final List<String> txs,
@@ -260,6 +291,6 @@ public class EngineNewPayloadV3Test extends EngineNewPayloadV2Test {
             new JsonRpcRequestContext(
                     new JsonRpcRequest("2.0",
                             this.method.getName(),
-                            new Object[]{params[0], Optional.of(Collections.emptyList()),maybeParentBeaconBlockRoot.get().toHexString()})));
+                            new Object[]{params[0], Optional.of(Collections.emptyList()),Hash.EMPTY_TRIE_HASH.toHexString()})));
   }
 }

@@ -146,13 +146,14 @@ public abstract class AbstractEngineNewPayload extends ExecutionEngineJsonRpcMet
   public JsonRpcResponse syncResponse(final JsonRpcRequestContext requestContext) {
     engineCallListener.executionEngineCalled();
     final Object reqId = requestContext.getRequest().getId();
+    var newPayloadParam = parseVersionedParam(requestContext);
     final ValidationResult<RpcErrorType> parameterValidationResult =
-            validateRequest(requestContext);
+            validateRequest(newPayloadParam, requestContext);
 
     if (!parameterValidationResult.isValid()) {
       return new JsonRpcErrorResponse(reqId, parameterValidationResult);
     }
-    var newPayloadParam = parseVersionedParam(requestContext);
+
     BlockIdentifier blockId =
             new BlockIdentifier(
                     newPayloadParam.getBlockNumber(),
@@ -256,7 +257,7 @@ public abstract class AbstractEngineNewPayload extends ExecutionEngineJsonRpcMet
           reqId,
           blockId,
           null,
-          getInvalidBlockHashStatus(),
+          INVALID,
           blobValidationResult.getErrorMessage());
     }
 
@@ -323,7 +324,7 @@ public abstract class AbstractEngineNewPayload extends ExecutionEngineJsonRpcMet
     return INVALID;
   }
 
-  protected abstract ValidationResult<RpcErrorType> validateRequest(
+  protected  abstract <P extends NewPayloadParameterV1> ValidationResult<RpcErrorType> validateRequest( final P newPayloadParam,
       final JsonRpcRequestContext requestContext);
 
   public record EngineBlockValidationResult(EngineStatus status, BlockValidationResult validationResult) {};

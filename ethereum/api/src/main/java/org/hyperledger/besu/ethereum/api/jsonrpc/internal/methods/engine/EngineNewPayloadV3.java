@@ -72,10 +72,8 @@ public class EngineNewPayloadV3 extends EngineNewPayloadV2 {
     return (P) request.getRequiredParameter(0, NewPayloadParameterV3.class);
   }
   @Override
-  protected ValidationResult<RpcErrorType> validateRequest(
+  protected <P extends NewPayloadParameterV1> ValidationResult<RpcErrorType> validateRequest(final P newPayloadParam,
       final JsonRpcRequestContext requestContext) {
-    NewPayloadParameterV3 newPayloadParam =
-        requestContext.getRequiredParameter(0, NewPayloadParameterV3.class);
 
     final Optional<List<String>> maybeVersionedHashParam =
         requestContext.getOptionalList(1, String.class);
@@ -85,20 +83,23 @@ public class EngineNewPayloadV3 extends EngineNewPayloadV2 {
     final Optional<Bytes32> maybeParentBeaconBlockRoot =
             maybeParentBeaconBlockRootParam.map(Bytes32::fromHexString);
     */
-    ValidationResult<RpcErrorType> v2Validity = super.validateRequest(requestContext);
+    ValidationResult<RpcErrorType> v2Validity = super.validateRequest(newPayloadParam, requestContext);
     if (!v2Validity.isValid()) {
       return v2Validity;
-    } else if (newPayloadParam.getBlobGasUsed() == null
-        || newPayloadParam.getExcessBlobGas() == null) {
-      return ValidationResult.invalid(RpcErrorType.INVALID_PARAMS, "Missing blob gas fields");
-    } else if (maybeVersionedHashParam == null) {
-      return ValidationResult.invalid(
-          RpcErrorType.INVALID_PARAMS, "Missing versioned hashes field");
-    } else if (maybeParentBeaconBlockRootParam.isEmpty()) {
-      return ValidationResult.invalid(
-          RpcErrorType.INVALID_PARAMS, "Missing parent beacon block root field");
     } else {
-      return ValidationResult.valid();
+      NewPayloadParameterV3 npp = (NewPayloadParameterV3) newPayloadParam;
+      if (npp.getBlobGasUsed() == null
+              || npp.getExcessBlobGas() == null) {
+        return ValidationResult.invalid(RpcErrorType.INVALID_PARAMS, "Missing blob gas fields");
+      } else if (maybeVersionedHashParam == null) {
+        return ValidationResult.invalid(
+                RpcErrorType.INVALID_PARAMS, "Missing versioned hashes field");
+      } else if (maybeParentBeaconBlockRootParam.isEmpty()) {
+        return ValidationResult.invalid(
+                RpcErrorType.INVALID_PARAMS, "Missing parent beacon block root field");
+      } else {
+        return ValidationResult.valid();
+      }
     }
   }
 

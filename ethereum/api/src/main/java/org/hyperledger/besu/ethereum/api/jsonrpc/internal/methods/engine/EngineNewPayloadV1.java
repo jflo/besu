@@ -76,7 +76,7 @@ public class EngineNewPayloadV1 extends AbstractEngineNewPayload {
   }
 
   @Override
-  protected ValidationResult<RpcErrorType> validateRequest(final JsonRpcRequestContext requestContext) {
+  protected <P extends NewPayloadParameterV1> ValidationResult<RpcErrorType> validateRequest(final P newPayloadParam, final JsonRpcRequestContext requestContext) {
     return ValidationResult.valid();
   }
 

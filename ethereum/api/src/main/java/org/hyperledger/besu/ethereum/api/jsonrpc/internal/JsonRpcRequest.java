@@ -55,6 +55,19 @@ public class JsonRpcRequest {
     }
   }
 
+  public JsonRpcRequest( final String version,
+          final String method,
+          final JsonRpcRequestId id,
+          final Object[] params) {
+    this.version = version;
+    this.method = method;
+    this.params = params;
+    this.id = id;
+    if (method == null) {
+      throw new InvalidJsonRpcRequestException("Field 'method' is required");
+    }
+  }
+
   @JsonGetter("id")
   public Object getId() {
     return id == null ? null : id.getValue();

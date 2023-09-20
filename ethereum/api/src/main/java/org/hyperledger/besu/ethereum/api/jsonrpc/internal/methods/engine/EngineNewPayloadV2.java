@@ -76,23 +76,23 @@ public class EngineNewPayloadV2 extends EngineNewPayloadV1 {
   }
 
   @Override
-  protected ValidationResult<RpcErrorType> validateRequest(
+  protected <P extends NewPayloadParameterV1> ValidationResult<RpcErrorType> validateRequest( final P newPayloadParam,
       final JsonRpcRequestContext requestContext) {
 
-    final NewPayloadParameterV2 newPayloadParam =
-        requestContext.getRequiredParameter(0, NewPayloadParameterV2.class);
+
     WithdrawalsValidator validator = getWithdrawalsValidator(
             protocolSchedule.get(), newPayloadParam.getTimestamp(), newPayloadParam.getBlockNumber());
     Optional<List<Withdrawal>> maybeWithdrawals = Optional.empty();
     String errorMessage = "Invalid withdrawals";
     if(validator instanceof WithdrawalsValidator.AllowedWithdrawals) {
+      NewPayloadParameterV2 npp = (NewPayloadParameterV2) newPayloadParam;
        maybeWithdrawals =
-              Optional.ofNullable(newPayloadParam.getWithdrawals())
+              Optional.ofNullable(npp.getWithdrawals())
                       .map(ws -> ws.stream().map(WithdrawalParameter::toWithdrawal).collect(toList()));
 
 
     } else {
-      if(newPayloadParam.getWithdrawals() != null) {
+      if(newPayloadParam instanceof NewPayloadParameterV2 && ((NewPayloadParameterV2)newPayloadParam).getWithdrawals() != null) {
         errorMessage = errorMessage + ", shanghai fork not enabled yet, payload had withdrawals field";
         return ValidationResult.invalid(INVALID_PARAMS, errorMessage);
       }
