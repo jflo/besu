@@ -1,0 +1,8 @@
+name: caller
+on: pull_request
+
+jobs:
+  echo:
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo calling
