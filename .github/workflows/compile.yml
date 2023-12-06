@@ -1,0 +1,29 @@
+name: compile
+on:
+  workflow_run:
+    workflows:
+      - checks
+    types:
+      - completed
+
+env:
+  GRADLE_OPTS: "-Xmx6g -Dorg.gradle.daemon=false"
+
+jobs:
+  compile:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    if: ${{ github.actor != 'dependabot[bot]' && github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: adopt
+          java-version: 17
+          cache: gradle
+      - name: Compile
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: build -x test -x spotlessCheck -Dorg.gradle.parallel=true

@@ -1,0 +1,75 @@
+name: acceptance-tests
+on:
+  pull_request_review:
+    types: [ submitted ]
+
+
+env:
+  GRADLE_OPTS: "-Xmx6g -Dorg.gradle.daemon=false"
+  total-runners: 6
+
+jobs:
+  runner-indexes:
+    runs-on:
+      group: "Besu Large Runners"
+    name: Generate runner indexes
+    outputs:
+      json: ${{ steps.generate-index-list.outputs.json }}
+    steps:
+      - id: generate-index-list
+        run: |
+          MAX_INDEX=$((${{ env.total-runners }}-1))
+          INDEX_LIST=$(seq 0 ${MAX_INDEX})
+          INDEX_JSON=$(jq --null-input --compact-output '. |= [inputs]' <<< ${INDEX_LIST})
+          echo "::set-output name=json::${INDEX_JSON}"
+  acceptanceTestEthereum:
+    runs-on:
+      group: "Besu Large Runners"
+    name: "Acceptance Runner #${{ matrix.runner-index }}: Run acceptance tests in parallel"
+    needs:
+      - runner-indexes
+    if: ${{ github.actor != 'dependabot[bot]'}}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner-index: ${{ fromjson(needs.runner-indexes.outputs.json) }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: adopt
+          java-version: 17
+          cache: gradle
+      - name: Compile
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-home-cache-cleanup: true
+          cache-read-only: false
+          arguments: compileJava compileTestJava -Dorg.gradle.parallel=true
+      - name: Split tests
+        id: split-tests
+        uses: chaosaffe/split-tests@v1-alpha.1
+        with:
+          glob: 'acceptance-tests/tests/src/test/java/org/hyperledger/besu/tests/acceptance/**/*Test.java'
+          split-total: ${{ env.total-runners }}
+          split-index: ${{ matrix.runner-index }}
+
+      - name: write out test list
+        run: echo "${{ steps.split-tests.outputs.test-suite }}" >> testList.txt
+      - name: format gradle args
+        #regex means: first truncate file paths to align with package name, then swap path delimiter with package delimiter,
+        #then drop file extension, then insert --tests option between each.
+        run: cat testList.txt | sed -e 's@acceptance-tests/tests/src/test/java/@@g' -e 's@/@.@g' -e 's/\.java//g' -e 's/\ /\ --tests\ /g' >> gradleArgs.txt
+      - name: list keystores
+        run: find . -name "*.jks"
+      - name: run acceptance tests
+        run: ./gradlew acceptanceTest --tests `cat gradleArgs.txt`
+      - name: cleanup tempfiles
+        run: rm testList.txt gradleArgs.txt
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v4
+        if: success() || failure() # always run even if the build step fails
+        with:
+          report_paths: 'acceptance-tests/tests/build/test-results/acceptanceTest/TEST-*.xml'
