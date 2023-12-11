@@ -2,6 +2,7 @@ name: pre-review
 
 on:
   pull_request:
+  workflow_dispatch:
 
 env:
   GRADLE_BUILD_ACTION_CACHE_DEBUG_ENABLED: true
@@ -51,13 +52,25 @@ jobs:
           java-version: 17
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2.10.0
-      - name: Run Build
+      - name: Gradle Compile
         run: ./gradlew build -x test -x spotlessCheck -Dorg.gradle.parallel=true -Dorg.gradle.caching=true
   unitTests:
-    runs-on: besu-research-ubuntu-8
+    env:
+        GRADLEW_UNIT_TEST_ARGS: ${{matrix.gradle_args}}
+    runs-on: ubuntu-22.04
     needs: [ compile ]
     permissions:
       checks: write
+    strategy:
+      fail-fast: false
+      matrix:
+        gradle_args:
+          - "test -x besu:test -x consensus:test -x crypto:test -x ethereum:eth:test -x ethereum:api:test -x ethereum:core:test"
+          - "besu:test consensus:test crypto:test"
+          - "ethereum:api:testBonsai"
+          - "ethereum:api:testForest"
+          - "ethereum:api:testRemainder"
+          - "ethereum:core:test"
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -67,8 +80,9 @@ jobs:
           distribution: adopt
           java-version: 17
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
-        run: ./gradlew build -Dorg.gradle.parallel=true -Dorg.gradle.caching=true
+        uses: gradle/gradle-build-action@v2.10.0
+      - name: run unit tests
+        run: ./gradlew $GRADLEW_UNIT_TEST_ARGS -Dorg.gradle.parallel=true -Dorg.gradle.caching=true
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
