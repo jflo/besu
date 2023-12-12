@@ -28,13 +28,14 @@ jobs:
       - name: store generated tests
         uses: actions/upload-artifact@v3
         with:
-          name: reference-tests
+          name: 'reference-tests'
           path: 'ethereum/referencetests/build/generated/sources/reference-test/**/*.java'
 
   referenceTestEthereum:
     runs-on: ubuntu-22.04
     needs:
       - prepareReferenceTestEthereum
+    #TODO: add condition to check pr is approved
     if: ${{ github.actor != 'dependabot[bot]' }}
     strategy:
       fail-fast: false
@@ -50,19 +51,21 @@ jobs:
         with:
           distribution: adopt
           java-version: 17
-      - name: get acceptance test report
+      - name: retrieve generated tests
+        uses: actions/download-artifact@v3.0.2
+        with:
+          name: 'reference-tests'
+          path: 'ethereum/referencetests/build/generated/sources/reference-test/'
+      - name: get reference test report
         uses: dawidd6/action-download-artifact@v2
         with:
           branch: main
-          name: acceptance-test-results
+          name_is_regexp: true
+          name: 'reference-test-node-\d*\d-results'
           path: tmp/ref-xml-reports-downloaded
           if_no_artifact_found: true
       - name: setup gradle
         uses: gradle/gradle-build-action@v2
-      - name: retrieve generated tests
-        uses: dawidd6/action-download-artifact@v2
-        with:
-          name: reference-tests
       - name: Split tests
         id: split-tests
         uses: r7kamura/split-tests-by-timings@v0
@@ -75,14 +78,10 @@ jobs:
         run: echo ${{ steps.split-tests.outputs.paths }} | sed -e 's/^.*java\///' -e 's@/@.@g' -e 's/\.java//' -e 's/^/--tests /' > refTestArgs.txt
       - name: run reference tests
         run: ./gradlew ethereum:referenceTests:referenceTests `cat refTestArgs.txt` -Dorg.gradle.parallel=true -Dorg.gradle.caching=true
-      - name: Correct Ownership in GITHUB_WORKSPACE directory
-        uses: peter-murray/reset-workspace-ownership-action@v1
-        with:
-          user_id: ${{ env.runner_uid }}
       - name: Upload Test Report
         uses: actions/upload-artifact@v3
         if: always() # always run even if the previous step fails
         with:
-          name: acceptance-test-results
+          name: reference-test-node-${{matrix.runner-index}}-results
           path: '**/build/test-results/referenceTests/TEST-*.xml'
 
