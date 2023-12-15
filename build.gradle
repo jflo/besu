@@ -30,13 +30,14 @@ plugins {
   id 'me.champeau.jmh' version '0.7.0' apply false
   id 'net.ltgt.errorprone' version '2.0.2'
   id 'maven-publish'
-  id 'org.sonarqube' version '3.4.0.2513'
+  id 'org.sonarqube' version '4.4.1.3373'
 }
 
 sonarqube {
   properties {
-    property "sonar.projectKey", "hyperledger_besu"
-    property "sonar.organization", "hyperledger"
+    property "sonar.projectKey", "$System.env.SONAR_PROJECT_KEY"
+    property "sonar.organization", "$System.env.SONAR_ORGANIZATION"
+    property "sonar.gradle.skipCompile", "true"
     property "sonar.host.url", "https://sonarcloud.io"
     property "sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml"
     property "sonar.coverage.exclusions", "acceptance-tests/**/*"
@@ -959,6 +960,12 @@ task checkSpdxHeader(type: CheckSpdxHeader) {
     "(.*${sep}src${sep}[^${sep}]+${sep}generated${sep}.*)"
   ].join("|")
 
+}
+
+jacocoTestReport {
+  reports {
+    xml.enabled true
+  }
 }
 
 task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
