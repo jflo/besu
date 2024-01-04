@@ -1,15 +1,71 @@
 name: reference-tests
 on:
   workflow_dispatch:
+  workflow_call:
+  pull_request_review:
+    types:
+      - submitted
 
 env:
   GRADLE_OPTS: "-Xmx6g -Dorg.gradle.daemon=false"
   total-runners: 6
 
 jobs:
+  shouldRun:
+    name: checks to ensure we should run
+    runs-on: ubuntu-22.04
+    outputs:
+      shouldRun: ${{steps.shouldRun.outputs.result}}
+    steps:
+      - name: required check
+        id: shouldRun
+        uses: actions/github-script@v7.0.1
+        env:
+          # fun fact, this changes based on incoming event, it will be different when we run this on pushes to main
+          RELEVANT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        with:
+          script: |
+            const { RELEVANT_SHA } = process.env;
+            const { data: { statuses } } = await github.rest.repos.getCombinedStatusForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: RELEVANT_SHA,
+            });
+            const unitTested = statuses && statuses.filter(({ context }) => context === 'pre-review');
+            const failedUnits = unitTested && unitTested.filter(({state}) => state === 'failure' || state === 'pending');
+            const refTested = statuses && statuses.filter(({ context }) => context === 'reference-tests');
+            const alreadyRun = refTested && refTested.find(({ state }) => state === 'success' || state === 'pending') > 0;
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            const approvingReviews = reviews && reviews.filter(review => review.state === 'APPROVED');
+            const shouldRun = !alreadyRun && github.actor != 'dependabot[bot]' && (failedUnits.length === 0) && (approvingReviews.length > 0);
+
+              console.log("tests should be run = %j", shouldRun);
+              console.log("alreadyRun = %j", alreadyRun);
+              console.log("failedUnits = %j", failedUnits.length);
+              console.log("approvingReviews = %j", approvingReviews.length);
+
+            return shouldRun;
+  pend:
+    name: reference testing pending
+    needs: shouldRun
+    if: ${{ needs.shouldRun.outputs.shouldRun == 'true' }}
+    runs-on: ubuntu-22.04
+    permissions:
+      statuses: write
+    steps:
+      - name: pending
+        uses: myrotvorets/set-commit-status-action@v2.0.0
+        with:
+          status: pending
+          sha: ${{ github.event.pull_request.head.sha || github.sha }}
   prepareReferenceTestEthereum:
     runs-on: ubuntu-22.04
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    needs: shouldRun
+    if: ${{ needs.shouldRun.outputs.shouldRun == 'true' }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -19,7 +75,7 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
-          distribution: adopt
+          distribution: temurin
           java-version: 17
       - name: setup gradle
         uses: gradle/gradle-build-action@v2
@@ -33,10 +89,12 @@ jobs:
 
   referenceTestEthereum:
     runs-on: ubuntu-22.04
+    permissions:
+      statuses: write
+      checks: write
     needs:
       - prepareReferenceTestEthereum
-    #TODO: add condition to check pr is approved
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ needs.shouldRun.outputs.shouldRun == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -49,7 +107,7 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
-          distribution: adopt
+          distribution: adopt-openj9
           java-version: 17
       - name: retrieve generated tests
         uses: actions/download-artifact@v3.0.2
