@@ -1,9 +1,8 @@
 name: docker
 on:
-  workflow_dispatch:
   release:
     types:
-      - created
+      - prereleased
 
 jobs:
   hadolint:
@@ -29,23 +28,31 @@ jobs:
       - name: hadoLint_graalvm
         run: docker run --rm -i hadolint/hadolint < docker/graalvm/Dockerfile
   buildDocker:
-    runs-on: ubuntu-22.04
     needs: hadolint
     strategy:
       fail-fast: false
       matrix:
         platform:
-          - linux/amd64
-          - linux/arm/v6
-          - linux/arm/v7
-          - linux/arm64
+          - ubuntu-22.04
+          - [self-hosted, ARM64, macOS]
+    runs-on: ${{ matrix.platform }}
     steps:
       - name: Prepare
+        id: prep
         run: |
             platform=${{ matrix.platform }}
-            echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+            if [ "$platform" = 'ubuntu-22.04' ]; then 
+              echo "PLATFORM_PAIR=linux-amd64" >> $GITHUB_OUTPUT
+              echo "ARCH=amd64" >> $GITHUB_OUTPUT
+            else
+              echo "PLATFORM_PAIR=linux-arm64" >> $GITHUB_OUTPUT
+              echo "ARCH=arm64" >> $GITHUB_OUTPUT
+            fi
       - name: Checkout Repo
         uses: actions/checkout@v3
+      - name: short sha
+        id: shortSha
+        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
@@ -53,22 +60,32 @@ jobs:
           java-version: 17
       - name: setup gradle
         uses: gradle/gradle-build-action@v2
-      - name: distDocker
+      - name: build image
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: distDocker
-      - name: test image
+          arguments: distDocker -PdockerOrgName=${{ secrets.DOCKER_ORG }} -Prelease.releaseVersion=${{ github.ref_name }}
+      - name: install goss
         run: |
           mkdir -p docker/reports
-          curl -L https://github.com/aelsabbahy/goss/releases/download/v0.3.9/goss-$PLATFORM-PAIR -o ./docker/tests/goss-$PLATFORM-PAIR
+          curl -L https://github.com/aelsabbahy/goss/releases/download/v0.4.4/goss-${{ steps.prep.outputs.PLATFORM_PAIR }} -o ./docker/tests/goss-${{ steps.prep.outputs.PLATFORM_PAIR }}
       - name: test docker
         uses: gradle/gradle-build-action@v2
+        env:
+          architecture: ${{ steps.prep.outputs.ARCH }}
         with:
-          arguments: testDocker
+          arguments: testDocker -PdockerOrgName=${{ secrets.DOCKER_ORG }} -Prelease.releaseVersion=${{ github.ref_name }}
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USER_RW }}
           password: ${{ secrets.DOCKER_PASSWORD_RW }}
       - name: publish
-        run: ./gradlew --no-daemon -PdockerOrgName=${{ secrets.DOCKER_ORG }} dockerUpload
+        env:
+          architecture: ${{ steps.prep.outputs.ARCH }}
+        run: ./gradlew --no-daemon dockerUpload -PdockerOrgName=${{ secrets.DOCKER_ORG }} -Prelease.releaseVersion=${{ github.ref_name }}
+  multiArch:
+    needs: buildDocker
+    runs-on: ubuntu-22.04
+    steps:
+      - name: multi-arch docker
+        run: ./gradlew manifestDocker -PdockerOrgName=${{secrets.DOCKER_ORG }} -Prelease.releaseVersion=${{ github.ref_name }}
