@@ -22,7 +22,8 @@ jobs:
       uses: GuillaumeFalourd/github-team-members@2c201b9c885619191c705b947322e1c37cb53b00
       with:
         org_slug: hyperledger
-        team_slug: besu
+        team_slug: besu-maintainer
+        role: maintainer
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - if: steps.get-members.outputs.actor-belongs-team == 'true'
