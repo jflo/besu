@@ -12,9 +12,6 @@ permissions:
 
 jobs:
   authorize:
-    environment:
-      ${{ steps.get-members.outputs.actor-belongs-team == 'true' &&
-      'internal' || 'external' }}
     runs-on: ubuntu-22.04
     steps:
     - id: get-members
@@ -26,11 +23,11 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - if: steps.get-members.outputs.actor-belongs-team == 'true'
-      run: echo "${{ github.actor }} belongs to Team"
+      run: echo "ENV_NAME=internal" >> $GITHUB_ENV
       shell: bash
 
     - if: steps.get-members.outputs.actor-belongs-team == 'false'
-      run: echo "${{ github.actor }} doesn't belong to Team"
+      run: echo "ENV_NAME=external" >> $GITHUB_ENV
       shell: bash
   repolint:
     name: "Repository Linting"
