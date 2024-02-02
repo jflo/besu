@@ -13,22 +13,20 @@ permissions:
 jobs:
   authorize:
     runs-on: ubuntu-22.04
+    environment:
+      name: external
     steps:
     - id: get-members
       uses: GuillaumeFalourd/github-team-members@2c201b9c885619191c705b947322e1c37cb53b00
       with:
-        org_slug: hyperledger
-        team_slug: besu-maintainers
-        role: maintainer
-        token: ${{ secrets.GITHUB_TOKEN }}
+        org_slug: "hyperledger"
+        team_slug: "besu-maintainers"
+        role: "maintainer"
 
     - if: steps.get-members.outputs.actor-belongs-team == 'true'
       run: echo "ENV_NAME=internal" >> $GITHUB_ENV
       shell: bash
 
-    - if: steps.get-members.outputs.actor-belongs-team == 'false'
-      run: echo "ENV_NAME=external" >> $GITHUB_ENV
-      shell: bash
   repolint:
     name: "Repository Linting"
     runs-on: ubuntu-22.04
