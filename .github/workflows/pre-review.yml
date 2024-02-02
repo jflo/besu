@@ -18,7 +18,7 @@ jobs:
       uses: GuillaumeFalourd/github-team-members@2c201b9c885619191c705b947322e1c37cb53b00
       with:
         org_slug: hyperledger
-        team_slug: besu-maintainer
+        team_slug: besu-maintainers
         role: maintainer
         token: ${{ secrets.GITHUB_TOKEN }}
 
