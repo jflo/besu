@@ -71,7 +71,7 @@ jobs:
           name: 'reference-tests'
           path: 'ethereum/referencetests/build/generated/sources/reference-test/'
       - name: get reference test report
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d
+        uses: dawidd6/action-download-artifact@v2
         with:
           branch: main
           name_is_regexp: true
