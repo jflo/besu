@@ -21,8 +21,8 @@ jobs:
     - id: get-members
       uses: GuillaumeFalourd/github-team-members@2c201b9c885619191c705b947322e1c37cb53b00
       with:
-        org_slug: org-slug
-        team_slug: team-slug
+        org_slug: hyperledger
+        team_slug: besu
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - if: steps.get-members.outputs.actor-belongs-team == 'true'
