@@ -10,19 +10,47 @@ env:
   total-runners: 16
 
 jobs:
-  authorize:
-    environment:
-      ${{ github.event_name == 'pull_request_target' &&
-      github.event.pull_request.head.repo.full_name != github.repository &&
-      'external' || 'internal' }}
+  shouldRun:
+    name: checks to ensure we should run
+    # necessary because there is no single PR approved event, need to check all comments/approvals/denials
     runs-on: ubuntu-22.04
+    outputs:
+      shouldRun: ${{steps.shouldRun.outputs.result}}
     steps:
-      - run: true
+      - name: required check
+        id: shouldRun
+        uses: actions/github-script@v7.0.1
+        env:
+          # fun fact, this changes based on incoming event, it will be different when we run this on pushes to main
+          RELEVANT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        with:
+          script: |
+            const { RELEVANT_SHA } = process.env;
+            const { data: { statuses } } = await github.rest.repos.getCombinedStatusForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: RELEVANT_SHA,
+            });
+            const acceptanceTested = statuses && statuses.filter(({ context }) => context === 'acceptance-tests');
+            const alreadyRun = acceptanceTested && acceptanceTested.find(({ state }) => state === 'success') > 0;
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            const approvingReviews = reviews && reviews.filter(review => review.state === 'APPROVED');
+            const shouldRun = !alreadyRun && github.actor != 'dependabot[bot]' &&  (approvingReviews.length > 0);
+
+              console.log("tests should be run = %j", shouldRun);
+              console.log("alreadyRun = %j", alreadyRun);
+              console.log("approvingReviews = %j", approvingReviews.length);
+
+            return shouldRun;
 
   acceptanceTestEthereum:
     runs-on: ubuntu-22.04
     name: "Acceptance Runner"
-    needs: authorize
+    needs: shouldRun
     permissions:
       statuses: write
       checks: write
@@ -69,7 +97,7 @@ jobs:
       - name: cleanup tempfiles
         run: rm testList.txt gradleArgs.txt
       - name: Upload Acceptance Test Results
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
         with:
           name: acceptance-node-${{matrix.runner_index}}-test-results
           path: 'acceptance-tests/tests/build/test-results/acceptanceTest/TEST-*.xml'

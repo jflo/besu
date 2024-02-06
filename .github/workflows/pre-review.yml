@@ -4,29 +4,13 @@ on:
   pull_request_target:
     branches:
       - main
-  workflow_dispatch:
+      - release-*
 
 permissions:
   statuses: write
   checks: write
 
 jobs:
-  authorize:
-    runs-on: ubuntu-22.04
-    environment:
-      name: external
-    steps:
-    - id: get-members
-      uses: GuillaumeFalourd/github-team-members@2c201b9c885619191c705b947322e1c37cb53b00
-      with:
-        org_slug: "hyperledger"
-        team_slug: "besu-maintainers"
-        role: "maintainer"
-
-    - if: steps.get-members.outputs.actor-belongs-team == 'true'
-      run: echo "ENV_NAME=internal" >> $GITHUB_ENV
-      shell: bash
-
   repolint:
     name: "Repository Linting"
     runs-on: ubuntu-22.04
@@ -85,7 +69,7 @@ jobs:
     env:
         GRADLEW_UNIT_TEST_ARGS: ${{matrix.gradle_args}}
     runs-on: ubuntu-22.04
-    needs: [ compile, authorize ]
+    needs: [ compile ]
     permissions:
       checks: write
       statuses: write
