@@ -52,11 +52,11 @@ jobs:
   acceptanceTestEthereum:
     runs-on: ubuntu-22.04
     name: "Acceptance Runner"
-    needs: shouldRun
+    #needs: shouldRun
     permissions:
       statuses: write
       checks: write
-    if: ${{ needs.shouldRun.outputs.shouldRun == 'true'}}
+    #if: ${{ needs.shouldRun.outputs.shouldRun == 'true'}}
     strategy:
       fail-fast: true
       matrix:
