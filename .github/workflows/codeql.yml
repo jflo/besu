@@ -13,15 +13,11 @@ name: "CodeQL"
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
-    pull_request:
-      branches: [ main ]
-      paths-ignore:
-        - '**/*.json'
-        - '**/*.md'
-        - '**/*.properties'
-        - '**/*.txt'
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    # expression evaluates to midnight every night
+    - cron: '0 0 * * *'
+
 jobs:
   analyze:
     name: Analyze
