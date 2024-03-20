@@ -24,6 +24,7 @@ import org.hyperledger.besu.ethereum.BlockProcessingResult;
 import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.Deposit;
+import org.hyperledger.besu.ethereum.core.InclusionList;
 import org.hyperledger.besu.ethereum.core.MutableWorldState;
 import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.Withdrawal;
@@ -91,7 +92,8 @@ public class PrivacyBlockProcessor implements BlockProcessor {
       final List<BlockHeader> ommers,
       final Optional<List<Withdrawal>> withdrawals,
       final Optional<List<Deposit>> deposits,
-      final PrivateMetadataUpdater privateMetadataUpdater) {
+      final PrivateMetadataUpdater privateMetadataUpdater,
+      final Optional<InclusionList> maybeRequiredTxs) {
 
     if (privateMetadataUpdater != null) {
       throw new IllegalArgumentException("PrivateMetadataUpdater passed in is not null.");
@@ -111,7 +113,8 @@ public class PrivacyBlockProcessor implements BlockProcessor {
             ommers,
             withdrawals,
             deposits,
-            metadataUpdater);
+            metadataUpdater,
+            maybeRequiredTxs);
     metadataUpdater.commit();
     return result;
   }

@@ -24,6 +24,7 @@ import org.hyperledger.besu.ethereum.BlockProcessingResult;
 import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.Deposit;
+import org.hyperledger.besu.ethereum.core.InclusionList;
 import org.hyperledger.besu.ethereum.core.MutableWorldState;
 import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.TransactionReceipt;
@@ -99,7 +100,8 @@ public abstract class AbstractBlockProcessor implements BlockProcessor {
       final List<BlockHeader> ommers,
       final Optional<List<Withdrawal>> maybeWithdrawals,
       final Optional<List<Deposit>> maybeDeposits,
-      final PrivateMetadataUpdater privateMetadataUpdater) {
+      final PrivateMetadataUpdater privateMetadataUpdater,
+      final Optional<InclusionList> maybeRequiredTxs) {
     final List<TransactionReceipt> receipts = new ArrayList<>();
     long currentGasUsed = 0;
     long currentBlobGasUsed = 0;
@@ -203,6 +205,24 @@ public abstract class AbstractBlockProcessor implements BlockProcessor {
         ((BonsaiWorldStateUpdateAccumulator) worldState.updater()).reset();
       }
       return new BlockProcessingResult(Optional.empty(), "ommer too old");
+    }
+
+    if (maybeRequiredTxs.isPresent()) {
+      // for each inclusion, check the address and compare nonces to what is in state now that block
+      // is processed
+      InclusionList required = maybeRequiredTxs.get();
+      long censoredTxCount =
+          required.getSummary().stream()
+              .filter(
+                  inc ->
+                      worldState.get(inc.getSender()).getNonce()
+                          < inc.getNonce().getAsBigInteger().longValue())
+              .count();
+      if (censoredTxCount > 0) {
+        return new BlockProcessingResult(
+            Optional.empty(),
+            String.format("%d censored transactions not found as expected", censoredTxCount));
+      }
     }
 
     try {

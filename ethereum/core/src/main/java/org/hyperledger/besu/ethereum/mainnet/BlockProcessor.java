@@ -20,6 +20,7 @@ import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.ethereum.core.Block;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.Deposit;
+import org.hyperledger.besu.ethereum.core.InclusionList;
 import org.hyperledger.besu.ethereum.core.MutableWorldState;
 import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.TransactionReceipt;
@@ -84,7 +85,8 @@ public interface BlockProcessor {
         block.getBody().getOmmers(),
         block.getBody().getWithdrawals(),
         block.getBody().getDeposits(),
-        null);
+        null,
+        Optional.empty());
   }
 
   /**
@@ -111,7 +113,8 @@ public interface BlockProcessor {
         ommers,
         Optional.empty(),
         Optional.empty(),
-        null);
+        null,
+        Optional.empty());
   }
 
   /**
@@ -135,7 +138,8 @@ public interface BlockProcessor {
       List<BlockHeader> ommers,
       Optional<List<Withdrawal>> withdrawals,
       Optional<List<Deposit>> deposits,
-      PrivateMetadataUpdater privateMetadataUpdater);
+      PrivateMetadataUpdater privateMetadataUpdater,
+      Optional<InclusionList> maybeRequiredTxs);
 
   /**
    * Processes the block when running Besu in GoQuorum-compatible mode

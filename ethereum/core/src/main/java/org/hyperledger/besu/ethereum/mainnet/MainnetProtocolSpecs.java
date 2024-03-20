@@ -24,6 +24,7 @@ import org.hyperledger.besu.ethereum.MainnetBlockValidator;
 import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.Deposit;
+import org.hyperledger.besu.ethereum.core.InclusionList;
 import org.hyperledger.besu.ethereum.core.MiningParameters;
 import org.hyperledger.besu.ethereum.core.MutableWorldState;
 import org.hyperledger.besu.ethereum.core.Transaction;
@@ -910,7 +911,8 @@ public abstract class MainnetProtocolSpecs {
         final List<BlockHeader> ommers,
         final Optional<List<Withdrawal>> withdrawals,
         final Optional<List<Deposit>> deposits,
-        final PrivateMetadataUpdater privateMetadataUpdater) {
+        final PrivateMetadataUpdater privateMetadataUpdater,
+        final Optional<InclusionList> maybeRequiredTxs) {
       updateWorldStateForDao(worldState);
       return wrapped.processBlock(
           blockchain,
@@ -920,7 +922,8 @@ public abstract class MainnetProtocolSpecs {
           ommers,
           withdrawals,
           deposits,
-          privateMetadataUpdater);
+          privateMetadataUpdater,
+          maybeRequiredTxs);
     }
 
     private static final Address DAO_REFUND_CONTRACT_ADDRESS =

@@ -117,6 +117,7 @@ class PrivacyBlockProcessorTest {
             eq(firstBlock.getBody().getOmmers()),
             eq(Optional.empty()),
             eq(Optional.empty()),
+            any(),
             any());
     verify(blockProcessor)
         .processBlock(
@@ -127,6 +128,7 @@ class PrivacyBlockProcessorTest {
             eq(secondBlock.getBody().getOmmers()),
             eq(Optional.empty()),
             eq(Optional.empty()),
+            any(),
             any());
   }
 
@@ -184,6 +186,7 @@ class PrivacyBlockProcessorTest {
             eq(secondBlock.getBody().getOmmers()),
             eq(Optional.empty()),
             eq(Optional.empty()),
+            any(),
             any());
   }
 
