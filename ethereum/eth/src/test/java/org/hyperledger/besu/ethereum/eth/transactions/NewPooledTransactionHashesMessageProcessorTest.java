@@ -34,6 +34,8 @@ import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.TransactionType;
 import org.hyperledger.besu.ethereum.core.BlockDataGenerator;
 import org.hyperledger.besu.ethereum.core.Transaction;
+import org.hyperledger.besu.ethereum.core.encoding.EncodingContext;
+import org.hyperledger.besu.ethereum.core.encoding.TransactionEncoder;
 import org.hyperledger.besu.ethereum.eth.EthProtocol;
 import org.hyperledger.besu.ethereum.eth.encoding.TransactionAnnouncementDecoder;
 import org.hyperledger.besu.ethereum.eth.encoding.TransactionAnnouncementEncoder;
@@ -41,9 +43,12 @@ import org.hyperledger.besu.ethereum.eth.manager.EthContext;
 import org.hyperledger.besu.ethereum.eth.manager.EthPeer;
 import org.hyperledger.besu.ethereum.eth.manager.EthScheduler;
 import org.hyperledger.besu.ethereum.eth.messages.NewPooledTransactionHashesMessage;
+import org.hyperledger.besu.ethereum.eth.messages.TransactionsMessage;
 import org.hyperledger.besu.ethereum.eth.transactions.NewPooledTransactionHashesMessageProcessor.FetcherCreatorTask;
+import org.hyperledger.besu.ethereum.rlp.BytesValueRLPOutput;
 import org.hyperledger.besu.ethereum.rlp.RLP;
 import org.hyperledger.besu.ethereum.rlp.RLPException;
+import org.hyperledger.besu.ethereum.rlp.RLPOutput;
 import org.hyperledger.besu.metrics.StubMetricsSystem;
 
 import java.time.Duration;
@@ -511,5 +516,29 @@ class NewPooledTransactionHashesMessageProcessorTest {
     assertThatThrownBy(() -> new TransactionAnnouncement((Transaction) null))
         .isInstanceOf(NullPointerException.class)
         .hasMessage("Transaction cannot be null");
+  }
+
+  @Test
+  void announcedSizesShouldMatchTransactionSizes() {
+    final Transaction t1 = generator.transaction(TransactionType.FRONTIER);
+    final Transaction t2 = generator.transaction(TransactionType.ACCESS_LIST);
+    final Transaction t3 = generator.transaction(TransactionType.EIP1559);
+
+    final List<Transaction> list = List.of(t1, t2, t3);
+    final Bytes rawAnnouncement = getEncoder(EthProtocol.ETH68).encode(list);
+    TransactionsMessage tm = TransactionsMessage.create(list);
+    final List<TransactionAnnouncement> announcementList =
+        getDecoder(EthProtocol.ETH68).decode(RLP.input(rawAnnouncement));
+
+    assertThat(announcementList).hasSameSizeAs(tm.transactions());
+    for (final Transaction transaction : tm.transactions()) {
+      BytesValueRLPOutput txRlp = new BytesValueRLPOutput();
+      TransactionEncoder.encodeRLP(transaction, txRlp, EncodingContext.POOLED_TRANSACTION);
+      final TransactionAnnouncement announcement = announcementList.get(list.indexOf(transaction));
+      assertThat(announcement.getHash()).isEqualTo(transaction.getHash());
+      assertThat(announcement.getType()).hasValue(transaction.getType());
+      assertThat(announcement.getSize()).hasValue((long) transaction.getSize());
+      assertThat(announcement.getSize().get()).isEqualTo(txRlp.encoded().size());
+    }
   }
 }
