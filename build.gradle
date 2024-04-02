@@ -29,7 +29,7 @@ plugins {
   id 'com.jfrog.artifactory' version '5.1.11'
   id 'io.spring.dependency-management' version '1.1.4'
   id 'me.champeau.jmh' version '0.7.2' apply false
-  id 'net.ltgt.errorprone' version '3.0.1'
+  id 'net.ltgt.errorprone' version '3.1.0'
   id 'maven-publish'
   id 'org.sonarqube' version '4.4.1.3373'
 }
@@ -132,12 +132,12 @@ allprojects {
   }
 
   task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
+    archiveClassifier = 'sources'
     from sourceSets.main.allSource
   }
 
   task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
+    archiveClassifier = 'javadoc'
     from javadoc.outputDirectory
   }
 
@@ -160,6 +160,7 @@ allprojects {
       url 'https://splunk.jfrog.io/splunk/ext-releases-local'
       content { includeGroupByRegex('com\\.splunk\\..*') }
     }
+
     mavenCentral()
 
     // ethereum execution spec tests fixtures. Exclusively for ethereum submodule to run ref tests
@@ -181,6 +182,8 @@ allprojects {
   dependencies {
     components.all(BouncyCastleCapability)
     errorprone 'com.google.errorprone:error_prone_core'
+    // https://github.com/hyperledger/besu-errorprone-checks/
+    errorprone "org.hyperledger.besu:besu-errorprone-checks"
   }
 
   configurations.all {
@@ -216,7 +219,7 @@ allprojects {
     format 'sol', { target '**/*.sol' }
   }
 
-  tasks.withType(JavaCompile) {
+  tasks.withType(JavaCompile).configureEach {
     options.compilerArgs += [
       '-Xlint:unchecked',
       '-Xlint:cast',
@@ -229,8 +232,8 @@ allprojects {
     ]
 
     options.errorprone {
-      excludedPaths = '.*/(generated/*.*|.*ReferenceTest_.*|build/.*/annotation-output/.*)'
-
+      excludedPaths = '.*/generated/*.*'
+      disableWarningsInGeneratedCode = true
       // Our equals need to be symmetric, this checker doesn't respect that.
       check('EqualsGetClass', CheckSeverity.OFF)
       // We like to use futures with no return values.
@@ -292,7 +295,7 @@ allprojects {
    *
    */
   test {
-    jvmArgs = [
+    jvmArgs += [
       '-Xmx4g',
       '-XX:-UseGCOverheadLimit',
       // Mockito and jackson-databind do some strange reflection during tests.
@@ -397,7 +400,7 @@ subprojects {
 
     task testSupportJar(type: Jar) {
       archiveBaseName = "${project.name}-support-test"
-      classifier = 'test-support'
+      archiveClassifier = 'test-support'
       from sourceSets.testSupport.output
     }
   }
@@ -496,6 +499,7 @@ subprojects {
           password = artifactoryKey
         }
         defaults {
+          publishBuildInfo = false //currently 404'ing still to be investigated
           publications('mavenJava')
           publishArtifacts = true
           publishPom = true
@@ -716,13 +720,6 @@ def dockerBuildVersion = project.hasProperty('release.releaseVersion') ? project
 def dockerOrgName = project.hasProperty('dockerOrgName') ? project.getProperty("dockerOrgName") : "hyperledger"
 def dockerArtifactName = project.hasProperty("dockerArtifactName") ? project.getProperty("dockerArtifactName") : "besu"
 def dockerImageName = "${dockerOrgName}/${dockerArtifactName}"
-def dockerVariants = project.hasProperty("dockerVariants") ? project.getProperty("dockerVariants").split(",") : [
-  "openjdk-17",
-  "openjdk-17-debug",
-  "openj9-jdk-17",
-  "graalvm",
-  "openjdk-latest"
-]
 
 // rename the top level dir from besu-<version> to besu and this makes it really
 // simple for use in docker
@@ -750,34 +747,21 @@ task distDocker {
   def dockerBuildDir = "build/docker-besu/"
 
   doLast {
-    for (def jvmVariant in dockerVariants) {
-      copy {
-        from file("${projectDir}/docker/${jvmVariant}/Dockerfile")
-        into(dockerBuildDir)
-      }
-      exec {
-        def image = "${dockerImageName}:${dockerBuildVersion}-${jvmVariant}"
-        def dockerPlatform = ""
-        if (project.hasProperty('docker-platform')){
-          dockerPlatform = "--platform ${project.getProperty('docker-platform')}"
-          println "Building for platform ${project.getProperty('docker-platform')}"
-        }
-        def gitDetails = getGitCommitDetails(10)
-        executable shell
-        workingDir dockerBuildDir
-        args "-c", "docker build ${dockerPlatform} --build-arg BUILD_DATE=${buildTime()} --build-arg VERSION=${dockerBuildVersion} --build-arg VCS_REF=${gitDetails.hash} -t ${image} ."
-      }
+    copy {
+      from file("${projectDir}/docker/Dockerfile")
+      into(dockerBuildDir)
     }
-
-    // tag the "default" (which is the variant in the zero position)
     exec {
+      def image = "${dockerImageName}:${dockerBuildVersion}"
+      def dockerPlatform = ""
+      if (project.hasProperty('docker-platform')){
+        dockerPlatform = "--platform ${project.getProperty('docker-platform')}"
+        println "Building for platform ${project.getProperty('docker-platform')}"
+      }
+      def gitDetails = getGitCommitDetails(10)
       executable shell
-      args "-c", "docker tag '${dockerImageName}:${dockerBuildVersion}-${dockerVariants[0]}' '${dockerImageName}:${dockerBuildVersion}'"
-    }
-    // create a static tag for the benchmark target
-    exec {
-      executable shell
-      args "-c", "docker tag '${dockerImageName}:${dockerBuildVersion}-${dockerVariants[0]}' '${dockerImageName}:benchmark'"
+      workingDir dockerBuildDir
+      args "-c", "docker build ${dockerPlatform} --build-arg BUILD_DATE=${buildTime()} --build-arg VERSION=${dockerBuildVersion} --build-arg VCS_REF=${gitDetails.hash} -t ${image} ."
     }
   }
 }
@@ -791,14 +775,13 @@ task testDocker {
   }
 
   doLast {
-    for (def variant in dockerVariants) {
-      exec {
-        def image = project.hasProperty('release.releaseVersion') ? "${dockerImageName}:" + project.property('release.releaseVersion') : "${dockerImageName}:${project.version}"
-        workingDir "${projectDir}/docker/${variant}"
-        executable shell
-        args "-c", "../test.sh ${image}-${variant}"
-      }
+    exec {
+      def image = project.hasProperty('release.releaseVersion') ? "${dockerImageName}:" + project.property('release.releaseVersion') : "${dockerImageName}:${project.version}"
+      workingDir "${projectDir}/docker"
+      executable shell
+      args "-c", "./test.sh ${image}"
     }
+
   }
 }
 
@@ -817,22 +800,9 @@ task dockerUpload {
   }
 
   doLast {
-    for (def variant in dockerVariants) {
-      def variantImage = "${image}-${variant}"
-      exec {
-        def archVariantImage = "${variantImage}-${architecture}"
-        def cmd = "docker tag '${variantImage}' '${archVariantImage}' && docker push '${archVariantImage}'"
-        additionalTags.each { tag -> cmd += " && docker tag '${variantImage}' '${dockerImageName}:${tag.trim()}-${variant}-${architecture}' && docker push '${dockerImageName}:${tag.trim()}-${variant}-${architecture}'" }
-        println "Executing '${cmd}'"
-        executable shell
-        args "-c", cmd
-      }
-    }
-
     exec {
-      def archImage = "${image}-${architecture}"
-      def cmd = "docker tag ${image} ${archImage} && docker push '${archImage}'"
-      additionalTags.each { tag -> cmd += " && docker tag '${image}' '${dockerImageName}:${tag.trim()}-${architecture}' && docker push '${dockerImageName}:${tag.trim()}-${architecture}'" }
+      def archVariantImage = "${image}-${architecture}"
+      def cmd = "docker tag '${image}' '${archVariantImage}' && docker push '${archVariantImage}'"
       println "Executing '${cmd}'"
       executable shell
       args "-c", cmd
@@ -846,21 +816,20 @@ task dockerUploadRelease {
 
   doLast {
     for (def architecture in archs) {
-      for (def variant in dockerVariants) {
-        def variantImage = "${image}-${variant}"
-        exec {
-          def cmd = "docker pull '${variantImage}-${architecture}' && docker tag '${variantImage}-${architecture}' '${dockerImageName}:latest-${variant}-${architecture}'"
-          println "Executing '${cmd}'"
-          executable shell
-          args "-c", cmd
-        }
-        exec {
-          def cmd = "docker push '${dockerImageName}:latest-${variant}-${architecture}'"
-          println "Executing '${cmd}'"
-          executable shell
-          args "-c", cmd
-        }
+
+      exec {
+        def cmd = "docker pull '${image}-${architecture}' && docker tag '${image}-${architecture}' '${dockerImageName}:latest-${architecture}'"
+        println "Executing '${cmd}'"
+        executable shell
+        args "-c", cmd
       }
+      exec {
+        def cmd = "docker push '${dockerImageName}:latest-${architecture}'"
+        println "Executing '${cmd}'"
+        executable shell
+        args "-c", cmd
+      }
+
 
       exec {
         def archImage = "${image}-${architecture}"
@@ -894,27 +863,27 @@ task manifestDocker {
 
   doLast {
     for (baseTag in tags) {
-      for (def variant in dockerVariants) {
-        def variantImage = "${baseTag}-${variant}"
-        def targets = ""
-        archs.forEach { arch -> targets += "'${variantImage}-${arch}' " }
-
-        exec {
-          def cmd = "docker manifest create '${variantImage}' ${targets}"
-          println "Executing '${cmd}'"
-          executable shell
-          args "-c", cmd
-        }
-        exec {
-          def cmd = "docker manifest push '${variantImage}'"
-          println "Executing '${cmd}'"
-          executable shell
-          args "-c", cmd
-        }
-      }
+      //for (def variant in dockerVariants) {
+      //def variantImage = "${baseTag}-${variant}"
+      def targets = ""
+      archs.forEach { arch -> targets += "'${image}-${arch}' " }
 
       exec {
-        def targets = ""
+        def cmd = "docker manifest create '${image}' ${targets}"
+        println "Executing '${cmd}'"
+        executable shell
+        args "-c", cmd
+      }
+      exec {
+        def cmd = "docker manifest push '${image}'"
+        println "Executing '${cmd}'"
+        executable shell
+        args "-c", cmd
+      }
+      //}
+
+      exec {
+        targets = ""
         archs.forEach { arch -> targets += "'${baseTag}-${arch}' " }
         def cmd = "docker manifest create '${baseTag}' ${targets}"
         println "Executing '${cmd}'"
@@ -936,24 +905,6 @@ task manifestDockerRelease {
   def baseTag = "${dockerImageName}:latest";
 
   doLast {
-    for (def variant in dockerVariants) {
-      def variantImage = "${baseTag}-${variant}"
-      def targets = ""
-      archs.forEach { arch -> targets += "'${variantImage}-${arch}' " }
-
-      exec {
-        def cmd = "docker manifest create '${variantImage}' ${targets} --amend"
-        println "Executing '${cmd}'"
-        executable shell
-        args "-c", cmd
-      }
-      exec {
-        def cmd = "docker manifest push '${variantImage}'"
-        println "Executing '${cmd}'"
-        executable shell
-        args "-c", cmd
-      }
-    }
 
     exec {
       def targets = ""
@@ -997,7 +948,7 @@ task checkSpdxHeader(type: CheckSpdxHeader) {
 
 jacocoTestReport {
   reports {
-    xml.enabled true
+    xml.required = true
   }
 }
 
@@ -1008,23 +959,10 @@ task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
   executionData.from fileTree(dir: '.', includes: ['**/jacoco/*.exec'])
   reports {
     xml.required = true
-    xml.enabled = true
     csv.required = true
     html.destination file("build/reports/jacocoHtml")
   }
   onlyIf = { true }
-}
-
-configurations { annotationProcessor }
-
-// Prevent errorprone-checks being dependent upon errorprone-checks!
-// However, ensure all subprojects comply with the custom rules.
-configure(subprojects.findAll { it.name != 'errorprone-checks' }) {
-  dependencies { annotationProcessor project(":errorprone-checks") }
-
-  tasks.withType(JavaCompile) {
-    options.annotationProcessorPath = configurations.annotationProcessor
-  }
 }
 
 // http://label-schema.org/rc1/
@@ -1107,9 +1045,11 @@ tasks.register("verifyDistributions") {
 }
 
 dependencies {
+  errorprone 'com.google.errorprone:error_prone_core'
+  // https://github.com/hyperledger/besu-errorprone-checks/
+  errorprone 'org.hyperledger.besu:besu-errorprone-checks'
   implementation project(':besu')
   implementation project(':ethereum:evmtool')
-  errorprone 'com.google.errorprone:error_prone_core'
 }
 
 @CompileStatic
