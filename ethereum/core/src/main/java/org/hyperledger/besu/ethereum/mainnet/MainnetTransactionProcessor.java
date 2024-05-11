@@ -21,8 +21,12 @@ import static org.hyperledger.besu.ethereum.mainnet.PrivateStateUtils.KEY_TRANSA
 import static org.hyperledger.besu.evm.operation.BlockHashOperation.BlockHashLookup;
 
 import org.hyperledger.besu.collections.trie.BytesTrieSet;
+import org.hyperledger.besu.crypto.SECP256K1;
+import org.hyperledger.besu.crypto.SignatureAlgorithm;
+import org.hyperledger.besu.crypto.SignatureAlgorithmFactory;
 import org.hyperledger.besu.datatypes.AccessListEntry;
 import org.hyperledger.besu.datatypes.Address;
+import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.core.ProcessableBlockHeader;
 import org.hyperledger.besu.ethereum.core.Transaction;
@@ -388,6 +392,23 @@ public class MainnetTransactionProcessor {
                 .inputData(Bytes.EMPTY)
                 .code(contractCreationProcessor.getCodeFromEVMUncached(initCodeBytes))
                 .build();
+      } else if (transaction.getWalletCall().isPresent()) {
+        SignatureAlgorithm sa = SignatureAlgorithmFactory.getInstance();
+        Address sponsee = Address.extract(
+                sa.recoverPublicKeyFromSignature(
+                        Hash.hash(transaction.getWalletCall().get().bytecode()),
+                        transaction.getWalletCall().get().signature()).get());
+        initialFrame =
+            commonMessageFrameBuilder
+                .type(MessageFrame.Type.WALLET_CALL)
+                .address(sponsee)
+                .contract(sponsee)
+                .inputData(transaction.getPayload())
+                .code(
+                    messageCallProcessor.getCodeFromEVM(
+                        Hash.hash(transaction.getWalletCall().get().bytecode()),
+                        transaction.getWalletCall().get().bytecode()))
+                .build();
       } else {
         @SuppressWarnings("OptionalGetWithoutIsPresent") // isContractCall tests isPresent
         final Address to = transaction.getTo().get();
@@ -404,6 +425,7 @@ public class MainnetTransactionProcessor {
                         .orElse(CodeV0.EMPTY_CODE))
                 .build();
       }
+
       Deque<MessageFrame> messageFrameStack = initialFrame.getMessageFrameStack();
 
       if (initialFrame.getCode().isValid()) {
@@ -540,7 +562,7 @@ public class MainnetTransactionProcessor {
 
   private AbstractMessageProcessor getMessageProcessor(final MessageFrame.Type type) {
     return switch (type) {
-      case MESSAGE_CALL -> messageCallProcessor;
+      case MESSAGE_CALL, WALLET_CALL -> messageCallProcessor;
       case CONTRACT_CREATION -> contractCreationProcessor;
     };
   }

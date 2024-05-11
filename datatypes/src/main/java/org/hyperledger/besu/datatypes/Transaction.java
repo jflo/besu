@@ -208,6 +208,13 @@ public interface Transaction {
   Optional<BlobsWithCommitments> getBlobsWithCommitments();
 
   /**
+   * EIP-7702 payload
+   *
+   * @return EIP-7702 payload
+   */
+  Optional<AbstractAccountPayload> getWalletCall();
+
+  /**
    * Return the address of the contract, if the transaction creates one
    *
    * @return address of new contract or empty otherwise

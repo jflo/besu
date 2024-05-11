@@ -15,6 +15,8 @@
 package org.hyperledger.besu.ethereum.core;
 
 import org.hyperledger.besu.crypto.KeyPair;
+import org.hyperledger.besu.crypto.SECPSignature;
+import org.hyperledger.besu.datatypes.AbstractAccountPayload;
 import org.hyperledger.besu.datatypes.AccessListEntry;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.BlobsWithCommitments;
@@ -79,6 +81,16 @@ public class TransactionTestFixture {
         builder.maxPriorityFeePerGas(maxPriorityFeePerGas.orElse(Wei.of(500)));
         builder.maxFeePerGas(maxFeePerGas.orElse(Wei.of(5000)));
         builder.accessList(accessListEntries.orElse(List.of()));
+        break;
+      case EIP7702:
+        builder.maxPriorityFeePerGas(maxPriorityFeePerGas.orElse(Wei.of(500)));
+        builder.maxFeePerGas(maxFeePerGas.orElse(Wei.of(5000)));
+        builder.accessList(accessListEntries.orElse(List.of()));
+
+        Bytes bytecode = Bytes.EMPTY;
+        SECPSignature signature =
+            SECPSignature.decode(Bytes.repeat((byte) 0xF, 65), BigInteger.ONE);
+        builder.walletCall(new AbstractAccountPayload(bytecode, signature));
         break;
       case BLOB:
         builder.maxPriorityFeePerGas(maxPriorityFeePerGas.orElse(Wei.of(500)));

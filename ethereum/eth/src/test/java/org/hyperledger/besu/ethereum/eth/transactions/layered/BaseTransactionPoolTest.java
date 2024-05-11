@@ -125,7 +125,7 @@ public class BaseTransactionPoolTest {
     final TransactionType txType = TransactionType.values()[randomizeTxType.nextInt(4)];
 
     return switch (txType) {
-      case FRONTIER, ACCESS_LIST, EIP1559 ->
+      case FRONTIER, ACCESS_LIST, EIP1559, EIP7702 -> // TODO: create a 7702
           createTransaction(txType, nonce, maxGasPrice, payloadSize, keys);
       case BLOB ->
           createTransaction(

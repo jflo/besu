@@ -195,6 +195,9 @@ public class MessageFrame {
 
     /** A message call message. */
     MESSAGE_CALL,
+
+    /** an EIP-7702 style wallet call */
+    WALLET_CALL
   }
 
   /** The constant DEFAULT_MAX_STACK_SIZE. */

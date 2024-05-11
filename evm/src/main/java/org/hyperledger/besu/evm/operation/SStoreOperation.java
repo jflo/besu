@@ -68,7 +68,8 @@ public class SStoreOperation extends AbstractOperation {
     final UInt256 newValue = UInt256.fromBytes(frame.popStackItem());
 
     final MutableAccount account = frame.getWorldUpdater().getAccount(frame.getRecipientAddress());
-    if (account == null) {
+    //TODO: performance impact?
+    if (account == null || frame.getType().equals(MessageFrame.Type.WALLET_CALL)) { //TODO: here or filter it in the EVM opcode loop?
       return ILLEGAL_STATE_CHANGE;
     }
 

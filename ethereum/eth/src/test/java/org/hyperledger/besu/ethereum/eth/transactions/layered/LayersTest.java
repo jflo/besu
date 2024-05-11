@@ -1370,6 +1370,8 @@ public class LayersTest extends BaseTransactionPoolTest {
                     case FRONTIER -> createFrontierPendingTransaction(sender, n);
                     case ACCESS_LIST -> createAccessListPendingTransaction(sender, n);
                     case EIP1559 -> createEIP1559PendingTransaction(sender, n);
+                    case EIP7702 ->
+                        createEIP1559PendingTransaction(sender, n); // TODO: write one for 7702
                     case BLOB -> createBlobPendingTransaction(sender, n);
                   });
     }

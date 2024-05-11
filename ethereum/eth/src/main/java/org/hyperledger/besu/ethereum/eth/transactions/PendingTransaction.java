@@ -130,6 +130,7 @@ public abstract class PendingTransaction
           case FRONTIER -> computeFrontierMemorySize();
           case ACCESS_LIST -> computeAccessListMemorySize();
           case EIP1559 -> computeEIP1559MemorySize();
+          case EIP7702 -> computeEIP7702MemorySize();
           case BLOB -> computeBlobMemorySize();
         }
         + PENDING_TRANSACTION_MEMORY_SIZE;
@@ -156,6 +157,15 @@ public abstract class PendingTransaction
         + computeToMemorySize()
         + computeChainIdMemorySize()
         + computeAccessListEntriesMemorySize();
+  }
+
+  private int computeEIP7702MemorySize() {
+    return EIP1559_AND_EIP4844_SHALLOW_MEMORY_SIZE
+        + computePayloadMemorySize()
+        + computeToMemorySize()
+        + computeChainIdMemorySize()
+        + computeAccessListEntriesMemorySize()
+        + computeWalletCallSize();
   }
 
   private int computeBlobMemorySize() {
@@ -208,6 +218,11 @@ public abstract class PendingTransaction
               return totalSize;
             })
         .orElse(0);
+  }
+
+  private int computeWalletCallSize() {
+    return transaction.getWalletCall().get().bytecode().size()
+        + transaction.getWalletCall().get().signature().encodedBytes().size();
   }
 
   public static List<Transaction> toTransactionList(

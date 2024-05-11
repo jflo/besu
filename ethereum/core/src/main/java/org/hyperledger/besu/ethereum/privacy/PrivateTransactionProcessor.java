@@ -205,7 +205,7 @@ public class PrivateTransactionProcessor {
 
   private AbstractMessageProcessor getMessageProcessor(final MessageFrame.Type type) {
     return switch (type) {
-      case MESSAGE_CALL -> messageCallProcessor;
+      case MESSAGE_CALL, WALLET_CALL -> messageCallProcessor;
       case CONTRACT_CREATION -> contractCreationProcessor;
     };
   }

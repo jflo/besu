@@ -374,6 +374,7 @@ public class BlockDataGenerator {
     return switch (transactionType) {
       case FRONTIER -> frontierTransaction(payload, to);
       case EIP1559 -> eip1559Transaction(payload, to);
+      case EIP7702 -> eip7702Transaction(payload, to);
       case ACCESS_LIST -> accessListTransaction(payload, to);
       case BLOB -> blobTransaction(payload, to);
         // no default, all types accounted for.
@@ -406,6 +407,21 @@ public class BlockDataGenerator {
     return accessedStorage;
   }
 
+  private Transaction eip7702Transaction(final Bytes payload, final Address to) {
+    return Transaction.builder()
+        .type(TransactionType.EIP7702)
+        .nonce(random.nextLong())
+        .maxPriorityFeePerGas(Wei.wrap(bytesValue(4)))
+        .maxFeePerGas(Wei.wrap(bytesValue(4)))
+        .gasLimit(positiveLong())
+        .to(to)
+        .value(Wei.of(positiveLong()))
+        .payload(payload)
+        .chainId(BigInteger.ONE)
+        .signAndBuild(generateKeyPair()); // TODO: will definitely fail
+  }
+
+  // TODO: should delegate to TransactionTestFixture
   private Transaction eip1559Transaction(final Bytes payload, final Address to) {
     return Transaction.builder()
         .type(TransactionType.EIP1559)

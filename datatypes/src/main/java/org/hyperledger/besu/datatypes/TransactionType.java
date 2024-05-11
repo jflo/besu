@@ -27,7 +27,8 @@ public enum TransactionType {
   /** Eip1559 transaction type. */
   EIP1559(0x02),
   /** Blob transaction type. */
-  BLOB(0x03);
+  BLOB(0x03),
+  EIP7702(0x04);
 
   private static final Set<TransactionType> ACCESS_LIST_SUPPORTED_TRANSACTION_TYPES =
       Set.of(ACCESS_LIST, EIP1559, BLOB);
@@ -127,5 +128,9 @@ public enum TransactionType {
    */
   public boolean supportsBlob() {
     return this.equals(BLOB);
+  }
+
+  public boolean requiresCode() {
+    return this.equals(EIP7702);
   }
 }

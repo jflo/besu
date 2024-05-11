@@ -24,6 +24,7 @@ import org.hyperledger.besu.crypto.SECPPublicKey;
 import org.hyperledger.besu.crypto.SECPSignature;
 import org.hyperledger.besu.crypto.SignatureAlgorithm;
 import org.hyperledger.besu.crypto.SignatureAlgorithmFactory;
+import org.hyperledger.besu.datatypes.AbstractAccountPayload;
 import org.hyperledger.besu.datatypes.AccessListEntry;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Blob;
@@ -123,6 +124,8 @@ public class Transaction
 
   private final Optional<BlobsWithCommitments> blobsWithCommitments;
 
+  private final Optional<AbstractAccountPayload> maybeWalletCall;
+
   public static Builder builder() {
     return new Builder();
   }
@@ -177,7 +180,8 @@ public class Transaction
       final Address sender,
       final Optional<BigInteger> chainId,
       final Optional<List<VersionedHash>> versionedHashes,
-      final Optional<BlobsWithCommitments> blobsWithCommitments) {
+      final Optional<BlobsWithCommitments> blobsWithCommitments,
+      final Optional<AbstractAccountPayload> maybeWalletCall) {
 
     if (!forCopy) {
       if (transactionType.requiresChainId()) {
@@ -213,6 +217,10 @@ public class Transaction
         checkArgument(
             maxFeePerBlobGas.isPresent(), "Must specify max fee per blob gas for blob transaction");
       }
+
+      if (transactionType.requiresCode()) {
+        checkArgument(maybeWalletCall.isPresent(), "EIP7702 tx needs signed code to execute");
+      }
     }
 
     this.transactionType = transactionType;
@@ -231,6 +239,7 @@ public class Transaction
     this.chainId = chainId;
     this.versionedHashes = versionedHashes;
     this.blobsWithCommitments = blobsWithCommitments;
+    this.maybeWalletCall = maybeWalletCall;
   }
 
   /**
@@ -672,6 +681,11 @@ public class Transaction
     return blobsWithCommitments;
   }
 
+  @Override
+  public Optional<AbstractAccountPayload> getWalletCall() {
+    return this.maybeWalletCall;
+  }
+
   /**
    * Return the list of transaction hashes extracted from the collection of Transaction passed as
    * argument
@@ -703,7 +717,9 @@ public class Transaction
     final Bytes preimage =
         switch (transactionType) {
           case FRONTIER -> frontierPreimage(nonce, gasPrice, gasLimit, to, value, payload, chainId);
-          case EIP1559 ->
+          case EIP1559,
+                  EIP7702 -> // TODO: actually read the spec before assuming sponsor sig is laid out
+              // same
               eip1559Preimage(
                   nonce,
                   maxPriorityFeePerGas,
@@ -1026,6 +1042,9 @@ public class Transaction
             withCommitments ->
                 blobsWithCommitmentsDetachedCopy(withCommitments, detachedVersionedHashes.get()));
 
+    final Optional<AbstractAccountPayload> detachedWalletCall =
+        maybeWalletCall.map(walletCall -> walletCallDetachedCopy(walletCall));
+
     final var copiedTx =
         new Transaction(
             true,
@@ -1044,7 +1063,8 @@ public class Transaction
             sender,
             chainId,
             detachedVersionedHashes,
-            detachedBlobsWithCommitments);
+            detachedBlobsWithCommitments,
+            detachedWalletCall);
 
     // copy also the computed fields, to avoid to recompute them
     copiedTx.sender = this.sender;
@@ -1080,6 +1100,14 @@ public class Transaction
         detachedCommitments, detachedBlobs, detachedProofs, versionedHashes);
   }
 
+  private AbstractAccountPayload walletCallDetachedCopy(final AbstractAccountPayload toCopy) {
+    SECPSignature sigDupe =
+        SECPSignature.decode(toCopy.signature().encodedBytes().copy(), BigInteger.ONE);
+    // TODO: wtf is a curve order and how do I get it from a raw encoded signature
+    return new AbstractAccountPayload(toCopy.bytecode().copy(), sigDupe);
+  }
+  ;
+
   public static class Builder {
     private static final Optional<List<AccessListEntry>> EMPTY_ACCESS_LIST = Optional.of(List.of());
 
@@ -1112,6 +1140,7 @@ public class Transaction
     protected Optional<BigInteger> v = Optional.empty();
     protected List<VersionedHash> versionedHashes = null;
     private BlobsWithCommitments blobsWithCommitments;
+    private AbstractAccountPayload walletCall;
 
     public Builder copiedFrom(final Transaction toCopy) {
       this.transactionType = toCopy.transactionType;
@@ -1130,6 +1159,7 @@ public class Transaction
       this.chainId = toCopy.chainId;
       this.versionedHashes = toCopy.versionedHashes.orElse(null);
       this.blobsWithCommitments = toCopy.blobsWithCommitments.orElse(null);
+      this.walletCall = toCopy.maybeWalletCall.orElse(null);
       return this;
     }
 
@@ -1217,7 +1247,9 @@ public class Transaction
     }
 
     public Builder guessType() {
-      if (versionedHashes != null && !versionedHashes.isEmpty()) {
+      if (walletCall != null) {
+        transactionType = TransactionType.EIP7702;
+      } else if (versionedHashes != null && !versionedHashes.isEmpty()) {
         transactionType = TransactionType.BLOB;
       } else if (maxPriorityFeePerGas != null || maxFeePerGas != null) {
         transactionType = TransactionType.EIP1559;
@@ -1252,7 +1284,8 @@ public class Transaction
           sender,
           chainId,
           Optional.ofNullable(versionedHashes),
-          Optional.ofNullable(blobsWithCommitments));
+          Optional.ofNullable(blobsWithCommitments),
+          Optional.ofNullable(walletCall));
     }
 
     public Transaction signAndBuild(final KeyPair keys) {
@@ -1300,6 +1333,11 @@ public class Transaction
 
     public Builder blobsWithCommitments(final BlobsWithCommitments blobsWithCommitments) {
       this.blobsWithCommitments = blobsWithCommitments;
+      return this;
+    }
+
+    public Builder walletCall(final AbstractAccountPayload walletCall) {
+      this.walletCall = walletCall;
       return this;
     }
   }
