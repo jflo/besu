@@ -403,7 +403,7 @@ public class MainnetTransactionProcessor {
                 .type(MessageFrame.Type.WALLET_CALL)
                 .address(sponsee)
                 .contract(sponsee)
-                .inputData(transaction.getPayload())
+                .inputData(transaction.getPayload()) //TODO: what does it mean to run the sponsees code with the sponsors input?
                 .code(
                     messageCallProcessor.getCodeFromEVM(
                         Hash.hash(transaction.getWalletCall().get().bytecode()),
