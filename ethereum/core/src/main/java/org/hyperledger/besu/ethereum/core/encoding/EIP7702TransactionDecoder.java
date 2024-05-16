@@ -35,6 +35,9 @@ public class EIP7702TransactionDecoder {
   private static final Supplier<SignatureAlgorithm> SIGNATURE_ALGORITHM =
       Suppliers.memoize(SignatureAlgorithmFactory::getInstance);
 
+  /*
+  rlp([chain_id, nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, destination, data, access_list, [[contract_code, y_parity, r, s], ...], signature_y_parity, signature_r, signature_s])
+   */
   public static Transaction decode(final RLPInput input) {
     input.enterList();
     final BigInteger chainId = input.readBigIntegerScalar();
@@ -47,18 +50,7 @@ public class EIP7702TransactionDecoder {
             .maxFeePerGas(Wei.of(input.readUInt256Scalar()))
             .gasLimit(input.readLongScalar())
             .to(input.readBytes(v -> v.isEmpty() ? null : Address.wrap(v)))
-            .value(Wei.of(input.readUInt256Scalar()))
             .payload(input.readBytes())
-            // TODO read this from the right place
-            .walletCall(
-                new AbstractAccountPayload(
-                    Bytes.EMPTY,
-                    SIGNATURE_ALGORITHM
-                        .get()
-                        .createSignature(
-                            input.readUInt256Scalar().toUnsignedBigInteger(),
-                            input.readUInt256Scalar().toUnsignedBigInteger(),
-                            (byte) 0x0)))
             .accessList(
                 input.readList(
                     accessListEntryRLPInput -> {
@@ -69,7 +61,25 @@ public class EIP7702TransactionDecoder {
                               accessListEntryRLPInput.readList(RLPInput::readBytes32));
                       accessListEntryRLPInput.leaveList();
                       return accessListEntry;
-                    }));
+                    }))
+            // [[contract_code, y_parity, r, s], ...]
+            .walletCall(
+                    input.readList(
+                            aaPayload -> {
+                                aaPayload.readList( signedCode -> {
+                                    Bytes code = signedCode.readBytes();
+                                    byte yParity = (byte) signedCode.readUnsignedByteScalar();
+                                    return new AbstractAccountPayload(
+                                            code, //contract code
+                                        SIGNATURE_ALGORITHM
+                                            .get()
+                                            .createSignature(
+                                                    signedCode.readUInt256Scalar().toUnsignedBigInteger(),
+                                                    signedCode.readUInt256Scalar().toUnsignedBigInteger(),
+                                                yParity)
+                                    );
+                                })
+                            }));
     final byte recId = (byte) input.readUnsignedByteScalar();
     final Transaction transaction =
         builder
