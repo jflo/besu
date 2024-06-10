@@ -190,7 +190,7 @@ public class CliqueBesuControllerBuilderTest {
             .storageProvider(storageProvider)
             .gasLimitCalculator(gasLimitCalculator)
             .evmConfiguration(EvmConfiguration.DEFAULT)
-                .besuComponent(mock(BesuComponent.class))
+            .besuComponent(mock(BesuComponent.class))
             .networkConfiguration(NetworkingConfiguration.create());
   }
 

@@ -29,7 +29,6 @@ import org.hyperledger.besu.plugin.services.rpc.PluginRpcResponse;
 import org.hyperledger.besu.plugin.services.rpc.RpcResponseType;
 
 import java.util.Arrays;
-import javax.inject.Inject;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
@@ -37,6 +36,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +47,6 @@ public class RpcEndpointServiceImpl implements RpcEndpointService {
 
   private final Map<String, Function<PluginRpcRequest, ?>> rpcMethods = new HashMap<>();
   private Map<String, JsonRpcMethod> inProcessRpcMethods;
-
 
   @Inject
   /** Default Constructor. */

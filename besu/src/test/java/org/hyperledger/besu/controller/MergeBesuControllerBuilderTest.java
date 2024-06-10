@@ -190,7 +190,7 @@ public class MergeBesuControllerBuilderTest {
             .storageProvider(storageProvider)
             .evmConfiguration(EvmConfiguration.DEFAULT)
             .networkConfiguration(NetworkingConfiguration.create())
-                .besuComponent(mock(BesuComponent.class))
+            .besuComponent(mock(BesuComponent.class))
             .networkId(networkId);
   }
 
