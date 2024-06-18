@@ -48,8 +48,8 @@ public class RpcEndpointServiceImpl implements RpcEndpointService {
   private final Map<String, Function<PluginRpcRequest, ?>> rpcMethods = new HashMap<>();
   private Map<String, JsonRpcMethod> inProcessRpcMethods;
 
-  @Inject
   /** Default Constructor. */
+  @Inject
   public RpcEndpointServiceImpl() {}
 
   /**
