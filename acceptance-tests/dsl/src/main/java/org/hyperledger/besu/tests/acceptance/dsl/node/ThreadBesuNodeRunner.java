@@ -88,6 +88,8 @@ import org.hyperledger.besu.services.TransactionSelectionServiceImpl;
 import org.hyperledger.besu.services.TransactionSimulationServiceImpl;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.Collections;
@@ -139,7 +141,6 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
 
     final InProcessRpcConfiguration inProcessRpcConfiguration = node.inProcessRpcConfiguration();
     final StorageServiceImpl storageService = new StorageServiceImpl();
-    final SecurityModuleServiceImpl securityModuleService = new SecurityModuleServiceImpl();
     final TransactionSimulationServiceImpl transactionSimulationServiceImpl =
             new TransactionSimulationServiceImpl();
     final TransactionSelectionServiceImpl transactionSelectionServiceImpl =
@@ -174,20 +175,14 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
             node.getConfiguration().getBootnodes().stream()
                     .map(EnodeURLImpl::fromURI)
                     .collect(Collectors.toList());
-    final NetworkName network = node.getNetwork() == null ? NetworkName.DEV : node.getNetwork();
-    final EthNetworkConfig.Builder networkConfigBuilder =
-            new EthNetworkConfig.Builder(EthNetworkConfig.getNetworkConfig(network))
-                    .setBootNodes(bootnodes);
+
+    final EthNetworkConfig.Builder networkConfigBuilder = component.ethNetworkConfigBuilder();
+    networkConfigBuilder.setBootNodes(bootnodes);
     node.getConfiguration()
             .getGenesisConfig()
             .map(GenesisConfigFile::fromConfig)
             .ifPresent(networkConfigBuilder::setGenesisConfigFile);
     final EthNetworkConfig ethNetworkConfig = networkConfigBuilder.build();
-    final SynchronizerConfiguration synchronizerConfiguration =
-            new SynchronizerConfiguration.Builder().build();
-    //final BesuControllerBuilder builder =
-      //      new BesuController.Builder()
-        //            .fromEthNetworkConfig(ethNetworkConfig, synchronizerConfiguration.getSyncMode());
 
     final KeyValueStorageProvider storageProvider =
             new KeyValueStorageProviderBuilder()
@@ -203,15 +198,14 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
                     .transactionPoolValidatorService(transactionPoolValidatorServiceImpl)
                     .build();
 
-
-
-    final int maxPeers = 25;
-
-
     final BesuControllerBuilder builder = component.besuControllerBuilder();
     builder.isRevertReasonEnabled(node.isRevertReasonEnabled());
     builder.networkConfiguration(node.getNetworkingConfiguration());
     builder.transactionPoolConfiguration(txPoolConfig);
+    builder.dataDirectory(dataDir);
+    builder.nodeKey(new NodeKey(new KeyPairSecurityModule(KeyPairUtil.loadKeyPair(dataDir))));
+    builder.privacyParameters(node.getPrivacyParameters());
+
 
     node.getGenesisConfig()
             .map(GenesisConfigFile::fromConfig)
@@ -376,16 +370,10 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
             final SynchronizerConfiguration synchronizerConfiguration,
             final BesuControllerBuilder builder,
             final ObservableMetricsSystem metricsSystem,
-            final KeyValueStorageProvider storageProvider,
-            final int maxPeers,
-            final Path dataDir,
-            final PrivacyParameters privacyParameters) {
+            final KeyValueStorageProvider storageProvider) {
 
       builder
           .synchronizerConfiguration(synchronizerConfiguration)
-          .dataDirectory(dataDir)
-          .privacyParameters(privacyParameters)
-          .nodeKey(new NodeKey(new KeyPairSecurityModule(KeyPairUtil.loadKeyPair(dataDir))))
           .metricsSystem(metricsSystem)
           .dataStorageConfiguration(DataStorageConfiguration.DEFAULT_FOREST_CONFIG)
           .ethProtocolConfiguration(EthProtocolConfiguration.defaultConfig())
@@ -393,7 +381,7 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
           .storageProvider(storageProvider)
           .gasLimitCalculator(GasLimitCalculator.constant())
           .evmConfiguration(EvmConfiguration.DEFAULT)
-          .maxPeers(maxPeers)
+          .maxPeers(25)
           .maxRemotelyInitiatedPeers(15)
           .randomPeerPriority(false)
           .besuComponent(null);
@@ -401,11 +389,16 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
     }
 
     @Provides
-    public EthNetworkConfig provideEthNetworkConfig(final List<EnodeURL> bootnodes, final GenesisConfigFile configFile) {
+    @Singleton
+    public EthNetworkConfig.Builder provideEthNetworkConfigBuilder() {
       final EthNetworkConfig.Builder networkConfigBuilder =
-          new EthNetworkConfig.Builder(EthNetworkConfig.getNetworkConfig(NetworkName.DEV))
-              .setBootNodes(bootnodes);
-      networkConfigBuilder.setGenesisConfigFile(configFile);
+              new EthNetworkConfig.Builder(EthNetworkConfig.getNetworkConfig(NetworkName.DEV));
+      return networkConfigBuilder;
+    }
+
+    @Provides
+    public EthNetworkConfig provideEthNetworkConfig(final EthNetworkConfig.Builder networkConfigBuilder) {
+
       final EthNetworkConfig ethNetworkConfig = networkConfigBuilder.build();
       return ethNetworkConfig;
     }
@@ -484,7 +477,6 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
     @Provides
     public MiningParameters provideMiningParameters(
         final BesuNode node,
-        final Path dataDir,
         final TransactionSelectionServiceImpl transactionSelectionServiceImpl) {
       final var miningParameters =
           ImmutableMiningParameters.builder()
@@ -493,6 +485,15 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
               .build();
 
       return miningParameters;
+    }
+
+    @Provides
+    Path provideDataDir() {
+        try {
+          return Files.createTempDirectory("acctest");
+        } catch (final IOException e) {
+          throw new RuntimeException("Unable to create temporary data directory", e);
+        }
     }
 
     @Provides
@@ -563,6 +564,6 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
   public interface AcceptanceTestBesuComponent extends BesuComponent {
     BesuController besuController();
     BesuControllerBuilder besuControllerBuilder(); //TODO: needing this sucks
-    BesuConfiguration besuConfiguration();
+    EthNetworkConfig.Builder ethNetworkConfigBuilder();
   }
 }
