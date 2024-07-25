@@ -25,10 +25,6 @@ import static org.hyperledger.besu.cli.util.CommandLineUtils.isOptionSet;
 import static org.hyperledger.besu.controller.BesuController.DATABASE_PATH;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.JsonRpcConfiguration.DEFAULT_ENGINE_JSON_RPC_PORT;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.authentication.EngineAuthService.EPHEMERAL_JWT_FILE;
-import static org.hyperledger.besu.metrics.BesuMetricCategory.DEFAULT_METRIC_CATEGORIES;
-import static org.hyperledger.besu.metrics.MetricsProtocol.PROMETHEUS;
-import static org.hyperledger.besu.metrics.prometheus.MetricsConfiguration.DEFAULT_METRICS_PORT;
-import static org.hyperledger.besu.metrics.prometheus.MetricsConfiguration.DEFAULT_METRICS_PUSH_PORT;
 import static org.hyperledger.besu.nat.kubernetes.KubernetesNatManager.DEFAULT_BESU_SERVICE_NAME_FILTER;
 
 import org.hyperledger.besu.BesuInfo;
@@ -46,6 +42,7 @@ import org.hyperledger.besu.cli.converter.SubnetInfoConverter;
 import org.hyperledger.besu.cli.custom.JsonRPCAllowlistHostsProperty;
 import org.hyperledger.besu.cli.error.BesuExecutionExceptionHandler;
 import org.hyperledger.besu.cli.error.BesuParameterExceptionHandler;
+import org.hyperledger.besu.cli.options.MetricsOptionGroup;
 import org.hyperledger.besu.cli.options.MiningOptions;
 import org.hyperledger.besu.cli.options.TransactionPoolOptions;
 import org.hyperledger.besu.cli.options.stable.ApiConfigurationOptions;
@@ -87,7 +84,6 @@ import org.hyperledger.besu.cli.util.BesuCommandCustomFactory;
 import org.hyperledger.besu.cli.util.CommandLineUtils;
 import org.hyperledger.besu.cli.util.ConfigDefaultValueProviderStrategy;
 import org.hyperledger.besu.cli.util.VersionProvider;
-import org.hyperledger.besu.components.BesuComponent;
 import org.hyperledger.besu.config.CheckpointConfigOptions;
 import org.hyperledger.besu.config.GenesisConfigFile;
 import org.hyperledger.besu.config.GenesisConfigOptions;
@@ -314,7 +310,7 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
   final MiningOptions miningOptions = MiningOptions.create();
 
   private final RunnerBuilder runnerBuilder;
-  private final BesuController.Builder controllerBuilderFactory;
+  private final BesuController.Builder controllerBuilder;
   private final BesuPluginContextImpl besuPluginContext;
   private final StorageServiceImpl storageService;
   private final SecurityModuleServiceImpl securityModuleService;
@@ -745,81 +741,6 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
   @CommandLine.ArgGroup(validate = false, heading = "@|bold Metrics Options|@%n")
   MetricsOptionGroup metricsOptionGroup = new MetricsOptionGroup();
 
-  static class MetricsOptionGroup {
-    @Option(
-        names = {"--metrics-enabled"},
-        description = "Set to start the metrics exporter (default: ${DEFAULT-VALUE})")
-    private final Boolean isMetricsEnabled = false;
-
-    @SuppressWarnings({"FieldCanBeFinal", "FieldMayBeFinal"}) // PicoCLI requires non-final Strings.
-    @Option(
-        names = {"--metrics-protocol"},
-        description =
-            "Metrics protocol, one of PROMETHEUS, OPENTELEMETRY or NONE. (default: ${DEFAULT-VALUE})")
-    private MetricsProtocol metricsProtocol = PROMETHEUS;
-
-    @SuppressWarnings({"FieldCanBeFinal", "FieldMayBeFinal"}) // PicoCLI requires non-final Strings.
-    @Option(
-        names = {"--metrics-host"},
-        paramLabel = MANDATORY_HOST_FORMAT_HELP,
-        description = "Host for the metrics exporter to listen on (default: ${DEFAULT-VALUE})",
-        arity = "1")
-    private String metricsHost;
-
-    @Option(
-        names = {"--metrics-port"},
-        paramLabel = MANDATORY_PORT_FORMAT_HELP,
-        description = "Port for the metrics exporter to listen on (default: ${DEFAULT-VALUE})",
-        arity = "1")
-    private final Integer metricsPort = DEFAULT_METRICS_PORT;
-
-    @Option(
-        names = {"--metrics-category", "--metrics-categories"},
-        paramLabel = "<category name>",
-        split = ",",
-        arity = "1..*",
-        description =
-            "Comma separated list of categories to track metrics for (default: ${DEFAULT-VALUE})")
-    private final Set<MetricCategory> metricCategories = DEFAULT_METRIC_CATEGORIES;
-
-    @Option(
-        names = {"--metrics-push-enabled"},
-        description = "Enable the metrics push gateway integration (default: ${DEFAULT-VALUE})")
-    private final Boolean isMetricsPushEnabled = false;
-
-    @SuppressWarnings({"FieldCanBeFinal", "FieldMayBeFinal"}) // PicoCLI requires non-final Strings.
-    @Option(
-        names = {"--metrics-push-host"},
-        paramLabel = MANDATORY_HOST_FORMAT_HELP,
-        description =
-            "Host of the Prometheus Push Gateway for push mode (default: ${DEFAULT-VALUE})",
-        arity = "1")
-    private String metricsPushHost;
-
-    @Option(
-        names = {"--metrics-push-port"},
-        paramLabel = MANDATORY_PORT_FORMAT_HELP,
-        description =
-            "Port of the Prometheus Push Gateway for push mode (default: ${DEFAULT-VALUE})",
-        arity = "1")
-    private final Integer metricsPushPort = DEFAULT_METRICS_PUSH_PORT;
-
-    @Option(
-        names = {"--metrics-push-interval"},
-        paramLabel = MANDATORY_INTEGER_FORMAT_HELP,
-        description =
-            "Interval in seconds to push metrics when in push mode (default: ${DEFAULT-VALUE})",
-        arity = "1")
-    private final Integer metricsPushInterval = 15;
-
-    @SuppressWarnings({"FieldCanBeFinal", "FieldMayBeFinal"}) // PicoCLI requires non-final Strings.
-    @Option(
-        names = {"--metrics-push-prometheus-job"},
-        description = "Job name to use when in push mode (default: ${DEFAULT-VALUE})",
-        arity = "1")
-    private String metricsPrometheusJob = "besu-client";
-  }
-
   @Option(
       names = {"--host-allowlist"},
       paramLabel = "<hostname>[,<hostname>...]... or * or all",
@@ -942,13 +863,8 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
   private BesuController besuController;
   private BesuConfigurationImpl pluginCommonConfiguration;
 
-  private BesuComponent besuComponent;
   private final Supplier<ObservableMetricsSystem> metricsSystem =
-      Suppliers.memoize(
-          () ->
-              besuComponent == null || besuComponent.getObservableMetricsSystem() == null
-                  ? MetricsSystemFactory.create(metricsConfiguration())
-                  : besuComponent.getObservableMetricsSystem());
+      Suppliers.memoize(() -> MetricsSystemFactory.create(metricsConfiguration()));
   private Vertx vertx;
   private EnodeDnsConfiguration enodeDnsConfiguration;
   private KeyValueStorageProvider keyValueStorageProvider;
@@ -956,31 +872,31 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
   /**
    * Besu command constructor.
    *
-   * @param besuComponent BesuComponent which acts as our application context
    * @param rlpBlockImporter RlpBlockImporter supplier
    * @param jsonBlockImporterFactory instance of {@code Function<BesuController, JsonBlockImporter>}
    * @param rlpBlockExporterFactory instance of {@code Function<Blockchain, RlpBlockExporter>}
    * @param runnerBuilder instance of RunnerBuilder
-   * @param controllerBuilderFactory instance of BesuController.Builder
+   * @param controllerBuilder instance of BesuController.Builder
    * @param besuPluginContext instance of BesuPluginContextImpl
    * @param environment Environment variables map
+   * @param logger logger instance to provide user feedback on cli
    */
   public BesuCommand(
-      final BesuComponent besuComponent,
       final Supplier<RlpBlockImporter> rlpBlockImporter,
       final Function<BesuController, JsonBlockImporter> jsonBlockImporterFactory,
       final Function<Blockchain, RlpBlockExporter> rlpBlockExporterFactory,
       final RunnerBuilder runnerBuilder,
-      final BesuController.Builder controllerBuilderFactory,
+      final BesuController.Builder controllerBuilder,
       final BesuPluginContextImpl besuPluginContext,
-      final Map<String, String> environment) {
+      final Map<String, String> environment,
+      final Logger logger) {
     this(
-        besuComponent,
+        // besuComponent,
         rlpBlockImporter,
         jsonBlockImporterFactory,
         rlpBlockExporterFactory,
         runnerBuilder,
-        controllerBuilderFactory,
+        controllerBuilder,
         besuPluginContext,
         environment,
         new StorageServiceImpl(),
@@ -991,18 +907,18 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
         new TransactionSelectionServiceImpl(),
         new TransactionPoolValidatorServiceImpl(),
         new TransactionSimulationServiceImpl(),
-        new BlockchainServiceImpl());
+        new BlockchainServiceImpl(),
+        logger);
   }
 
   /**
    * Overloaded Besu command constructor visible for testing.
    *
-   * @param besuComponent BesuComponent which acts as our application context
    * @param rlpBlockImporter RlpBlockImporter supplier
    * @param jsonBlockImporterFactory instance of {@code Function<BesuController, JsonBlockImporter>}
    * @param rlpBlockExporterFactory instance of {@code Function<Blockchain, RlpBlockExporter>}
    * @param runnerBuilder instance of RunnerBuilder
-   * @param controllerBuilderFactory instance of BesuController.Builder
+   * @param controllerBuilder instance of BesuController.Builder
    * @param besuPluginContext instance of BesuPluginContextImpl
    * @param environment Environment variables map
    * @param storageService instance of StorageServiceImpl
@@ -1014,15 +930,16 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
    * @param transactionValidatorServiceImpl instance of TransactionValidatorServiceImpl
    * @param transactionSimulationServiceImpl instance of TransactionSimulationServiceImpl
    * @param blockchainServiceImpl instance of BlockchainServiceImpl
+   * @param logger logger to provide user feedback on cli
    */
   @VisibleForTesting
   protected BesuCommand(
-      final BesuComponent besuComponent,
+      // final BesuComponent besuComponent,
       final Supplier<RlpBlockImporter> rlpBlockImporter,
       final Function<BesuController, JsonBlockImporter> jsonBlockImporterFactory,
       final Function<Blockchain, RlpBlockExporter> rlpBlockExporterFactory,
       final RunnerBuilder runnerBuilder,
-      final BesuController.Builder controllerBuilderFactory,
+      final BesuController.Builder controllerBuilder,
       final BesuPluginContextImpl besuPluginContext,
       final Map<String, String> environment,
       final StorageServiceImpl storageService,
@@ -1033,22 +950,29 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
       final TransactionSelectionServiceImpl transactionSelectionServiceImpl,
       final TransactionPoolValidatorServiceImpl transactionValidatorServiceImpl,
       final TransactionSimulationServiceImpl transactionSimulationServiceImpl,
-      final BlockchainServiceImpl blockchainServiceImpl) {
-    this.besuComponent = besuComponent;
-    this.logger = besuComponent.getBesuCommandLogger();
+      final BlockchainServiceImpl blockchainServiceImpl,
+      final Logger logger) {
+    this.logger = logger;
     this.rlpBlockImporter = rlpBlockImporter;
     this.rlpBlockExporterFactory = rlpBlockExporterFactory;
     this.jsonBlockImporterFactory = jsonBlockImporterFactory;
     this.runnerBuilder = runnerBuilder;
-    this.controllerBuilderFactory = controllerBuilderFactory;
+    this.controllerBuilder = controllerBuilder;
     this.besuPluginContext = besuPluginContext;
     this.environment = environment;
     this.storageService = storageService;
     this.securityModuleService = securityModuleService;
     this.permissioningService = permissioningService;
     this.privacyPluginService = privacyPluginService;
-    this.pluginCommonConfiguration = new BesuConfigurationImpl();
-    besuPluginContext.addService(BesuConfiguration.class, pluginCommonConfiguration);
+
+    if (besuPluginContext.getService(BesuConfigurationImpl.class).isPresent()) {
+      this.pluginCommonConfiguration =
+          besuPluginContext.getService(BesuConfigurationImpl.class).get();
+    } else {
+      this.pluginCommonConfiguration = new BesuConfigurationImpl();
+      besuPluginContext.addService(BesuConfiguration.class, this.pluginCommonConfiguration);
+    }
+
     this.rpcEndpointServiceImpl = rpcEndpointServiceImpl;
     this.transactionSelectionServiceImpl = transactionSelectionServiceImpl;
     this.transactionValidatorServiceImpl = transactionValidatorServiceImpl;
@@ -1891,9 +1815,7 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
    */
   public BesuController buildController() {
     try {
-      return this.besuComponent == null
-          ? getControllerBuilder().build()
-          : getControllerBuilder().besuComponent(this.besuComponent).build();
+      return setupControllerBuilder().build();
     } catch (final Exception e) {
       throw new ExecutionException(this.commandLine, e.getMessage(), e);
     }
@@ -1904,13 +1826,13 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
    *
    * @return instance of BesuControllerBuilder
    */
-  public BesuControllerBuilder getControllerBuilder() {
+  public BesuControllerBuilder setupControllerBuilder() {
     pluginCommonConfiguration
         .init(dataDir(), dataDir().resolve(DATABASE_PATH), getDataStorageConfiguration())
         .withMiningParameters(miningParametersSupplier.get())
         .withJsonRpcHttpOptions(jsonRpcHttpOptions);
     final KeyValueStorageProvider storageProvider = keyValueStorageProvider(keyValueStorageName);
-    return controllerBuilderFactory
+    return controllerBuilder
         .fromEthNetworkConfig(updateNetworkConfig(network), getDefaultSyncModeIfNotSet())
         .synchronizerConfiguration(buildSyncConfig())
         .ethProtocolConfiguration(unstableEthProtocolOptions.toDomainObject())
@@ -2248,7 +2170,12 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
     return txPoolConfBuilder.build();
   }
 
-  private MiningParameters getMiningParameters() {
+  /**
+   * Adds transaction selection service to mining options and setsup metrics
+   *
+   * @return mining parameters parsed out of config
+   */
+  public MiningParameters getMiningParameters() {
     miningOptions.setTransactionSelectionService(transactionSelectionServiceImpl);
     final var miningParameters = miningOptions.toDomainObject();
     getGenesisBlockPeriodSeconds(genesisConfigOptionsSupplier.get())
@@ -2868,7 +2795,7 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
     builder.setTxPoolImplementation(buildTransactionPoolConfiguration().getTxPoolImplementation());
     builder.setWorldStateUpdateMode(unstableEvmOptions.toDomainObject().worldUpdaterMode());
 
-    builder.setPluginContext(besuComponent.getBesuPluginContext());
+    builder.setPluginContext(besuPluginContext);
 
     return builder.build();
   }

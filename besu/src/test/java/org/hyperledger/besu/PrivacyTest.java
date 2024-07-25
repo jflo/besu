@@ -33,6 +33,7 @@ import org.hyperledger.besu.ethereum.core.BlockHeaderTestFixture;
 import org.hyperledger.besu.ethereum.core.InMemoryKeyValueStorageProvider;
 import org.hyperledger.besu.ethereum.core.MiningParameters;
 import org.hyperledger.besu.ethereum.core.PrivacyParameters;
+import org.hyperledger.besu.ethereum.core.components.EthereumCoreModule;
 import org.hyperledger.besu.ethereum.eth.EthProtocolConfiguration;
 import org.hyperledger.besu.ethereum.eth.sync.SyncMode;
 import org.hyperledger.besu.ethereum.eth.sync.SynchronizerConfiguration;
@@ -100,7 +101,8 @@ class PrivacyTest {
         BonsaiCachedMerkleTrieLoaderModule.class,
         NoOpMetricsSystemModule.class,
         BesuPluginContextModule.class,
-        BlobCacheModule.class
+        BlobCacheModule.class,
+        EthereumCoreModule.class
       })
   interface PrivacyTestComponent extends BesuComponent {
 

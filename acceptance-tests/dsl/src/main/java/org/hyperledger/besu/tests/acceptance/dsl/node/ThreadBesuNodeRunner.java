@@ -37,6 +37,7 @@ import org.hyperledger.besu.ethereum.api.graphql.GraphQLConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.InProcessRpcConfiguration;
 import org.hyperledger.besu.ethereum.core.ImmutableMiningParameters;
 import org.hyperledger.besu.ethereum.core.MiningParameters;
+import org.hyperledger.besu.ethereum.core.components.EthereumCoreModule;
 import org.hyperledger.besu.ethereum.core.plugins.PluginConfiguration;
 import org.hyperledger.besu.ethereum.eth.EthProtocolConfiguration;
 import org.hyperledger.besu.ethereum.eth.sync.SynchronizerConfiguration;
@@ -323,8 +324,17 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
   }
 
   @Module
+  public static class ThreadBesuNodeRunnerModule {
+    @Provides
+    @Singleton
+    public ThreadBesuNodeRunner provideThreadBesuNodeRunner() {
+      return new ThreadBesuNodeRunner();
+    }
+  }
+
+  @Module
   @SuppressWarnings("CloseableProvides")
-  static class BesuControllerModule {
+  public static class BesuControllerModule {
     @Provides
     @Singleton
     public SynchronizerConfiguration provideSynchronizationConfiguration() {
@@ -387,7 +397,7 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
     }
 
     @Provides
-    @Named("besuPluginContext")
+    // @Named("besuPluginContext")
     public BesuPluginContextImpl providePluginContext(
         final StorageServiceImpl storageService,
         final SecurityModuleServiceImpl securityModuleService,
@@ -498,20 +508,20 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
   }
 
   @Module
-  static class MockBesuCommandModule {
+  public static class MockBesuCommandModule {
 
     @Provides
-    BesuCommand provideBesuCommand(final AcceptanceTestBesuComponent component) {
+    BesuCommand provideBesuCommand(final BesuPluginContextImpl plugins) {
       final BesuCommand besuCommand =
           new BesuCommand(
-              component,
               RlpBlockImporter::new,
               JsonBlockImporter::new,
               RlpBlockExporter::new,
               new RunnerBuilder(),
               new BesuController.Builder(),
-              Optional.ofNullable(component.getBesuPluginContext()).orElse(null),
-              System.getenv());
+              Optional.ofNullable(plugins).orElse(null),
+              System.getenv(),
+              LoggerFactory.getLogger(ThreadBesuNodeRunner.class));
       besuCommand.toCommandLine();
       return besuCommand;
     }
@@ -535,9 +545,11 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
       modules = {
         ThreadBesuNodeRunner.BesuControllerModule.class,
         ThreadBesuNodeRunner.MockBesuCommandModule.class,
+        ThreadBesuNodeRunnerModule.class,
         BonsaiCachedMerkleTrieLoaderModule.class,
         MetricsSystemModule.class,
-        BlobCacheModule.class
+        BlobCacheModule.class,
+        EthereumCoreModule.class
       })
   public interface AcceptanceTestBesuComponent extends BesuComponent {
     BesuController besuController();
@@ -545,5 +557,9 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
     BesuControllerBuilder besuControllerBuilder(); // TODO: needing this sucks
 
     EthNetworkConfig.Builder ethNetworkConfigBuilder();
+
+    ObservableMetricsSystem getObservableMetricsSystem();
+
+    ThreadBesuNodeRunner getThreadBesuNodeRunner();
   }
 }

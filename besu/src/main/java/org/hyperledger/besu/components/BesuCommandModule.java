@@ -21,7 +21,9 @@ import org.hyperledger.besu.chainimport.JsonBlockImporter;
 import org.hyperledger.besu.chainimport.RlpBlockImporter;
 import org.hyperledger.besu.cli.BesuCommand;
 import org.hyperledger.besu.controller.BesuController;
+import org.hyperledger.besu.ethereum.core.MiningParameters;
 import org.hyperledger.besu.metrics.prometheus.MetricsConfiguration;
+import org.hyperledger.besu.services.BesuPluginContextImpl;
 
 import java.util.Optional;
 import javax.inject.Named;
@@ -42,17 +44,19 @@ public class BesuCommandModule {
 
   @Provides
   @Singleton
-  BesuCommand provideBesuCommand(final BesuComponent besuComponent) {
+  BesuCommand provideBesuCommand(
+      final @Named("besuCommandLogger") Logger besuCommandLogger,
+      final BesuPluginContextImpl pluginContext) {
     final BesuCommand besuCommand =
         new BesuCommand(
-            besuComponent,
             RlpBlockImporter::new,
             JsonBlockImporter::new,
             RlpBlockExporter::new,
             new RunnerBuilder(),
             new BesuController.Builder(),
-            Optional.ofNullable(besuComponent.getBesuPluginContext()).orElse(null),
-            System.getenv());
+            Optional.ofNullable(pluginContext).orElse(null),
+            System.getenv(),
+            besuCommandLogger);
     besuCommand.toCommandLine();
     return besuCommand;
   }
@@ -61,6 +65,12 @@ public class BesuCommandModule {
   @Singleton
   MetricsConfiguration provideMetricsConfiguration(final BesuCommand provideFrom) {
     return provideFrom.metricsConfiguration();
+  }
+
+  @Provides
+  @Singleton
+  MiningParameters provideMiningParameters(final BesuCommand provideFrom) {
+    return provideFrom.getMiningParameters();
   }
 
   @Provides

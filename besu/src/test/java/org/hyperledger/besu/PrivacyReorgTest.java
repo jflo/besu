@@ -50,6 +50,7 @@ import org.hyperledger.besu.ethereum.core.InMemoryPrivacyStorageProvider;
 import org.hyperledger.besu.ethereum.core.MiningParameters;
 import org.hyperledger.besu.ethereum.core.PrivacyParameters;
 import org.hyperledger.besu.ethereum.core.Transaction;
+import org.hyperledger.besu.ethereum.core.components.MiningParametersModule;
 import org.hyperledger.besu.ethereum.eth.EthProtocolConfiguration;
 import org.hyperledger.besu.ethereum.eth.sync.SyncMode;
 import org.hyperledger.besu.ethereum.eth.sync.SynchronizerConfiguration;
@@ -494,7 +495,8 @@ public class PrivacyReorgTest {
         NoOpMetricsSystemModule.class,
         BonsaiCachedMerkleTrieLoaderModule.class,
         BlobCacheModule.class,
-        BesuPluginContextModule.class
+        BesuPluginContextModule.class,
+        MiningParametersModule.class
       })
   interface PrivacyReorgTestComponent extends BesuComponent {
 
@@ -536,7 +538,8 @@ public class PrivacyReorgTest {
         final PrivacyParameters privacyParameters,
         final GenesisConfigFile genesisConfigFile,
         final PrivacyReorgTestComponent context,
-        final @Named("dataDir") Path dataDir) {
+        final @Named("dataDir") Path dataDir,
+        final @Named("defaultMiningParameters") MiningParameters miningParameters) {
 
       // dataStorageConfiguration default
       // named privacyReorgParams
@@ -547,7 +550,7 @@ public class PrivacyReorgTest {
               .ethProtocolConfiguration(EthProtocolConfiguration.defaultConfig())
               .storageProvider(new InMemoryKeyValueStorageProvider())
               .networkId(BigInteger.ONE)
-              .miningParameters(MiningParameters.newDefault())
+              .miningParameters(miningParameters)
               .nodeKey(NodeKeyUtils.generate())
               .metricsSystem(new NoOpMetricsSystem())
               .dataDirectory(dataDir)
