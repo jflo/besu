@@ -162,7 +162,6 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
 
     GlobalOpenTelemetry.resetForTest();
     final ObservableMetricsSystem metricsSystem = component.getObservableMetricsSystem();
-    // MetricsSystemFactory.create(node.getMetricsConfiguration());
     final List<EnodeURL> bootnodes =
         node.getConfiguration().getBootnodes().stream()
             .map(EnodeURLImpl::fromURI)
@@ -232,7 +231,6 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
         .storageProvider(besuController.getStorageProvider())
         .rpcEndpointService(rpcEndpointServiceImpl);
     node.engineRpcConfiguration().ifPresent(runnerBuilder::engineJsonRpcConfiguration);
-    // besuPluginContext.registerPlugins(commonPluginConfiguration.);
     besuPluginContext.beforeExternalServices();
     final Runner runner = runnerBuilder.build();
 
@@ -330,6 +328,7 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
   @SuppressWarnings("CloseableProvides")
   static class BesuControllerModule {
     @Provides
+    @Singleton
     public SynchronizerConfiguration provideSynchronizationConfiguration() {
       final SynchronizerConfiguration synchronizerConfiguration =
           SynchronizerConfiguration.builder().build();
