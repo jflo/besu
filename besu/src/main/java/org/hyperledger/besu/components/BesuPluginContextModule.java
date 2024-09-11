@@ -14,14 +14,23 @@
  */
 package org.hyperledger.besu.components;
 
+import org.hyperledger.besu.cli.BesuCommand;
+import org.hyperledger.besu.cli.options.stable.JsonRpcHttpOptions;
+import org.hyperledger.besu.ethereum.core.MiningParameters;
+import org.hyperledger.besu.ethereum.worldstate.DataStorageConfiguration;
 import org.hyperledger.besu.plugin.services.BesuConfiguration;
 import org.hyperledger.besu.services.BesuConfigurationImpl;
 import org.hyperledger.besu.services.BesuPluginContextImpl;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import dagger.Module;
 import dagger.Provides;
+
+import java.nio.file.Path;
+
+import static org.hyperledger.besu.controller.BesuController.DATABASE_PATH;
 
 /** A dagger module that know how to create the BesuPluginContextImpl singleton. */
 @Module
@@ -32,8 +41,16 @@ public class BesuPluginContextModule {
 
   @Provides
   @Singleton
-  BesuConfigurationImpl provideBesuPluginConfig() {
-    return new BesuConfigurationImpl();
+  BesuConfigurationImpl provideBesuPluginConfig(final @Named("dataDir") Path dataDir,
+                                                final DataStorageConfiguration dataStorageConfiguration,
+                                                final MiningParameters miningParameters,
+                                                final JsonRpcHttpOptions jsonRpcHttpOptions) {
+    BesuConfigurationImpl pluginCommonConfiguration = new BesuConfigurationImpl();
+    pluginCommonConfiguration
+            .init(dataDir.toAbsolutePath(), dataDir.toAbsolutePath().resolve(DATABASE_PATH), dataStorageConfiguration)
+            .withMiningParameters(miningParameters)
+            .withJsonRpcHttpOptions(jsonRpcHttpOptions);
+    return pluginCommonConfiguration;
   }
 
   /**

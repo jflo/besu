@@ -17,6 +17,8 @@ package org.hyperledger.besu.plugin.services;
 import org.hyperledger.besu.plugin.services.permissioning.NodeConnectionPermissioningProvider;
 import org.hyperledger.besu.plugin.services.permissioning.NodeMessagePermissioningProvider;
 
+import java.util.List;
+
 /**
  * This service allows plugins to decide who you should connect to and what you should send them.
  *
@@ -44,4 +46,6 @@ public interface PermissioningService extends BesuService {
    * @param provider The provider to register
    */
   void registerNodeMessagePermissioningProvider(NodeMessagePermissioningProvider provider);
+
+  List<NodeMessagePermissioningProvider> getMessagePermissioningProviders();
 }

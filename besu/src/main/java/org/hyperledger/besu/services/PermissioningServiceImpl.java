@@ -62,6 +62,7 @@ public class PermissioningServiceImpl implements PermissioningService {
    *
    * @return the message permissioning providers
    */
+  @Override
   public List<NodeMessagePermissioningProvider> getMessagePermissioningProviders() {
     return messagePermissioningProviders;
   }

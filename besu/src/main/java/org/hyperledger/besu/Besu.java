@@ -15,13 +15,16 @@
 package org.hyperledger.besu;
 
 import org.hyperledger.besu.cli.BesuCommand;
+import org.hyperledger.besu.cli.NetworkDeprecationMessage;
 import org.hyperledger.besu.cli.logging.BesuLoggingConfigurationFactory;
 import org.hyperledger.besu.components.DaggerBesuComponent;
 
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Log4J2LoggerFactory;
+import org.hyperledger.besu.ethereum.core.VersionMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import picocli.CommandLine;
 import picocli.CommandLine.RunLast;
 
 /** Besu bootstrap class. */
@@ -46,6 +49,57 @@ public final class Besu {
             args);
 
     System.exit(exitCode);
+  }
+
+  public void runBesuCommand() {
+    if (network != null && network.isDeprecated()) {
+      logger.warn(NetworkDeprecationMessage.generate(network));
+    }
+    try {
+      configureLogging(true);
+
+      // set merge config on the basis of genesis config
+      setMergeConfigOptions();
+
+      setIgnorableStorageSegments();
+
+      instantiateSignatureAlgorithmFactory();
+
+      logger.info("Starting Besu");
+
+      // Need to create vertx after cmdline has been parsed, such that metricsSystem is configurable
+      vertx = createVertx(createVertxOptions(metricsSystem.get()));
+
+      validateOptions();
+
+      configure();
+
+      // If we're not running against a named network, or if version compat protection has been
+      // explicitly enabled, perform compatibility check
+      VersionMetadata.versionCompatibilityChecks(versionCompatibilityProtection, dataDir());
+
+      configureNativeLibs();
+
+      besuPluginContext.beforeExternalServices();
+
+      final var runner = buildRunner();
+      runner.startExternalServices();
+
+      startPlugins(runner);
+      validatePrivacyPluginOptions();
+      setReleaseMetrics();
+      preSynchronization();
+
+      runner.startEthereumMainLoop();
+
+      besuPluginContext.afterExternalServicesMainLoop();
+
+      runner.awaitStop();
+
+    } catch (final Exception e) {
+      logger.error("Failed to start Besu", e);
+      throw new CommandLine.ParameterException(this.commandLine, e.getMessage(), e);
+    }
   }
 
   /**

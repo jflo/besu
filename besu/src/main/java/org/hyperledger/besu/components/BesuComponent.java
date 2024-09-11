@@ -28,6 +28,7 @@ import javax.inject.Singleton;
 
 import dagger.Component;
 import org.slf4j.Logger;
+import picocli.CommandLine;
 
 /** An application context that knows how to provide dependencies based on Dagger setup. */
 @Singleton
@@ -83,4 +84,6 @@ public interface BesuComponent {
    * @return BlobCache
    */
   BlobCache getBlobCache();
+
+  CommandLine getCommandLine();
 }
