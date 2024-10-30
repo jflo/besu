@@ -296,17 +296,20 @@ public class IbftBesuControllerBuilder extends BftBesuControllerBuilder {
 
   @Override
   protected ProtocolSchedule createProtocolSchedule() {
-    return IbftProtocolScheduleBuilder.create(
-        genesisConfigOptions,
-        forksSchedule,
-        privacyParameters,
-        isRevertReasonEnabled,
-        bftExtraDataCodec().get(),
-        evmConfiguration,
-        miningParameters,
-        badBlockManager,
-        isParallelTxProcessingEnabled,
-        metricsSystem);
+    return besuComponent.ifPresentOrElse(
+        c -> c.getIbftProtocolSchedule(),
+        () -> IbftProtocolScheduleBuilder.create(
+                        genesisConfigOptions,
+                        forksSchedule,
+                        privacyParameters,
+                        isRevertReasonEnabled,
+                        bftExtraDataCodec().get(),
+                        evmConfiguration,
+                        miningParameters,
+                        badBlockManager,
+                        isParallelTxProcessingEnabled,
+                        metricsSystem)
+        );
   }
 
   @Override

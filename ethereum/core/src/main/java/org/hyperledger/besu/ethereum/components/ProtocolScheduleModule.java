@@ -27,6 +27,7 @@ import org.hyperledger.besu.plugin.services.MetricsSystem;
 
 import java.math.BigInteger;
 import java.util.Optional;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import dagger.Module;
@@ -90,6 +91,7 @@ public class ProtocolScheduleModule {
    * @return the protocol schedule
    */
   @Provides
+  @Named("default")
   public ProtocolSchedule createProtocolSchedule(
       final ProtocolScheduleBuilder builder, final GenesisConfigOptions config) {
     final Optional<BigInteger> chainId = config.getChainId().or(() -> builder.getDefaultChainId());

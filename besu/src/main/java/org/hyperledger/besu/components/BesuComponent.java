@@ -15,8 +15,10 @@
 package org.hyperledger.besu.components;
 
 import org.hyperledger.besu.cli.BesuCommand;
+import org.hyperledger.besu.ethereum.components.ProtocolScheduleModule;
 import org.hyperledger.besu.ethereum.eth.transactions.BlobCache;
 import org.hyperledger.besu.ethereum.eth.transactions.BlobCacheModule;
+import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule;
 import org.hyperledger.besu.ethereum.trie.diffbased.bonsai.cache.BonsaiCachedMerkleTrieLoader;
 import org.hyperledger.besu.ethereum.trie.diffbased.bonsai.cache.BonsaiCachedMerkleTrieLoaderModule;
 import org.hyperledger.besu.metrics.MetricsSystemModule;
@@ -37,7 +39,8 @@ import org.slf4j.Logger;
       MetricsSystemModule.class,
       BonsaiCachedMerkleTrieLoaderModule.class,
       BesuPluginContextModule.class,
-      BlobCacheModule.class
+      BlobCacheModule.class,
+      ProtocolScheduleModule.class
     })
 public interface BesuComponent {
 
@@ -83,4 +86,7 @@ public interface BesuComponent {
    * @return BlobCache
    */
   BlobCache getBlobCache();
+
+  @Named("ibftProtocolSchedule")
+  ProtocolSchedule getIbftProtocolSchedule();
 }
