@@ -49,7 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** The Besu plugin context implementation. */
-public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProvider {
+public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProvider, PluginLifecycler {
 
   private static final Logger LOG = LoggerFactory.getLogger(BesuPluginContextImpl.class);
 
@@ -112,19 +112,13 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
     return Optional.ofNullable((T) serviceRegistry.get(serviceType));
   }
 
-  private List<BesuPlugin> detectPlugins(final PluginConfiguration config) {
-    ClassLoader pluginLoader =
-        pluginDirectoryLoader(config.getPluginsDir()).orElse(getClass().getClassLoader());
-    ServiceLoader<BesuPlugin> serviceLoader = ServiceLoader.load(BesuPlugin.class, pluginLoader);
-    return StreamSupport.stream(serviceLoader.spliterator(), false).toList();
-  }
-
   /**
    * Initializes the plugin context with the provided {@link PluginConfiguration}.
    *
    * @param config the plugin configuration
    * @throws IllegalStateException if the system is not in the UNINITIALIZED state.
    */
+  @Override
   public void initialize(final PluginConfiguration config) {
     checkState(
         state == Lifecycle.UNINITIALIZED,
@@ -140,6 +134,7 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
    *
    * @throws IllegalStateException if the system is not in the UNINITIALIZED state.
    */
+  @Override
   public void registerPlugins() {
     checkState(
         state == Lifecycle.INITIALIZED,
@@ -224,6 +219,7 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
   }
 
   /** Before external services. */
+  @Override
   public void beforeExternalServices() {
     checkState(
         state == Lifecycle.REGISTERED,
@@ -260,6 +256,7 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
   }
 
   /** Start plugins. */
+  @Override
   public void startPlugins() {
     checkState(
         state == Lifecycle.BEFORE_EXTERNAL_SERVICES_FINISHED,
@@ -294,6 +291,7 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
   }
 
   /** Execute all plugin setup code after external services. */
+  @Override
   public void afterExternalServicesMainLoop() {
     checkState(
         state == Lifecycle.BEFORE_MAIN_LOOP_FINISHED,
@@ -325,6 +323,7 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
   }
 
   /** Stop plugins. */
+  @Override
   public void stopPlugins() {
     checkState(
         state == Lifecycle.BEFORE_MAIN_LOOP_FINISHED,
@@ -397,6 +396,7 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
    *
    * @return the named plugins
    */
+  @Override
   public Map<String, BesuPlugin> getNamedPlugins() {
     return registeredPlugins.stream()
         .filter(plugin -> plugin.getName().isPresent())
@@ -409,6 +409,7 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
    *
    * @return A list of strings, each representing a line in the summary log.
    */
+  @Override
   public List<String> getPluginsSummaryLog() {
     List<String> summary = new ArrayList<>();
     summary.add("Plugin Registration Summary:");
