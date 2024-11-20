@@ -7,6 +7,7 @@
 - Removed Retesteth rpc service and commands [#7833](https://github.com/hyperledger/besu/pull/7783)
 
 ### Upcoming Breaking Changes
+- `MetricSystem::createLabelledGauge` is deprecated and will be removed in a future release, replace it with `MetricSystem::createLabelledSuppliedGauge`
 - Plugin API will be deprecating the BesuContext interface to be replaced with the ServiceManager interface.
 
 ### Additions and Improvements
@@ -17,6 +18,7 @@
 - Add a method to get all the transaction in the pool, to the `TransactionPoolService`, to easily access the transaction pool content from plugins [#7813](https://github.com/hyperledger/besu/pull/7813)
 - Add a method to check if a metric category is enabled to the plugin API [#7832](https://github.com/hyperledger/besu/pull/7832)
 - Add account and state overrides to `eth_call` and `eth_estimateGas` [#7801](https://github.com/hyperledger/besu/pull/7801)
+- Add a new metric collector for counters which get their value from suppliers [#7894](https://github.com/hyperledger/besu/pull/7894)
 
 ### Bug fixes
 - Fix registering new metric categories from plugins [#7825](https://github.com/hyperledger/besu/pull/7825)
