@@ -112,6 +112,13 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
     return Optional.ofNullable((T) serviceRegistry.get(serviceType));
   }
 
+  private List<BesuPlugin> detectPlugins(final PluginConfiguration config) {
+    ClassLoader pluginLoader =
+        pluginDirectoryLoader(config.getPluginsDir()).orElse(getClass().getClassLoader());
+    ServiceLoader<BesuPlugin> serviceLoader = ServiceLoader.load(BesuPlugin.class, pluginLoader);
+    return StreamSupport.stream(serviceLoader.spliterator(), false).toList();
+  }
+
   /**
    * Initializes the plugin context with the provided {@link PluginConfiguration}.
    *
