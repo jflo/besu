@@ -35,6 +35,7 @@ import javax.inject.Singleton;
 import dagger.Module;
 import dagger.Provides;
 import org.slf4j.Logger;
+import picocli.CommandLine;
 
 /**
  * A dagger module that know how to create the BesuCommand, which collects all configuration
@@ -42,12 +43,31 @@ import org.slf4j.Logger;
  */
 @Module
 public class BesuCommandModule {
+
+  private final Boolean useDaggerForPlugins = Boolean.valueOf(System.getenv("BESU_PLUGINS_VIA_DAGGER"));
+
   /** Default constructor. */
   public BesuCommandModule() {}
 
   @Provides
   @Singleton
   BesuCommand provideBesuCommand(final @Named("besuCommandLogger") Logger commandLogger) {
+    if (useDaggerForPlugins) {
+      commandLogger.info("Experimental Dagger plugins enabled");
+      final BesuPluginContextImpl besuPluginContext = new BesuPluginContextImpl();
+      final BesuCommand besuCommand =
+          new BesuCommand(
+              RlpBlockImporter::new,
+              JsonBlockImporter::new,
+              RlpBlockExporter::new,
+              new RunnerBuilder(),
+              new BesuController.Builder(),
+              besuPluginContext,
+              besuPluginContext,
+              System.getenv(),
+              commandLogger);
+      return besuCommand;
+    }
     BesuPluginContextImpl besuPluginContext = new BesuPluginContextImpl();
     final BesuCommand besuCommand =
         new BesuCommand(
