@@ -23,7 +23,7 @@ import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.plugin.services.metrics.PoAMetricsService;
 import org.hyperledger.besu.plugin.services.query.BftQueryService;
 import org.hyperledger.besu.plugin.services.query.PoaQueryService;
-import org.hyperledger.besu.services.BesuPluginContextImpl;
+import org.hyperledger.besu.services.PluginLifecycler;
 
 /** Bft query plugin service factory which is a concrete implementation of PluginServiceFactory. */
 public class BftQueryPluginServiceFactory implements PluginServiceFactory {
@@ -57,7 +57,7 @@ public class BftQueryPluginServiceFactory implements PluginServiceFactory {
   }
 
   @Override
-  public void appendPluginServices(final BesuPluginContextImpl besuContext) {
+  public void appendPluginServices(final PluginLifecycler besuContext) {
     final BftBlockInterface blockInterface = new BftBlockInterface(bftExtraDataCodec);
 
     final BftQueryServiceImpl service =

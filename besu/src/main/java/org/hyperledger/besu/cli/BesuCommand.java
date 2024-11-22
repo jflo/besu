@@ -152,6 +152,7 @@ import org.hyperledger.besu.metrics.StandardMetricCategory;
 import org.hyperledger.besu.metrics.prometheus.MetricsConfiguration;
 import org.hyperledger.besu.metrics.vertx.VertxMetricsAdapterFactory;
 import org.hyperledger.besu.nat.NatMethod;
+import org.hyperledger.besu.plugin.ServiceProvider;
 import org.hyperledger.besu.plugin.data.EnodeURL;
 import org.hyperledger.besu.plugin.services.BesuConfiguration;
 import org.hyperledger.besu.plugin.services.BesuEvents;
@@ -179,11 +180,11 @@ import org.hyperledger.besu.plugin.services.sync.SynchronizationService;
 import org.hyperledger.besu.plugin.services.transactionpool.TransactionPoolService;
 import org.hyperledger.besu.services.BesuConfigurationImpl;
 import org.hyperledger.besu.services.BesuEventsImpl;
-import org.hyperledger.besu.services.BesuPluginContextImpl;
 import org.hyperledger.besu.services.BlockchainServiceImpl;
 import org.hyperledger.besu.services.P2PServiceImpl;
 import org.hyperledger.besu.services.PermissioningServiceImpl;
 import org.hyperledger.besu.services.PicoCLIOptionsImpl;
+import org.hyperledger.besu.services.PluginLifecycler;
 import org.hyperledger.besu.services.PrivacyPluginServiceImpl;
 import org.hyperledger.besu.services.RlpConverterServiceImpl;
 import org.hyperledger.besu.services.RpcEndpointServiceImpl;
@@ -319,7 +320,8 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
 
   private final RunnerBuilder runnerBuilder;
   private final BesuController.Builder controllerBuilder;
-  private final BesuPluginContextImpl besuPluginContext;
+  private final PluginLifecycler besuPluginContext;
+  private final ServiceProvider pluginServiceProvider;
   private final StorageServiceImpl storageService;
   private final SecurityModuleServiceImpl securityModuleService;
   private final PermissioningServiceImpl permissioningService;
@@ -728,7 +730,8 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
       final Function<Blockchain, RlpBlockExporter> rlpBlockExporterFactory,
       final RunnerBuilder runnerBuilder,
       final BesuController.Builder controllerBuilder,
-      final BesuPluginContextImpl besuPluginContext,
+      final PluginLifecycler besuPluginContext,
+      final ServiceProvider pluginServiceProvider,
       final Map<String, String> environment,
       final Logger commandLogger) {
     this(
@@ -738,6 +741,7 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
         runnerBuilder,
         controllerBuilder,
         besuPluginContext,
+        pluginServiceProvider,
         environment,
         new StorageServiceImpl(),
         new SecurityModuleServiceImpl(),
@@ -779,7 +783,8 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
       final Function<Blockchain, RlpBlockExporter> rlpBlockExporterFactory,
       final RunnerBuilder runnerBuilder,
       final BesuController.Builder controllerBuilder,
-      final BesuPluginContextImpl besuPluginContext,
+      final PluginLifecycler besuPluginContext,
+      final ServiceProvider pluginServiceProvider,
       final Map<String, String> environment,
       final StorageServiceImpl storageService,
       final SecurityModuleServiceImpl securityModuleService,
@@ -799,14 +804,15 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
     this.runnerBuilder = runnerBuilder;
     this.controllerBuilder = controllerBuilder;
     this.besuPluginContext = besuPluginContext;
+    this.pluginServiceProvider = pluginServiceProvider;
     this.environment = environment;
     this.storageService = storageService;
     this.securityModuleService = securityModuleService;
     this.permissioningService = permissioningService;
     this.privacyPluginService = privacyPluginService;
-    if (besuPluginContext.getService(BesuConfigurationImpl.class).isPresent()) {
+    if (this.pluginServiceProvider.getService(BesuConfigurationImpl.class).isPresent()) {
       this.pluginCommonConfiguration =
-          besuPluginContext.getService(BesuConfigurationImpl.class).get();
+          this.pluginServiceProvider.getService(BesuConfigurationImpl.class).get();
     } else {
       this.pluginCommonConfiguration = new BesuConfigurationImpl();
       besuPluginContext.addService(BesuConfiguration.class, this.pluginCommonConfiguration);
@@ -1182,8 +1188,8 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
 
     // register built-in plugins
     rocksDBPlugin = new RocksDBPlugin();
-    rocksDBPlugin.register(besuPluginContext);
-    new InMemoryStoragePlugin().register(besuPluginContext);
+    rocksDBPlugin.register(this.pluginServiceProvider);
+    new InMemoryStoragePlugin().register(this.pluginServiceProvider);
 
     // register default security module
     securityModuleService.register(
@@ -2757,8 +2763,12 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
    *
    * @return the plugin context.
    */
-  public BesuPluginContextImpl getBesuPluginContext() {
+  public PluginLifecycler getBesuPluginContext() {
     return besuPluginContext;
+  }
+
+  public ServiceProvider getServiceProvider() {
+    return pluginServiceProvider;
   }
 
   /**

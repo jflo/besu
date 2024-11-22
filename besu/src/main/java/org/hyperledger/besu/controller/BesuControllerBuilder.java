@@ -1115,7 +1115,7 @@ public abstract class BesuControllerBuilder implements MiningParameterOverrides 
                     .getDiffBasedSubStorageConfiguration()
                     .getMaxLayersToLoad()),
             bonsaiCachedMerkleTrieLoader,
-            besuComponent.map(BesuComponent::getBesuPluginContext).orElse(null),
+            besuComponent.map(BesuComponent::getPluginServiceProvider).orElse(null),
             evmConfiguration,
             worldStateHealerSupplier);
       }

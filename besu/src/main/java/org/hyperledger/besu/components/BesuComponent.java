@@ -20,8 +20,9 @@ import org.hyperledger.besu.ethereum.eth.transactions.BlobCacheModule;
 import org.hyperledger.besu.ethereum.trie.diffbased.bonsai.cache.BonsaiCachedMerkleTrieLoader;
 import org.hyperledger.besu.ethereum.trie.diffbased.bonsai.cache.BonsaiCachedMerkleTrieLoaderModule;
 import org.hyperledger.besu.metrics.MetricsSystemModule;
+import org.hyperledger.besu.plugin.ServiceProvider;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
-import org.hyperledger.besu.services.BesuPluginContextImpl;
+import org.hyperledger.besu.services.PluginLifecycler;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -75,7 +76,9 @@ public interface BesuComponent {
    *
    * @return BesuPluginContextImpl
    */
-  BesuPluginContextImpl getBesuPluginContext();
+  PluginLifecycler getBesuPluginContext();
+
+  ServiceProvider getPluginServiceProvider();
 
   /**
    * Cache to store blobs in for re-use after reorgs.

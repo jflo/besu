@@ -19,16 +19,7 @@ import org.hyperledger.besu.plugin.services.BesuService;
 import java.util.Optional;
 
 /** Adds and accesses BesuServices for plugins to provide or use. */
-public interface ServiceManager {
-
-  /**
-   * Add service. Used by core besu or other plugins to add services to the service manager.
-   *
-   * @param <T> the type parameter
-   * @param serviceType the service type
-   * @param service the service
-   */
-  <T extends BesuService> void addService(final Class<T> serviceType, final T service);
+public interface ServiceProvider {
 
   /**
    * Get the requested service, if it is available. There are a number of reasons that a service may

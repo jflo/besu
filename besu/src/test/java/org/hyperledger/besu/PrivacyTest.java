@@ -21,6 +21,7 @@ import org.hyperledger.besu.components.BesuComponent;
 import org.hyperledger.besu.components.BesuPluginContextModule;
 import org.hyperledger.besu.components.MockBesuCommandModule;
 import org.hyperledger.besu.components.NoOpMetricsSystemModule;
+import org.hyperledger.besu.components.NoOpPluginsModule;
 import org.hyperledger.besu.components.PrivacyParametersModule;
 import org.hyperledger.besu.components.PrivacyTestModule;
 import org.hyperledger.besu.config.GenesisConfigFile;
@@ -97,6 +98,7 @@ class PrivacyTest {
         PrivacyTest.PrivacyTestBesuControllerModule.class,
         PrivacyTestModule.class,
         MockBesuCommandModule.class,
+        NoOpPluginsModule.class,
         BonsaiCachedMerkleTrieLoaderModule.class,
         NoOpMetricsSystemModule.class,
         BesuPluginContextModule.class,

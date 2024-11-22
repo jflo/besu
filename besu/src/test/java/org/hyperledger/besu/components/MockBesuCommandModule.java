@@ -18,9 +18,6 @@ import static org.mockito.Mockito.mock;
 
 import org.hyperledger.besu.cli.BesuCommand;
 import org.hyperledger.besu.metrics.prometheus.MetricsConfiguration;
-import org.hyperledger.besu.plugin.services.BesuConfiguration;
-import org.hyperledger.besu.services.BesuConfigurationImpl;
-import org.hyperledger.besu.services.BesuPluginContextImpl;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -49,18 +46,5 @@ public class MockBesuCommandModule {
   @Singleton
   Logger provideBesuCommandLogger() {
     return LoggerFactory.getLogger(MockBesuCommandModule.class);
-  }
-
-  /**
-   * Creates a BesuPluginContextImpl, used for plugin service discovery.
-   *
-   * @return the BesuPluginContext
-   */
-  @Provides
-  @Singleton
-  public BesuPluginContextImpl provideBesuPluginContext() {
-    BesuPluginContextImpl retval = new BesuPluginContextImpl();
-    retval.addService(BesuConfiguration.class, new BesuConfigurationImpl());
-    return retval;
   }
 }

@@ -123,8 +123,8 @@ import org.hyperledger.besu.nat.kubernetes.KubernetesNatManager;
 import org.hyperledger.besu.nat.upnp.UpnpNatManager;
 import org.hyperledger.besu.plugin.BesuPlugin;
 import org.hyperledger.besu.plugin.data.EnodeURL;
-import org.hyperledger.besu.services.BesuPluginContextImpl;
 import org.hyperledger.besu.services.PermissioningServiceImpl;
+import org.hyperledger.besu.services.PluginLifecycler;
 import org.hyperledger.besu.services.RpcEndpointServiceImpl;
 import org.hyperledger.besu.util.NetworkUtility;
 
@@ -189,7 +189,7 @@ public class RunnerBuilder {
   private Optional<PermissioningConfiguration> permissioningConfiguration = Optional.empty();
   private Collection<EnodeURL> staticNodes = Collections.emptyList();
   private Optional<String> identityString = Optional.empty();
-  private BesuPluginContextImpl besuPluginContext;
+  private PluginLifecycler besuPluginContext;
   private boolean autoLogBloomCaching = true;
   private StorageProvider storageProvider;
   private RpcEndpointServiceImpl rpcEndpointServiceImpl;
@@ -545,7 +545,7 @@ public class RunnerBuilder {
    * @param besuPluginContext the besu plugin context
    * @return the runner builder
    */
-  public RunnerBuilder besuPluginContext(final BesuPluginContextImpl besuPluginContext) {
+  public RunnerBuilder besuPluginContext(final PluginLifecycler besuPluginContext) {
     this.besuPluginContext = besuPluginContext;
     return this;
   }

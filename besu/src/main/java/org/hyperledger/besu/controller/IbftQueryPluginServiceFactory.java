@@ -24,7 +24,7 @@ import org.hyperledger.besu.plugin.services.metrics.PoAMetricsService;
 import org.hyperledger.besu.plugin.services.query.BftQueryService;
 import org.hyperledger.besu.plugin.services.query.IbftQueryService;
 import org.hyperledger.besu.plugin.services.query.PoaQueryService;
-import org.hyperledger.besu.services.BesuPluginContextImpl;
+import org.hyperledger.besu.services.PluginLifecycler;
 
 /** The IBFT query plugin service factory. */
 public class IbftQueryPluginServiceFactory implements PluginServiceFactory {
@@ -54,7 +54,7 @@ public class IbftQueryPluginServiceFactory implements PluginServiceFactory {
   }
 
   @Override
-  public void appendPluginServices(final BesuPluginContextImpl besuContext) {
+  public void appendPluginServices(final PluginLifecycler besuContext) {
     final IbftQueryServiceImpl service =
         new IbftQueryServiceImpl(blockInterface, blockchain, nodeKey);
     besuContext.addService(IbftQueryService.class, service);

@@ -18,7 +18,7 @@ import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.JsonRpcParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.RpcErrorType;
 import org.hyperledger.besu.plugin.BesuPlugin;
-import org.hyperledger.besu.plugin.ServiceManager;
+import org.hyperledger.besu.plugin.ServiceProvider;
 import org.hyperledger.besu.plugin.data.BlockContext;
 import org.hyperledger.besu.plugin.services.BlockchainService;
 import org.hyperledger.besu.plugin.services.RpcEndpointService;
@@ -40,11 +40,11 @@ public class TestBlockchainServiceFinalizedPlugin implements BesuPlugin {
   private static final String RPC_METHOD_SAFE_BLOCK = "updateSafeBlockV1";
 
   @Override
-  public void register(final ServiceManager serviceManager) {
+  public void register(final ServiceProvider serviceProvider) {
     LOG.trace("Registering plugin ...");
 
     final RpcEndpointService rpcEndpointService =
-        serviceManager
+        serviceProvider
             .getService(RpcEndpointService.class)
             .orElseThrow(
                 () ->
@@ -52,7 +52,7 @@ public class TestBlockchainServiceFinalizedPlugin implements BesuPlugin {
                         "Failed to obtain RpcEndpointService from the BesuContext."));
 
     final BlockchainService blockchainService =
-        serviceManager
+        serviceProvider
             .getService(BlockchainService.class)
             .orElseThrow(
                 () ->

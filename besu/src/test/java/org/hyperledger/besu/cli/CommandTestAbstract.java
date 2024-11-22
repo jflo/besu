@@ -553,6 +553,7 @@ public abstract class CommandTestAbstract {
           mockRunnerBuilder,
           controllerBuilderFactory,
           besuPluginContext,
+          besuPluginContext,
           environment,
           storageService,
           securityModuleService,

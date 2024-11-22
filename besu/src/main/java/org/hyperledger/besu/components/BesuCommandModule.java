@@ -25,7 +25,9 @@ import org.hyperledger.besu.cli.options.RPCOptions;
 import org.hyperledger.besu.controller.BesuController;
 import org.hyperledger.besu.ethereum.p2p.discovery.P2PDiscoveryConfiguration;
 import org.hyperledger.besu.metrics.prometheus.MetricsConfiguration;
+import org.hyperledger.besu.plugin.ServiceProvider;
 import org.hyperledger.besu.services.BesuPluginContextImpl;
+import org.hyperledger.besu.services.PluginLifecycler;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -46,6 +48,7 @@ public class BesuCommandModule {
   @Provides
   @Singleton
   BesuCommand provideBesuCommand(final @Named("besuCommandLogger") Logger commandLogger) {
+    BesuPluginContextImpl besuPluginContext = new BesuPluginContextImpl();
     final BesuCommand besuCommand =
         new BesuCommand(
             RlpBlockImporter::new,
@@ -53,7 +56,8 @@ public class BesuCommandModule {
             RlpBlockExporter::new,
             new RunnerBuilder(),
             new BesuController.Builder(),
-            new BesuPluginContextImpl(),
+            besuPluginContext,
+            besuPluginContext,
             System.getenv(),
             commandLogger);
     return besuCommand;
@@ -86,7 +90,13 @@ public class BesuCommandModule {
 
   @Provides
   @Singleton
-  BesuPluginContextImpl provideBesuPluginContextImpl(final BesuCommand provideFrom) {
+  PluginLifecycler provideBesuPluginContextImpl(final BesuCommand provideFrom) {
     return provideFrom.getBesuPluginContext();
+  }
+
+  @Provides
+  @Singleton
+  ServiceProvider provideServiceProvider(final BesuCommand provideFrom) {
+    return provideFrom.getServiceProvider();
   }
 }

@@ -17,7 +17,7 @@ package org.hyperledger.besu.cli;
 import org.hyperledger.besu.BesuInfo;
 import org.hyperledger.besu.ethereum.eth.transactions.TransactionPoolConfiguration;
 import org.hyperledger.besu.evm.internal.EvmConfiguration;
-import org.hyperledger.besu.services.BesuPluginContextImpl;
+import org.hyperledger.besu.services.PluginLifecycler;
 import org.hyperledger.besu.util.log.FramedLogMessage;
 import org.hyperledger.besu.util.platform.PlatformDetector;
 
@@ -61,7 +61,7 @@ public class ConfigurationOverviewBuilder {
   private TransactionPoolConfiguration.Implementation txPoolImplementation;
   private EvmConfiguration.WorldUpdaterMode worldStateUpdateMode;
   private Map<String, String> environment;
-  private BesuPluginContextImpl besuPluginContext;
+  private PluginLifecycler pluginLifecycler;
 
   /**
    * Create a new ConfigurationOverviewBuilder.
@@ -423,8 +423,8 @@ public class ConfigurationOverviewBuilder {
 
     lines.add("");
 
-    if (besuPluginContext != null) {
-      lines.addAll(besuPluginContext.getPluginsSummaryLog());
+    if (pluginLifecycler != null) {
+      lines.addAll(pluginLifecycler.getPluginsSummaryLog());
     }
 
     return FramedLogMessage.generate(lines);
@@ -466,9 +466,9 @@ public class ConfigurationOverviewBuilder {
   /**
    * set the plugin context
    *
-   * @param besuPluginContext the plugin context
+   * @param pluginLifecycler the plugin context
    */
-  public void setPluginContext(final BesuPluginContextImpl besuPluginContext) {
-    this.besuPluginContext = besuPluginContext;
+  public void setPluginContext(final PluginLifecycler pluginLifecycler) {
+    this.pluginLifecycler = pluginLifecycler;
   }
 }

@@ -21,7 +21,7 @@ import org.hyperledger.besu.cryptoservices.NodeKey;
 import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.plugin.services.metrics.PoAMetricsService;
 import org.hyperledger.besu.plugin.services.query.PoaQueryService;
-import org.hyperledger.besu.services.BesuPluginContextImpl;
+import org.hyperledger.besu.services.PluginLifecycler;
 
 /** The Clique query plugin service factory. */
 public class CliqueQueryPluginServiceFactory implements PluginServiceFactory {
@@ -41,7 +41,7 @@ public class CliqueQueryPluginServiceFactory implements PluginServiceFactory {
   }
 
   @Override
-  public void appendPluginServices(final BesuPluginContextImpl besuContext) {
+  public void appendPluginServices(final PluginLifecycler besuContext) {
     final BlockInterface blockInterface = new CliqueBlockInterface();
     final PoaQueryServiceImpl service =
         new PoaQueryServiceImpl(blockInterface, blockchain, nodeKey);

@@ -16,36 +16,38 @@ package org.hyperledger.besu.services;
 
 import org.hyperledger.besu.ethereum.core.plugins.PluginConfiguration;
 import org.hyperledger.besu.plugin.BesuPlugin;
+import org.hyperledger.besu.plugin.services.BesuService;
+import org.hyperledger.besu.plugin.services.PluginVersionsProvider;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.stream.StreamSupport;
 
-public interface PluginLifecycler {
-    default List<BesuPlugin> detectPlugins(PluginConfiguration config) {
-        ClassLoader pluginLoader =
-                pluginDirectoryLoader(config.getPluginsDir()).orElse(getClass().getClassLoader());
-        ServiceLoader<BesuPlugin> serviceLoader = ServiceLoader.load(BesuPlugin.class, pluginLoader);
-        return StreamSupport.stream(serviceLoader.spliterator(), false).toList();
-    }
+public interface PluginLifecycler extends PluginVersionsProvider {
 
-    void initialize(PluginConfiguration config);
+  /**
+   * Add service. Used by core besu or other plugins to add services to the service manager.
+   *
+   * @param <T> the type parameter
+   * @param serviceType the service type
+   * @param service the service
+   */
+  <T extends BesuService> void addService(final Class<T> serviceType, final T service);
 
-    void registerPlugins();
+  List<BesuPlugin> detectPlugins(final PluginConfiguration config);
 
-    void beforeExternalServices();
+  void initialize(final PluginConfiguration config);
 
-    void startPlugins();
+  void registerPlugins();
 
-    void afterExternalServicesMainLoop();
+  void beforeExternalServices();
 
-    void stopPlugins();
+  void startPlugins();
 
-    Collection<String> getPluginVersions();
+  void afterExternalServicesMainLoop();
 
-    Map<String, BesuPlugin> getNamedPlugins();
+  void stopPlugins();
 
-    List<String> getPluginsSummaryLog();
+  Map<String, BesuPlugin> getNamedPlugins();
+
+  List<String> getPluginsSummaryLog();
 }

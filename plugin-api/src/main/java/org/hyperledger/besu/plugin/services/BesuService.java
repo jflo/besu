@@ -14,10 +14,10 @@
  */
 package org.hyperledger.besu.plugin.services;
 
-import org.hyperledger.besu.plugin.ServiceManager;
+import org.hyperledger.besu.plugin.ServiceProvider;
 
 /**
- * All services that can be resolved via {@link ServiceManager#getService(Class)} must implement
+ * All services that can be resolved via {@link ServiceProvider#getService(Class)} must implement
  * {@link BesuService}
  */
 public interface BesuService {}

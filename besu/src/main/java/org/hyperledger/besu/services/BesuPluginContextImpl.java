@@ -18,10 +18,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import org.hyperledger.besu.ethereum.core.plugins.PluginConfiguration;
+import org.hyperledger.besu.plugin.BesuContext;
 import org.hyperledger.besu.plugin.BesuPlugin;
-import org.hyperledger.besu.plugin.ServiceManager;
 import org.hyperledger.besu.plugin.services.BesuService;
-import org.hyperledger.besu.plugin.services.PluginVersionsProvider;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -43,13 +42,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import javax.inject.Inject;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** The Besu plugin context implementation. */
-public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProvider, PluginLifecycler {
+@SuppressWarnings("removal")
+public class BesuPluginContextImpl implements BesuContext, PluginLifecycler {
 
   private static final Logger LOG = LoggerFactory.getLogger(BesuPluginContextImpl.class);
 
@@ -88,6 +89,7 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
   private PluginConfiguration config;
 
   /** Instantiates a new Besu plugin context. */
+  @Inject
   public BesuPluginContextImpl() {}
 
   /**
@@ -374,6 +376,14 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
     }
 
     return Optional.empty();
+  }
+
+  @Override
+  public List<BesuPlugin> detectPlugins(final PluginConfiguration config) {
+    ClassLoader pluginLoader =
+        pluginDirectoryLoader(config.getPluginsDir()).orElse(getClass().getClassLoader());
+    ServiceLoader<BesuPlugin> serviceLoader = ServiceLoader.load(BesuPlugin.class, pluginLoader);
+    return StreamSupport.stream(serviceLoader.spliterator(), false).toList();
   }
 
   @Override

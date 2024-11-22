@@ -59,6 +59,7 @@ import org.hyperledger.besu.metrics.MetricsSystemModule;
 import org.hyperledger.besu.metrics.ObservableMetricsSystem;
 import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem;
 import org.hyperledger.besu.metrics.prometheus.MetricsConfiguration;
+import org.hyperledger.besu.plugin.ServiceProvider;
 import org.hyperledger.besu.plugin.data.EnodeURL;
 import org.hyperledger.besu.plugin.services.BesuConfiguration;
 import org.hyperledger.besu.plugin.services.BesuEvents;
@@ -82,6 +83,7 @@ import org.hyperledger.besu.services.BesuPluginContextImpl;
 import org.hyperledger.besu.services.BlockchainServiceImpl;
 import org.hyperledger.besu.services.PermissioningServiceImpl;
 import org.hyperledger.besu.services.PicoCLIOptionsImpl;
+import org.hyperledger.besu.services.PluginLifecycler;
 import org.hyperledger.besu.services.PrivacyPluginServiceImpl;
 import org.hyperledger.besu.services.RpcEndpointServiceImpl;
 import org.hyperledger.besu.services.SecurityModuleServiceImpl;
@@ -120,7 +122,7 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
   private static final Logger LOG = LoggerFactory.getLogger(ThreadBesuNodeRunner.class);
   private final Map<String, Runner> besuRunners = new HashMap<>();
 
-  private final Map<Node, BesuPluginContextImpl> besuPluginContextMap = new ConcurrentHashMap<>();
+  private final Map<Node, PluginLifecycler> besuPluginContextMap = new ConcurrentHashMap<>();
 
   @Override
   public void startNode(final BesuNode node) {
@@ -172,7 +174,7 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
 
     InProcessRpcConfiguration inProcessRpcConfiguration = node.inProcessRpcConfiguration();
 
-    final BesuPluginContextImpl besuPluginContext =
+    final PluginLifecycler besuPluginContext =
         besuPluginContextMap.computeIfAbsent(node, n -> component.getBesuPluginContext());
 
     final RunnerBuilder runnerBuilder = new RunnerBuilder();
@@ -233,7 +235,7 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
 
   @Override
   public void stopNode(final BesuNode node) {
-    final BesuPluginContextImpl pluginContext = besuPluginContextMap.remove(node);
+    final PluginLifecycler pluginContext = besuPluginContextMap.remove(node);
     if (pluginContext != null) {
       pluginContext.stopPlugins();
     }
@@ -244,7 +246,7 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
   @Override
   public void shutdown() {
     // stop all plugins from pluginContext
-    besuPluginContextMap.values().forEach(BesuPluginContextImpl::stopPlugins);
+    besuPluginContextMap.values().forEach(PluginLifecycler::stopPlugins);
     besuPluginContextMap.clear();
 
     // iterate over a copy of the set so that besuRunner can be updated when a runner is killed
@@ -491,6 +493,16 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
     }
 
     @Provides
+    public ServiceProvider bindServiceProvider(final BesuPluginContextImpl context) {
+      return context;
+    }
+
+    @Provides
+    public PluginLifecycler bindPluginLifecycler(final BesuPluginContextImpl context) {
+      return context;
+    }
+
+    @Provides
     public BesuPluginContextImpl providePluginContext(
         final StorageServiceImpl storageService,
         final SecurityModuleServiceImpl securityModuleService,
@@ -610,7 +622,8 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
   public static class MockBesuCommandModule {
 
     @Provides
-    BesuCommand provideBesuCommand(final BesuPluginContextImpl pluginContext) {
+    BesuCommand provideBesuCommand(
+        final PluginLifecycler pluginContext, final ServiceProvider serviceProvider) {
       final BesuCommand besuCommand =
           new BesuCommand(
               RlpBlockImporter::new,
@@ -619,6 +632,7 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
               new RunnerBuilder(),
               new BesuController.Builder(),
               pluginContext,
+              serviceProvider,
               System.getenv(),
               LoggerFactory.getLogger(MockBesuCommandModule.class));
       besuCommand.toCommandLine();
