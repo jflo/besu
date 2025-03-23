@@ -189,14 +189,34 @@ public class ProcessBesuNodeRunner implements BesuNodeRunner {
     params.addAll(
         DataStorageOptions.fromConfig(node.getDataStorageConfiguration()).getCLIOptions());
 
-    if (node.getMiningParameters().isMiningEnabled()) {
-      params.add("--miner-extra-data");
-      params.add(node.getMiningParameters().getExtraData().toHexString());
-      params.add("--miner-coinbase");
-      params.add(node.getMiningParameters().getCoinbase().get().toString());
-      params.add("--min-gas-price");
-      params.add(
-          Integer.toString(node.getMiningParameters().getMinTransactionGasPrice().intValue()));
+    if (node.getPrivacyParameters().isEnabled()) {
+      params.add("--privacy-enabled");
+
+      params.add("--privacy-url");
+      params.add(node.getPrivacyParameters().getEnclaveUri().toString());
+
+      if (node.getPrivacyParameters().isMultiTenancyEnabled()) {
+        params.add("--privacy-multi-tenancy-enabled");
+      } else {
+        params.add("--privacy-public-key-file");
+        params.add(node.getPrivacyParameters().getEnclavePublicKeyFile().getAbsolutePath());
+      }
+
+      if (!node.getExtraCLIOptions().contains("--plugin-privacy-service-signing-enabled=true")) {
+        params.add("--privacy-marker-transaction-signing-key-file");
+        params.add(node.homeDirectory().resolve("key").toString());
+      }
+
+      if (node.getPrivacyParameters().isFlexiblePrivacyGroupsEnabled()) {
+        params.add("--privacy-flexible-groups-enabled");
+      }
+
+      if (node.getPrivacyParameters().isPrivacyPluginEnabled()) {
+        params.add("--Xprivacy-plugin-enabled");
+      }
+      if (node.getPrivacyParameters().isPrivateNonceAlwaysIncrementsEnabled()) {
+        params.add("privacy-nonce-always-increments");
+      }
     }
 
     if (!node.getBootnodes().isEmpty()) {

@@ -19,9 +19,6 @@ import org.hyperledger.besu.ethereum.chain.BlockAddedObserver;
 import org.hyperledger.besu.ethereum.chain.Blockchain;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.eth.sync.state.SyncState;
-import org.hyperledger.besu.ethereum.mainnet.EpochCalculator;
-import org.hyperledger.besu.ethereum.mainnet.PoWSolution;
-import org.hyperledger.besu.ethereum.mainnet.PoWSolverInputs;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -103,30 +100,8 @@ public class PoWMiningCoordinator extends AbstractMiningCoordinator<PoWBlockMine
   }
 
   @Override
-  public boolean submitHashRate(final String id, final Long hashrate) {
-    if (hashrate == 0) {
-      return false;
-    }
-    LOG.info("Hashrate submitted id {} hashrate {}", id, hashrate);
-    sealerHashRate.put(id, hashrate);
-    return true;
-  }
-
-  @Override
   public void changeTargetGasLimit(final Long targetGasLimit) {
     executor.changeTargetGasLimit(targetGasLimit);
-  }
-
-  @Override
-  public Optional<PoWSolverInputs> getWorkDefinition() {
-    return currentRunningMiner.flatMap(PoWBlockMiner::getWorkDefinition);
-  }
-
-  @Override
-  public boolean submitWork(final PoWSolution solution) {
-    synchronized (this) {
-      return currentRunningMiner.map(miner -> miner.submitWork(solution)).orElse(false);
-    }
   }
 
   @Override
@@ -138,9 +113,5 @@ public class PoWMiningCoordinator extends AbstractMiningCoordinator<PoWBlockMine
   @Override
   protected boolean newChainHeadInvalidatesMiningOperation(final BlockHeader newChainHeadHeader) {
     return true;
-  }
-
-  public EpochCalculator getEpochCalculator() {
-    return executor.epochCalculator;
   }
 }
