@@ -386,29 +386,45 @@ public class BesuNodeFactory {
   public BesuNode createCliqueNode(
       final String name, final UnaryOperator<BesuNodeConfigurationBuilder> configModifier)
       throws IOException {
+    final List<String> enableRpcApis = new ArrayList<>(Arrays.asList());
+    enableRpcApis.addAll(List.of(IBFT.name(), ADMIN.name()));
     BesuNodeConfigurationBuilder builder =
         new BesuNodeConfigurationBuilder()
             .name(name)
-            .jsonRpcEnabled()
+            .jsonRpcConfiguration(
+                node.createJsonRpcWithRpcApiEnabledConfig(enableRpcApis.toArray(String[]::new)))
+            .webSocketConfiguration(node.createWebSocketEnabledConfig())
+            .devMode(false)
             .jsonRpcTxPool()
-            .webSocketEnabled();
+            .genesisConfigProvider(GenesisConfigurationFactory::createCliqueGenesisConfig);
 
     builder = configModifier.apply(builder);
 
     return create(builder.build());
   }
 
-  public BesuNode createCliqueNodeWithNoDiscovery(final String name) throws IOException {
-    return createCliqueNode(
-        name,
-        (builder) -> {
-          builder.discoveryEnabled(false).engineRpcEnabled(false);
-          return builder;
-        });
+  public BesuNode createQbftNode(
+      final String name, final UnaryOperator<BesuNodeConfigurationBuilder> configModifier)
+      throws IOException {
+    final List<String> enableRpcApis = new ArrayList<>(Arrays.asList());
+    enableRpcApis.addAll(List.of(QBFT.name(), ADMIN.name()));
+    BesuNodeConfigurationBuilder builder =
+        new BesuNodeConfigurationBuilder()
+            .name(name)
+            .jsonRpcConfiguration(
+                node.createJsonRpcWithRpcApiEnabledConfig(enableRpcApis.toArray(String[]::new)))
+            .webSocketConfiguration(node.createWebSocketEnabledConfig())
+            .devMode(false)
+            .jsonRpcTxPool()
+            .genesisConfigProvider(GenesisConfigurationFactory::createQbftGenesisConfig);
+
+    builder = configModifier.apply(builder);
+
+    return create(builder.build());
   }
 
-  public BesuNode createCliqueNodeWithRevertReasonEnabled(final String name) throws IOException {
-    return createCliqueNode(name, BesuNodeConfigurationBuilder::revertReasonEnabled);
+  public BesuNode createQbftNodeWithRevertReasonEnabled(final String name) throws IOException {
+    return createQbftNode(name, BesuNodeConfigurationBuilder::revertReasonEnabled);
   }
 
   public BesuNode createCliquePluginsNode(
