@@ -186,6 +186,11 @@ public class RunnerBuilder {
   private Optional<PermissioningConfiguration> permissioningConfiguration = Optional.empty();
   private Collection<EnodeURL> staticNodes = Collections.emptyList();
   private Optional<String> identityString = Optional.empty();
+
+  public BesuPluginContextImpl getBesuPluginContext() {
+    return besuPluginContext;
+  }
+
   private BesuPluginContextImpl besuPluginContext;
   private boolean autoLogBloomCaching = true;
   private StorageProvider storageProvider;

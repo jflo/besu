@@ -14,6 +14,8 @@
  */
 package org.hyperledger.besu.tests.acceptanceqbft.bootstrap;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
 import org.hyperledger.besu.ethereum.storage.keyvalue.KeyValueSegmentIdentifier;
 import org.hyperledger.besu.plugin.services.storage.KeyValueStorageFactory;
 import org.hyperledger.besu.plugin.services.storage.rocksdb.RocksDBKeyValueStorageFactory;
@@ -22,7 +24,6 @@ import org.hyperledger.besu.plugin.services.storage.rocksdb.configuration.RocksD
 import org.hyperledger.besu.tests.acceptance.dsl.AcceptanceTestBase;
 import org.hyperledger.besu.tests.acceptance.dsl.account.Account;
 import org.hyperledger.besu.tests.acceptance.dsl.node.BesuNode;
-import org.hyperledger.besu.tests.acceptance.dsl.node.BesuNodeRunner;
 import org.hyperledger.besu.tests.acceptance.dsl.node.ThreadBesuNodeRunner;
 import org.hyperledger.besu.tests.acceptance.dsl.node.cluster.Cluster;
 import org.hyperledger.besu.tests.acceptance.dsl.node.cluster.ClusterConfiguration;
@@ -38,12 +39,13 @@ public class ClusterThreadNodeRunnerAcceptanceTest extends AcceptanceTestBase {
 
   private BesuNode miner;
   private Cluster noDiscoveryCluster;
+  private ThreadBesuNodeRunner besuNodeRunner;
 
   @BeforeEach
   public void setUp() throws Exception {
     final ClusterConfiguration clusterConfiguration =
         new ClusterConfigurationBuilder().awaitPeerDiscovery(false).build();
-    final BesuNodeRunner besuNodeRunner = new ThreadBesuNodeRunner();
+    this.besuNodeRunner = new ThreadBesuNodeRunner();
     noDiscoveryCluster = new Cluster(clusterConfiguration, net, besuNodeRunner);
     miner =
         besu.createQbftNode(
@@ -69,6 +71,12 @@ public class ClusterThreadNodeRunnerAcceptanceTest extends AcceptanceTestBase {
               return builder;
             });
     noDiscoveryCluster.addNode(noDiscoveryNode);
+  }
+
+  @Test
+  public void shouldHaveSamePluginsInRunnerAndController() {
+    assertThat(this.besuNodeRunner.getRunnerBuilder().getBesuPluginContext())
+        .isSameAs(this.besuNodeRunner.getBesuControllerBuilder().getBesuPluginContext());
   }
 
   @Test

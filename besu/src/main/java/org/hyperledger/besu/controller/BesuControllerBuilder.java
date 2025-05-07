@@ -220,6 +220,8 @@ public abstract class BesuControllerBuilder implements MiningParameterOverrides 
   /** When enabled, round changes on f+1 RC messages from higher rounds */
   protected boolean isEarlyRoundChangeEnabled = false;
 
+  private BesuPluginContextImpl besuPluginContext;
+
   /** Instantiates a new Besu controller builder. */
   protected BesuControllerBuilder() {}
 
@@ -637,12 +639,7 @@ public abstract class BesuControllerBuilder implements MiningParameterOverrides 
 
     final ProtocolContext protocolContext =
         createProtocolContext(
-            blockchain,
-            worldStateArchive,
-            consensusContext,
-            besuComponent
-                .map(BesuComponent::getBesuPluginContext)
-                .orElse(new BesuPluginContextImpl()));
+            blockchain, worldStateArchive, consensusContext, getBesuPluginContext());
     validateContext(protocolContext);
 
     protocolSchedule.setPublicWorldStateArchiveForPrivacyBlockProcessor(
@@ -1158,7 +1155,7 @@ public abstract class BesuControllerBuilder implements MiningParameterOverrides 
                     .getPathBasedExtraStorageConfiguration()
                     .getMaxLayersToLoad()),
             bonsaiCachedMerkleTrieLoader,
-            besuComponent.map(BesuComponent::getBesuPluginContext).orElse(null),
+            getBesuPluginContext(),
             evmConfiguration,
             worldStateHealerSupplier);
       }
@@ -1256,4 +1253,12 @@ public abstract class BesuControllerBuilder implements MiningParameterOverrides 
    */
   protected abstract PluginServiceFactory createAdditionalPluginServices(
       final Blockchain blockchain, final ProtocolContext protocolContext);
+
+  public BesuPluginContextImpl getBesuPluginContext() {
+    return besuComponent.map(BesuComponent::getBesuPluginContext).orElse(this.besuPluginContext);
+  }
+
+  public void besuPluginContext(final BesuPluginContextImpl besuPluginContext) {
+    this.besuPluginContext = besuPluginContext;
+  }
 }

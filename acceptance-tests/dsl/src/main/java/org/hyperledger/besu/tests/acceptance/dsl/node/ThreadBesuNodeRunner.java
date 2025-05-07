@@ -124,6 +124,8 @@ import picocli.CommandLine.Model.CommandSpec;
 public class ThreadBesuNodeRunner implements BesuNodeRunner {
 
   private static final Logger LOG = LoggerFactory.getLogger(ThreadBesuNodeRunner.class);
+  private RunnerBuilder runnerBuilder;
+  private BesuControllerBuilder besuControllerBuilder;
   private final Map<String, Runner> besuRunners = new HashMap<>();
 
   private final Map<Node, BesuPluginContextImpl> besuPluginContextMap = new ConcurrentHashMap<>();
@@ -162,15 +164,18 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
         .map(GenesisConfig::fromConfig)
         .ifPresent(networkConfigBuilder::setGenesisConfig);
     final EthNetworkConfig ethNetworkConfig = networkConfigBuilder.build();
-    final BesuControllerBuilder builder = component.besuControllerBuilder();
-    builder.isRevertReasonEnabled(node.isRevertReasonEnabled());
-    builder.networkConfiguration(node.getNetworkingConfiguration());
+    this.besuControllerBuilder = component.besuControllerBuilder();
+    this.besuControllerBuilder.isRevertReasonEnabled(node.isRevertReasonEnabled());
+    this.besuControllerBuilder.networkConfiguration(node.getNetworkingConfiguration());
 
-    builder.dataDirectory(dataDir);
-    builder.nodeKey(new NodeKey(new KeyPairSecurityModule(KeyPairUtil.loadKeyPair(dataDir))));
-    builder.privacyParameters(node.getPrivacyParameters());
+    this.besuControllerBuilder.dataDirectory(dataDir);
+    this.besuControllerBuilder.nodeKey(
+        new NodeKey(new KeyPairSecurityModule(KeyPairUtil.loadKeyPair(dataDir))));
+    this.besuControllerBuilder.privacyParameters(node.getPrivacyParameters());
 
-    node.getGenesisConfig().map(GenesisConfig::fromConfig).ifPresent(builder::genesisConfig);
+    node.getGenesisConfig()
+        .map(GenesisConfig::fromConfig)
+        .ifPresent(this.besuControllerBuilder::genesisConfig);
 
     final BesuController besuController = component.besuController();
 
@@ -179,7 +184,8 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
     final BesuPluginContextImpl besuPluginContext =
         besuPluginContextMap.computeIfAbsent(node, n -> component.getBesuPluginContext());
 
-    final RunnerBuilder runnerBuilder = new RunnerBuilder();
+    this.besuControllerBuilder.besuPluginContext(besuPluginContext);
+    this.runnerBuilder = new RunnerBuilder();
     runnerBuilder.permissioningConfiguration(node.getPermissioningConfiguration());
     runnerBuilder.apiConfiguration(node.getApiConfiguration());
 
@@ -284,6 +290,14 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
   @Override
   public String getConsoleContents() {
     throw new RuntimeException("Console contents can only be captured in process execution");
+  }
+
+  public BesuControllerBuilder getBesuControllerBuilder() {
+    return besuControllerBuilder;
+  }
+
+  public RunnerBuilder getRunnerBuilder() {
+    return runnerBuilder;
   }
 
   @Module
