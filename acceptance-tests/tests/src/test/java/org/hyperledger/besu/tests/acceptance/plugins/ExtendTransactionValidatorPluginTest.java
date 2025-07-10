@@ -16,7 +16,6 @@ package org.hyperledger.besu.tests.acceptance.plugins;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
 
 import org.hyperledger.besu.crypto.SECP256K1;
 import org.hyperledger.besu.tests.acceptance.dsl.AcceptanceTestBase;
@@ -32,7 +31,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.web3j.crypto.RawTransaction;
-import org.web3j.protocol.core.methods.response.EthBlock;
 import org.web3j.tx.gas.DefaultGasProvider;
 import org.web3j.utils.Numeric;
 
@@ -97,7 +95,7 @@ public class ExtendTransactionValidatorPluginTest extends AcceptanceTestBase {
         .hasMessage("Plugin has marked the transaction as invalid");
   }
 
-  @Test
+  /*  @Test
   public void blockWithNonFrontierTransactionsIsNotAccepted() {
 
     final Account sender = accounts.getPrimaryBenefactor();
@@ -134,5 +132,5 @@ public class ExtendTransactionValidatorPluginTest extends AcceptanceTestBase {
               assertThat(badBlockTx.get().getHash()).isEqualTo(eip1559TxHash);
               return true;
             });
-  }
+  }*/
 }

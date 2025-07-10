@@ -387,7 +387,7 @@ public class BesuNodeFactory {
       final String name, final UnaryOperator<BesuNodeConfigurationBuilder> configModifier)
       throws IOException {
     final List<String> enableRpcApis = new ArrayList<>(Arrays.asList());
-    enableRpcApis.addAll(List.of(IBFT.name(), ADMIN.name()));
+    enableRpcApis.addAll(List.of(IBFT.name(), ADMIN.name(), CLIQUE.name()));
     BesuNodeConfigurationBuilder builder =
         new BesuNodeConfigurationBuilder()
             .name(name)
@@ -435,7 +435,7 @@ public class BesuNodeFactory {
       throws IOException {
 
     final List<String> enableRpcApis = new ArrayList<>(Arrays.asList(extraRpcApis));
-    enableRpcApis.addAll(List.of(IBFT.name(), ADMIN.name()));
+    enableRpcApis.addAll(List.of(IBFT.name(), ADMIN.name(), PLUGINS.name(), CLIQUE.name()));
 
     return create(
         new BesuNodeConfigurationBuilder()
