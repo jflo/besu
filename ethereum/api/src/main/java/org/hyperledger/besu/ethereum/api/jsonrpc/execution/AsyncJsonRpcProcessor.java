@@ -1,5 +1,5 @@
 /*
- * Copyright contributors to Hyperledger Besu.
+ * Copyright contributors to Besu.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import io.opentelemetry.api.trace.Span;
-import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;

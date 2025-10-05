@@ -1,5 +1,5 @@
 /*
- * Copyright contributors to Hyperledger Besu.
+ * Copyright contributors to Besu.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -55,9 +55,9 @@ public class AsyncJsonRpcProcessorTest {
     mockDelegate = mock(JsonRpcProcessor.class);
     mockMethod = mock(JsonRpcMethod.class);
     mockSpan = mock(Span.class);
-    
+
     when(mockMethod.getName()).thenReturn("test_method");
-    
+
     final JsonRpcRequest request = new JsonRpcRequest("2.0", "test_method", new Object[] {});
     mockRequestContext = new JsonRpcRequestContext(request);
     requestId = new JsonRpcRequestId(1);
@@ -144,7 +144,7 @@ public class AsyncJsonRpcProcessorTest {
     // Given
     asyncProcessor = new AsyncJsonRpcProcessor(mockDelegate, vertx, 5000);
     final int numRequests = 10;
-    
+
     when(mockDelegate.process(any(), any(), any(), any()))
         .thenAnswer(
             invocation -> {
@@ -190,7 +190,7 @@ public class AsyncJsonRpcProcessorTest {
     asyncProcessor = new AsyncJsonRpcProcessor(mockDelegate, vertx, 5000);
     final Thread mainThread = Thread.currentThread();
     final Thread[] workerThread = new Thread[1];
-    
+
     when(mockDelegate.process(any(), any(), any(), any()))
         .thenAnswer(
             invocation -> {
@@ -200,7 +200,7 @@ public class AsyncJsonRpcProcessorTest {
 
     // When
     asyncProcessor.process(requestId, mockMethod, mockSpan, mockRequestContext);
-    
+
     // Give async execution time to complete
     Thread.sleep(100);
 

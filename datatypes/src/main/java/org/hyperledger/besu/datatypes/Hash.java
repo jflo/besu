@@ -20,6 +20,7 @@ import static org.hyperledger.besu.crypto.Hash.sha256;
 import org.hyperledger.besu.ethereum.rlp.RLP;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.bytes.DelegatingBytes32;
@@ -111,6 +112,17 @@ public class Hash extends DelegatingBytes32 {
    */
   public static Hash fromHexStringLenient(final String str) {
     return new Hash(Bytes32.fromHexStringLenient(str));
+  }
+
+  /**
+   * Returns the hash as a hex string for JSON serialization.
+   *
+   * @return the hash as a hex string
+   */
+  @JsonValue
+  @Override
+  public String toString() {
+    return super.toString();
   }
 
   /***
