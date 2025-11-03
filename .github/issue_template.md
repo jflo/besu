@@ -9,6 +9,7 @@
 
 ### Versions (Add all that apply)
 * Software version: [`besu --version`]
+* GraalVM version: [`native-image --version`]
 * Java version: [`java -version`]
 * OS Name & Version: [`cat /etc/*release`]
 * Kernel Version: [`uname -a`]
