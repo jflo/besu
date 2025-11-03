@@ -1,1 +1,1 @@
-.github/*   @hyperledger/besu-admin
+.github/*   @jflo
