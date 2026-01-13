@@ -14,6 +14,7 @@
  */
 package org.hyperledger.besu.ethereum.mainnet;
 
+import org.hyperledger.besu.datatypes.EIP;
 import org.hyperledger.besu.datatypes.HardforkId;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.BlockValidator;
@@ -33,6 +34,7 @@ import org.hyperledger.besu.evm.precompile.PrecompileContractRegistry;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Set;
 
 /** A protocol specification. */
 public class ProtocolSpec {
@@ -92,6 +94,9 @@ public class ProtocolSpec {
   private final Optional<BlockAccessListFactory> blockAccessListFactory;
   private final StateRootCommitterFactory stateRootCommitterFactory;
 
+  private final Set<EIP> activatedEips; // EIPs activated in THIS hardfork
+  private final Set<EIP> activeEips; // All EIPs active (accumulated from this and prior hardforks)
+
   /**
    * Creates a new protocol specification instance.
    *
@@ -124,6 +129,11 @@ public class ProtocolSpec {
    * @param slotDuration the slot duration
    * @param isReplayProtectionSupported indicates whether the current spec supports replay
    *     protection
+   * @param transactionPoolPreProcessor the transaction pool pre-processor
+   * @param blockAccessListFactory the block access list factory
+   * @param stateRootCommitterFactory the state root committer factory
+   * @param activatedEips the set of EIPs activated in this specific hardfork
+   * @param activeEips the set of all active EIPs (accumulated from this and prior hardforks)
    */
   public ProtocolSpec(
       final HardforkId hardforkId,
@@ -157,7 +167,9 @@ public class ProtocolSpec {
       final boolean isReplayProtectionSupported,
       final Optional<TransactionPoolPreProcessor> transactionPoolPreProcessor,
       final Optional<BlockAccessListFactory> blockAccessListFactory,
-      final StateRootCommitterFactory stateRootCommitterFactory) {
+      final StateRootCommitterFactory stateRootCommitterFactory,
+      final Set<EIP> activatedEips,
+      final Set<EIP> activeEips) {
     this.hardforkId = hardforkId;
     this.evm = evm;
     this.transactionValidatorFactory = transactionValidatorFactory;
@@ -190,6 +202,8 @@ public class ProtocolSpec {
     this.transactionPoolPreProcessor = transactionPoolPreProcessor;
     this.blockAccessListFactory = blockAccessListFactory;
     this.stateRootCommitterFactory = stateRootCommitterFactory;
+    this.activatedEips = Set.copyOf(activatedEips);
+    this.activeEips = Set.copyOf(activeEips);
   }
 
   /**
@@ -425,5 +439,45 @@ public class ProtocolSpec {
 
   public StateRootCommitterFactory getStateRootCommitterFactory() {
     return stateRootCommitterFactory;
+  }
+
+  /**
+   * Checks if a specific EIP was activated in this hardfork.
+   *
+   * @param eip the EIP to check
+   * @return true if the EIP was activated in this hardfork, false otherwise
+   */
+  public boolean activates(final EIP eip) {
+    return activatedEips.contains(eip);
+  }
+
+  /**
+   * Checks if a specific EIP is active (available) at this protocol specification, including EIPs
+   * from prior hardforks.
+   *
+   * @param eip the EIP to check
+   * @return true if the EIP is active (accumulated), false otherwise
+   */
+  public boolean isActive(final EIP eip) {
+    return activeEips.contains(eip);
+  }
+
+  /**
+   * Returns all EIPs activated in this specific hardfork.
+   *
+   * @return immutable set of EIPs activated in this hardfork
+   */
+  public Set<EIP> getActivatedEIPs() {
+    return activatedEips;
+  }
+
+  /**
+   * Returns all active EIPs at this protocol specification, including those from prior hardforks
+   * (accumulated).
+   *
+   * @return immutable set of all active EIPs
+   */
+  public Set<EIP> getActiveEIPs() {
+    return activeEips;
   }
 }

@@ -52,6 +52,7 @@ import org.hyperledger.besu.crypto.SignatureAlgorithm;
 import org.hyperledger.besu.crypto.SignatureAlgorithmFactory;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.BlobType;
+import org.hyperledger.besu.datatypes.EIP;
 import org.hyperledger.besu.datatypes.HardforkId;
 import org.hyperledger.besu.datatypes.TransactionType;
 import org.hyperledger.besu.datatypes.Wei;
@@ -530,25 +531,33 @@ public abstract class MainnetProtocolSpecs {
       final boolean isParallelTxProcessingEnabled,
       final BalConfiguration balConfiguration,
       final MetricsSystem metricsSystem) {
-    return muirGlacierDefinition(
-            chainId,
-            enableRevertReason,
-            genesisConfigOptions,
-            evmConfiguration,
-            isParallelTxProcessingEnabled,
-            balConfiguration,
-            metricsSystem)
-        .gasCalculator(BerlinGasCalculator::new)
-        .transactionValidatorFactoryBuilder(
-            (evm, gasLimitCalculator, feeMarket) ->
-                new TransactionValidatorFactory(
-                    evm.getGasCalculator(),
-                    gasLimitCalculator,
-                    true,
-                    chainId,
-                    Set.of(TransactionType.FRONTIER, TransactionType.ACCESS_LIST)))
-        .transactionReceiptFactory(new BerlinTransactionReceiptFactory(enableRevertReason))
-        .hardforkId(BERLIN);
+    ProtocolSpecBuilder builder =
+        muirGlacierDefinition(
+                chainId,
+                enableRevertReason,
+                genesisConfigOptions,
+                evmConfiguration,
+                isParallelTxProcessingEnabled,
+                balConfiguration,
+                metricsSystem)
+            .gasCalculator(BerlinGasCalculator::new)
+            .transactionValidatorFactoryBuilder(
+                (evm, gasLimitCalculator, feeMarket) ->
+                    new TransactionValidatorFactory(
+                        evm.getGasCalculator(),
+                        gasLimitCalculator,
+                        true,
+                        chainId,
+                        Set.of(TransactionType.FRONTIER, TransactionType.ACCESS_LIST)))
+            .transactionReceiptFactory(new BerlinTransactionReceiptFactory(enableRevertReason))
+            .hardforkId(BERLIN);
+
+    Set<EIP> configuredEips = genesisConfigOptions.getEipEnumsForHardfork("berlin");
+    if (!configuredEips.isEmpty()) {
+      builder.activatedEips(configuredEips);
+    }
+
+    return builder;
   }
 
   static ProtocolSpecBuilder londonDefinition(
@@ -562,81 +571,90 @@ public abstract class MainnetProtocolSpecs {
       final MetricsSystem metricsSystem) {
     final long londonForkBlockNumber =
         genesisConfigOptions.getLondonBlockNumber().orElse(Long.MAX_VALUE);
-    return berlinDefinition(
-            chainId,
-            enableRevertReason,
-            genesisConfigOptions,
-            evmConfiguration,
-            isParallelTxProcessingEnabled,
-            balConfiguration,
-            metricsSystem)
-        .feeMarketBuilder(
-            createFeeMarket(
-                londonForkBlockNumber,
-                genesisConfigOptions.isZeroBaseFee(),
-                genesisConfigOptions.isFixedBaseFee(),
-                false,
-                miningConfiguration.getMinTransactionGasPrice(),
-                (blobSchedule) ->
-                    FeeMarket.london(
-                        londonForkBlockNumber, genesisConfigOptions.getBaseFeePerGas())))
-        .gasCalculator(LondonGasCalculator::new)
-        .gasLimitCalculatorBuilder(
-            (feeMarket, gasCalculator, blobSchedule) ->
-                new LondonTargetingGasLimitCalculator(
-                    londonForkBlockNumber, (BaseFeeMarket) feeMarket))
-        .transactionValidatorFactoryBuilder(
-            (evm, gasLimitCalculator, feeMarket) ->
-                new TransactionValidatorFactory(
-                    evm.getGasCalculator(),
-                    gasLimitCalculator,
+    ProtocolSpecBuilder builder =
+        berlinDefinition(
+                chainId,
+                enableRevertReason,
+                genesisConfigOptions,
+                evmConfiguration,
+                isParallelTxProcessingEnabled,
+                balConfiguration,
+                metricsSystem)
+            .feeMarketBuilder(
+                createFeeMarket(
+                    londonForkBlockNumber,
+                    genesisConfigOptions.isZeroBaseFee(),
+                    genesisConfigOptions.isFixedBaseFee(),
+                    false,
+                    miningConfiguration.getMinTransactionGasPrice(),
+                    (blobSchedule) ->
+                        FeeMarket.london(
+                            londonForkBlockNumber, genesisConfigOptions.getBaseFeePerGas())))
+            .gasCalculator(LondonGasCalculator::new)
+            .gasLimitCalculatorBuilder(
+                (feeMarket, gasCalculator, blobSchedule) ->
+                    new LondonTargetingGasLimitCalculator(
+                        londonForkBlockNumber, (BaseFeeMarket) feeMarket))
+            .transactionValidatorFactoryBuilder(
+                (evm, gasLimitCalculator, feeMarket) ->
+                    new TransactionValidatorFactory(
+                        evm.getGasCalculator(),
+                        gasLimitCalculator,
+                        feeMarket,
+                        true,
+                        chainId,
+                        Set.of(
+                            TransactionType.FRONTIER,
+                            TransactionType.ACCESS_LIST,
+                            TransactionType.EIP1559),
+                        Integer.MAX_VALUE))
+            .transactionProcessorBuilder(
+                (gasCalculator,
                     feeMarket,
-                    true,
-                    chainId,
-                    Set.of(
-                        TransactionType.FRONTIER,
-                        TransactionType.ACCESS_LIST,
-                        TransactionType.EIP1559),
-                    Integer.MAX_VALUE))
-        .transactionProcessorBuilder(
-            (gasCalculator,
-                feeMarket,
-                transactionValidatorFactory,
-                contractCreationProcessor,
-                messageCallProcessor) ->
-                MainnetTransactionProcessor.builder()
-                    .gasCalculator(gasCalculator)
-                    .transactionValidatorFactory(transactionValidatorFactory)
-                    .contractCreationProcessor(contractCreationProcessor)
-                    .messageCallProcessor(messageCallProcessor)
-                    .clearEmptyAccounts(true)
-                    .warmCoinbase(false)
-                    .maxStackSize(evmConfiguration.evmStackSize())
-                    .feeMarket(feeMarket)
-                    .coinbaseFeePriceCalculator(CoinbaseFeePriceCalculator.eip1559())
-                    .build())
-        .contractCreationProcessorBuilder(
-            evm ->
-                new ContractCreationProcessor(
-                    evm,
-                    true,
-                    List.of(MaxCodeSizeRule.from(evm), PrefixCodeRule.of()),
-                    1,
-                    SPURIOUS_DRAGON_FORCE_DELETE_WHEN_EMPTY_ADDRESSES))
-        .evmBuilder(
-            (gasCalculator, jdCacheConfig) ->
-                MainnetEVMs.london(
-                    gasCalculator, chainId.orElse(BigInteger.ZERO), evmConfiguration))
-        .difficultyCalculator(MainnetDifficultyCalculators.LONDON)
-        .blockHeaderValidatorBuilder(
-            (feeMarket, gasCalculator, gasLimitCalculator) ->
-                MainnetBlockHeaderValidator.createBaseFeeMarketValidator((BaseFeeMarket) feeMarket))
-        .ommerHeaderValidatorBuilder(
-            (feeMarket, gasCalculator, gasLimitCalculator) ->
-                MainnetBlockHeaderValidator.createBaseFeeMarketOmmerValidator(
-                    (BaseFeeMarket) feeMarket))
-        .blockBodyValidatorBuilder(BaseFeeBlockBodyValidator::new)
-        .hardforkId(LONDON);
+                    transactionValidatorFactory,
+                    contractCreationProcessor,
+                    messageCallProcessor) ->
+                    MainnetTransactionProcessor.builder()
+                        .gasCalculator(gasCalculator)
+                        .transactionValidatorFactory(transactionValidatorFactory)
+                        .contractCreationProcessor(contractCreationProcessor)
+                        .messageCallProcessor(messageCallProcessor)
+                        .clearEmptyAccounts(true)
+                        .warmCoinbase(false)
+                        .maxStackSize(evmConfiguration.evmStackSize())
+                        .feeMarket(feeMarket)
+                        .coinbaseFeePriceCalculator(CoinbaseFeePriceCalculator.eip1559())
+                        .build())
+            .contractCreationProcessorBuilder(
+                evm ->
+                    new ContractCreationProcessor(
+                        evm,
+                        true,
+                        List.of(MaxCodeSizeRule.from(evm), PrefixCodeRule.of()),
+                        1,
+                        SPURIOUS_DRAGON_FORCE_DELETE_WHEN_EMPTY_ADDRESSES))
+            .evmBuilder(
+                (gasCalculator, jdCacheConfig) ->
+                    MainnetEVMs.london(
+                        gasCalculator, chainId.orElse(BigInteger.ZERO), evmConfiguration))
+            .difficultyCalculator(MainnetDifficultyCalculators.LONDON)
+            .blockHeaderValidatorBuilder(
+                (feeMarket, gasCalculator, gasLimitCalculator) ->
+                    MainnetBlockHeaderValidator.createBaseFeeMarketValidator(
+                        (BaseFeeMarket) feeMarket))
+            .ommerHeaderValidatorBuilder(
+                (feeMarket, gasCalculator, gasLimitCalculator) ->
+                    MainnetBlockHeaderValidator.createBaseFeeMarketOmmerValidator(
+                        (BaseFeeMarket) feeMarket))
+            .blockBodyValidatorBuilder(BaseFeeBlockBodyValidator::new)
+            .hardforkId(LONDON);
+
+    Set<EIP> configuredEips = genesisConfigOptions.getEipEnumsForHardfork("london");
+    if (!configuredEips.isEmpty()) {
+      builder.activatedEips(configuredEips);
+    }
+
+    return builder;
   }
 
   static ProtocolSpecBuilder arrowGlacierDefinition(
@@ -723,58 +741,66 @@ public abstract class MainnetProtocolSpecs {
       final boolean isParallelTxProcessingEnabled,
       final BalConfiguration balConfiguration,
       final MetricsSystem metricsSystem) {
-    return parisDefinition(
-            chainId,
-            enableRevertReason,
-            genesisConfigOptions,
-            evmConfiguration,
-            miningConfiguration,
-            isParallelTxProcessingEnabled,
-            balConfiguration,
-            metricsSystem)
-        // gas calculator has new code to support EIP-3860 limit and meter initcode
-        .gasCalculator(ShanghaiGasCalculator::new)
-        // EVM has a new operation for EIP-3855 PUSH0 instruction
-        .evmBuilder(
-            (gasCalculator, jdCacheConfig) ->
-                MainnetEVMs.shanghai(
-                    gasCalculator, chainId.orElse(BigInteger.ZERO), evmConfiguration))
-        // we need to flip the Warm Coinbase flag for EIP-3651 warm coinbase
-        .transactionProcessorBuilder(
-            (gasCalculator,
-                feeMarket,
-                transactionValidatorFactory,
-                contractCreationProcessor,
-                messageCallProcessor) ->
-                MainnetTransactionProcessor.builder()
-                    .gasCalculator(gasCalculator)
-                    .transactionValidatorFactory(transactionValidatorFactory)
-                    .contractCreationProcessor(contractCreationProcessor)
-                    .messageCallProcessor(messageCallProcessor)
-                    .clearEmptyAccounts(true)
-                    .warmCoinbase(true)
-                    .maxStackSize(evmConfiguration.evmStackSize())
-                    .feeMarket(feeMarket)
-                    .coinbaseFeePriceCalculator(CoinbaseFeePriceCalculator.eip1559())
-                    .build())
-        // Contract creation rules for EIP-3860 Limit and meter intitcode
-        .transactionValidatorFactoryBuilder(
-            (evm, gasLimitCalculator, feeMarket) ->
-                new TransactionValidatorFactory(
-                    evm.getGasCalculator(),
-                    gasLimitCalculator,
+    ProtocolSpecBuilder builder =
+        parisDefinition(
+                chainId,
+                enableRevertReason,
+                genesisConfigOptions,
+                evmConfiguration,
+                miningConfiguration,
+                isParallelTxProcessingEnabled,
+                balConfiguration,
+                metricsSystem)
+            // gas calculator has new code to support EIP-3860 limit and meter initcode
+            .gasCalculator(ShanghaiGasCalculator::new)
+            // EVM has a new operation for EIP-3855 PUSH0 instruction
+            .evmBuilder(
+                (gasCalculator, jdCacheConfig) ->
+                    MainnetEVMs.shanghai(
+                        gasCalculator, chainId.orElse(BigInteger.ZERO), evmConfiguration))
+            // we need to flip the Warm Coinbase flag for EIP-3651 warm coinbase
+            .transactionProcessorBuilder(
+                (gasCalculator,
                     feeMarket,
-                    true,
-                    chainId,
-                    Set.of(
-                        TransactionType.FRONTIER,
-                        TransactionType.ACCESS_LIST,
-                        TransactionType.EIP1559),
-                    evm.getMaxInitcodeSize()))
-        .withdrawalsProcessor(new WithdrawalsProcessor())
-        .withdrawalsValidator(new WithdrawalsValidator.AllowedWithdrawals())
-        .blockHeaderValidatorBuilder(MainnetBlockHeaderValidator::noBlobBlockHeaderValidator)
-        .hardforkId(SHANGHAI);
+                    transactionValidatorFactory,
+                    contractCreationProcessor,
+                    messageCallProcessor) ->
+                    MainnetTransactionProcessor.builder()
+                        .gasCalculator(gasCalculator)
+                        .transactionValidatorFactory(transactionValidatorFactory)
+                        .contractCreationProcessor(contractCreationProcessor)
+                        .messageCallProcessor(messageCallProcessor)
+                        .clearEmptyAccounts(true)
+                        .warmCoinbase(true)
+                        .maxStackSize(evmConfiguration.evmStackSize())
+                        .feeMarket(feeMarket)
+                        .coinbaseFeePriceCalculator(CoinbaseFeePriceCalculator.eip1559())
+                        .build())
+            // Contract creation rules for EIP-3860 Limit and meter intitcode
+            .transactionValidatorFactoryBuilder(
+                (evm, gasLimitCalculator, feeMarket) ->
+                    new TransactionValidatorFactory(
+                        evm.getGasCalculator(),
+                        gasLimitCalculator,
+                        feeMarket,
+                        true,
+                        chainId,
+                        Set.of(
+                            TransactionType.FRONTIER,
+                            TransactionType.ACCESS_LIST,
+                            TransactionType.EIP1559),
+                        evm.getMaxInitcodeSize()))
+            .withdrawalsProcessor(new WithdrawalsProcessor())
+            .withdrawalsValidator(new WithdrawalsValidator.AllowedWithdrawals())
+            .blockHeaderValidatorBuilder(MainnetBlockHeaderValidator::noBlobBlockHeaderValidator)
+            .hardforkId(SHANGHAI);
+
+    Set<EIP> configuredEips = genesisConfigOptions.getEipEnumsForHardfork("shanghai");
+    if (!configuredEips.isEmpty()) {
+      builder.activatedEips(configuredEips);
+    }
+
+    return builder;
   }
 
   static ProtocolSpecBuilder cancunDefinition(
@@ -788,86 +814,94 @@ public abstract class MainnetProtocolSpecs {
       final MetricsSystem metricsSystem) {
     final long londonForkBlockNumber = genesisConfigOptions.getLondonBlockNumber().orElse(0L);
 
-    return shanghaiDefinition(
-            chainId,
-            enableRevertReason,
-            genesisConfigOptions,
-            evmConfiguration,
-            miningConfiguration,
-            isParallelTxProcessingEnabled,
-            balConfiguration,
-            metricsSystem)
-        .feeMarketBuilder(
-            createFeeMarket(
-                londonForkBlockNumber,
-                genesisConfigOptions.isZeroBaseFee(),
-                genesisConfigOptions.isFixedBaseFee(),
-                true,
-                miningConfiguration.getMinTransactionGasPrice(),
-                (blobSchedule) ->
-                    FeeMarket.cancun(
-                        londonForkBlockNumber,
-                        genesisConfigOptions.getBaseFeePerGas(),
-                        blobSchedule)))
-        .blobSchedule(
-            genesisConfigOptions
-                .getBlobScheduleOptions()
-                .flatMap(BlobScheduleOptions::getCancun)
-                .orElse(BlobSchedule.CANCUN_DEFAULT))
-        // gas calculator for EIP-4844 blob gas
-        .gasCalculator(CancunGasCalculator::new)
-        // gas limit with EIP-4844 max blob gas per block
-        .gasLimitCalculatorBuilder(
-            (feeMarket, gasCalculator, blobSchedule) ->
-                new CancunTargetingGasLimitCalculator(
+    ProtocolSpecBuilder builder =
+        shanghaiDefinition(
+                chainId,
+                enableRevertReason,
+                genesisConfigOptions,
+                evmConfiguration,
+                miningConfiguration,
+                isParallelTxProcessingEnabled,
+                balConfiguration,
+                metricsSystem)
+            .feeMarketBuilder(
+                createFeeMarket(
                     londonForkBlockNumber,
-                    (BaseFeeMarket) feeMarket,
-                    gasCalculator,
-                    blobSchedule.getMax(),
-                    blobSchedule.getTarget()))
-        // EVM changes to support EIP-1153: TSTORE and EIP-5656: MCOPY
-        .evmBuilder(
-            (gasCalculator, jdCacheConfig) ->
-                MainnetEVMs.cancun(
-                    gasCalculator, chainId.orElse(BigInteger.ZERO), evmConfiguration))
-        // use Cancun fee market
-        .transactionProcessorBuilder(
-            (gasCalculator,
-                feeMarket,
-                transactionValidator,
-                contractCreationProcessor,
-                messageCallProcessor) ->
-                MainnetTransactionProcessor.builder()
-                    .gasCalculator(gasCalculator)
-                    .transactionValidatorFactory(transactionValidator)
-                    .contractCreationProcessor(contractCreationProcessor)
-                    .messageCallProcessor(messageCallProcessor)
-                    .clearEmptyAccounts(true)
-                    .warmCoinbase(true)
-                    .maxStackSize(evmConfiguration.evmStackSize())
-                    .feeMarket(feeMarket)
-                    .coinbaseFeePriceCalculator(CoinbaseFeePriceCalculator.eip1559())
-                    .build())
-        // change to check for max blob gas per block for EIP-4844
-        .transactionValidatorFactoryBuilder(
-            (evm, gasLimitCalculator, feeMarket) ->
-                new TransactionValidatorFactory(
-                    evm.getGasCalculator(),
-                    gasLimitCalculator,
-                    feeMarket,
+                    genesisConfigOptions.isZeroBaseFee(),
+                    genesisConfigOptions.isFixedBaseFee(),
                     true,
-                    chainId,
-                    Set.of(
-                        TransactionType.FRONTIER,
-                        TransactionType.ACCESS_LIST,
-                        TransactionType.EIP1559,
-                        TransactionType.BLOB),
-                    Set.of(BlobType.KZG_PROOF),
-                    evm.getMaxInitcodeSize()))
-        .precompileContractRegistryBuilder(MainnetPrecompiledContractRegistries::cancun)
-        .blockHeaderValidatorBuilder(MainnetBlockHeaderValidator::blobAwareBlockHeaderValidator)
-        .preExecutionProcessor(new CancunPreExecutionProcessor())
-        .hardforkId(CANCUN);
+                    miningConfiguration.getMinTransactionGasPrice(),
+                    (blobSchedule) ->
+                        FeeMarket.cancun(
+                            londonForkBlockNumber,
+                            genesisConfigOptions.getBaseFeePerGas(),
+                            blobSchedule)))
+            .blobSchedule(
+                genesisConfigOptions
+                    .getBlobScheduleOptions()
+                    .flatMap(BlobScheduleOptions::getCancun)
+                    .orElse(BlobSchedule.CANCUN_DEFAULT))
+            // gas calculator for EIP-4844 blob gas
+            .gasCalculator(CancunGasCalculator::new)
+            // gas limit with EIP-4844 max blob gas per block
+            .gasLimitCalculatorBuilder(
+                (feeMarket, gasCalculator, blobSchedule) ->
+                    new CancunTargetingGasLimitCalculator(
+                        londonForkBlockNumber,
+                        (BaseFeeMarket) feeMarket,
+                        gasCalculator,
+                        blobSchedule.getMax(),
+                        blobSchedule.getTarget()))
+            // EVM changes to support EIP-1153: TSTORE and EIP-5656: MCOPY
+            .evmBuilder(
+                (gasCalculator, jdCacheConfig) ->
+                    MainnetEVMs.cancun(
+                        gasCalculator, chainId.orElse(BigInteger.ZERO), evmConfiguration))
+            // use Cancun fee market
+            .transactionProcessorBuilder(
+                (gasCalculator,
+                    feeMarket,
+                    transactionValidator,
+                    contractCreationProcessor,
+                    messageCallProcessor) ->
+                    MainnetTransactionProcessor.builder()
+                        .gasCalculator(gasCalculator)
+                        .transactionValidatorFactory(transactionValidator)
+                        .contractCreationProcessor(contractCreationProcessor)
+                        .messageCallProcessor(messageCallProcessor)
+                        .clearEmptyAccounts(true)
+                        .warmCoinbase(true)
+                        .maxStackSize(evmConfiguration.evmStackSize())
+                        .feeMarket(feeMarket)
+                        .coinbaseFeePriceCalculator(CoinbaseFeePriceCalculator.eip1559())
+                        .build())
+            // change to check for max blob gas per block for EIP-4844
+            .transactionValidatorFactoryBuilder(
+                (evm, gasLimitCalculator, feeMarket) ->
+                    new TransactionValidatorFactory(
+                        evm.getGasCalculator(),
+                        gasLimitCalculator,
+                        feeMarket,
+                        true,
+                        chainId,
+                        Set.of(
+                            TransactionType.FRONTIER,
+                            TransactionType.ACCESS_LIST,
+                            TransactionType.EIP1559,
+                            TransactionType.BLOB),
+                        Set.of(BlobType.KZG_PROOF),
+                        evm.getMaxInitcodeSize()))
+            .precompileContractRegistryBuilder(MainnetPrecompiledContractRegistries::cancun)
+            .blockHeaderValidatorBuilder(MainnetBlockHeaderValidator::blobAwareBlockHeaderValidator)
+            .preExecutionProcessor(new CancunPreExecutionProcessor())
+            .hardforkId(CANCUN);
+
+    Set<EIP> configuredEips = genesisConfigOptions.getEipEnumsForHardfork("cancun");
+    if (!configuredEips.isEmpty()) {
+      builder.activatedEips(configuredEips);
+    }
+
+    return builder;
   }
 
   static ProtocolSpecBuilder pragueDefinition(
@@ -960,6 +994,11 @@ public abstract class MainnetProtocolSpecs {
       throw nsee;
     }
 
+    Set<EIP> configuredEips = genesisConfigOptions.getEipEnumsForHardfork("prague");
+    if (!configuredEips.isEmpty()) {
+      pragueSpecBuilder.activatedEips(configuredEips);
+    }
+
     return pragueSpecBuilder;
   }
 
@@ -974,48 +1013,57 @@ public abstract class MainnetProtocolSpecs {
       final MetricsSystem metricsSystem) {
     final long londonForkBlockNumber = genesisConfigOptions.getLondonBlockNumber().orElse(0L);
 
-    return pragueDefinition(
-            chainId,
-            enableRevertReason,
-            genesisConfigOptions,
-            evmConfiguration,
-            miningConfiguration,
-            isParallelTxProcessingEnabled,
-            balConfiguration,
-            metricsSystem)
-        .gasCalculator(OsakaGasCalculator::new)
-        // tx gas limit cap EIP-7825
-        .gasLimitCalculatorBuilder(
-            (feeMarket, gasCalculator, blobSchedule) ->
-                new OsakaTargetingGasLimitCalculator(
-                    londonForkBlockNumber,
-                    (BaseFeeMarket) feeMarket,
-                    gasCalculator,
-                    blobSchedule.getMax(),
-                    blobSchedule.getTarget()))
-        .evmBuilder(
-            (gasCalculator, __) ->
-                MainnetEVMs.osaka(gasCalculator, chainId.orElse(BigInteger.ZERO), evmConfiguration))
-        .transactionValidatorFactoryBuilder(
-            (evm, gasLimitCalculator, feeMarket) ->
-                new TransactionValidatorFactory(
-                    evm.getGasCalculator(),
-                    gasLimitCalculator,
-                    feeMarket,
-                    true,
-                    chainId,
-                    Set.of(
-                        TransactionType.FRONTIER,
-                        TransactionType.ACCESS_LIST,
-                        TransactionType.EIP1559,
-                        TransactionType.BLOB,
-                        TransactionType.DELEGATE_CODE),
-                    Set.of(BlobType.KZG_CELL_PROOFS),
-                    evm.getMaxInitcodeSize()))
-        .transactionPoolPreProcessor(new OsakaTransactionPoolPreProcessor())
-        .precompileContractRegistryBuilder(MainnetPrecompiledContractRegistries::osaka)
-        .blockValidatorBuilder(MainnetBlockValidatorBuilder::osaka)
-        .hardforkId(OSAKA);
+    ProtocolSpecBuilder builder =
+        pragueDefinition(
+                chainId,
+                enableRevertReason,
+                genesisConfigOptions,
+                evmConfiguration,
+                miningConfiguration,
+                isParallelTxProcessingEnabled,
+                balConfiguration,
+                metricsSystem)
+            .gasCalculator(OsakaGasCalculator::new)
+            // tx gas limit cap EIP-7825
+            .gasLimitCalculatorBuilder(
+                (feeMarket, gasCalculator, blobSchedule) ->
+                    new OsakaTargetingGasLimitCalculator(
+                        londonForkBlockNumber,
+                        (BaseFeeMarket) feeMarket,
+                        gasCalculator,
+                        blobSchedule.getMax(),
+                        blobSchedule.getTarget()))
+            .evmBuilder(
+                (gasCalculator, __) ->
+                    MainnetEVMs.osaka(
+                        gasCalculator, chainId.orElse(BigInteger.ZERO), evmConfiguration))
+            .transactionValidatorFactoryBuilder(
+                (evm, gasLimitCalculator, feeMarket) ->
+                    new TransactionValidatorFactory(
+                        evm.getGasCalculator(),
+                        gasLimitCalculator,
+                        feeMarket,
+                        true,
+                        chainId,
+                        Set.of(
+                            TransactionType.FRONTIER,
+                            TransactionType.ACCESS_LIST,
+                            TransactionType.EIP1559,
+                            TransactionType.BLOB,
+                            TransactionType.DELEGATE_CODE),
+                        Set.of(BlobType.KZG_CELL_PROOFS),
+                        evm.getMaxInitcodeSize()))
+            .transactionPoolPreProcessor(new OsakaTransactionPoolPreProcessor())
+            .precompileContractRegistryBuilder(MainnetPrecompiledContractRegistries::osaka)
+            .blockValidatorBuilder(MainnetBlockValidatorBuilder::osaka)
+            .hardforkId(OSAKA);
+
+    Set<EIP> configuredEips = genesisConfigOptions.getEipEnumsForHardfork("osaka");
+    if (!configuredEips.isEmpty()) {
+      builder.activatedEips(configuredEips);
+    }
+
+    return builder;
   }
 
   static ProtocolSpecBuilder bpo1Definition(
@@ -1173,17 +1221,25 @@ public abstract class MainnetProtocolSpecs {
       final boolean isParallelTxProcessingEnabled,
       final BalConfiguration balConfiguration,
       final MetricsSystem metricsSystem) {
-    return amsterdamDefinition(
-            chainId,
-            enableRevertReason,
-            genesisConfigOptions,
-            evmConfiguration,
-            miningConfiguration,
-            isParallelTxProcessingEnabled,
-            balConfiguration,
-            metricsSystem)
-        .precompileContractRegistryBuilder(MainnetPrecompiledContractRegistries::futureEips)
-        .hardforkId(FUTURE_EIPS);
+    ProtocolSpecBuilder builder =
+        amsterdamDefinition(
+                chainId,
+                enableRevertReason,
+                genesisConfigOptions,
+                evmConfiguration,
+                miningConfiguration,
+                isParallelTxProcessingEnabled,
+                balConfiguration,
+                metricsSystem)
+            .precompileContractRegistryBuilder(MainnetPrecompiledContractRegistries::futureEips)
+            .hardforkId(FUTURE_EIPS);
+
+    Set<EIP> configuredEips = genesisConfigOptions.getEipEnumsForHardfork("futureEips");
+    if (!configuredEips.isEmpty()) {
+      builder.activatedEips(configuredEips);
+    }
+
+    return builder;
   }
 
   static ProtocolSpecBuilder experimentalEipsDefinition(
@@ -1196,20 +1252,28 @@ public abstract class MainnetProtocolSpecs {
       final BalConfiguration balConfiguration,
       final MetricsSystem metricsSystem) {
 
-    return futureEipsDefinition(
-            chainId,
-            enableRevertReason,
-            genesisConfigOptions,
-            evmConfiguration,
-            miningConfiguration,
-            isParallelTxProcessingEnabled,
-            balConfiguration,
-            metricsSystem)
-        .evmBuilder(
-            (gasCalculator, jdCacheConfig) ->
-                MainnetEVMs.experimentalEips(
-                    gasCalculator, chainId.orElse(BigInteger.ZERO), evmConfiguration))
-        .hardforkId(EXPERIMENTAL_EIPS);
+    ProtocolSpecBuilder builder =
+        futureEipsDefinition(
+                chainId,
+                enableRevertReason,
+                genesisConfigOptions,
+                evmConfiguration,
+                miningConfiguration,
+                isParallelTxProcessingEnabled,
+                balConfiguration,
+                metricsSystem)
+            .evmBuilder(
+                (gasCalculator, jdCacheConfig) ->
+                    MainnetEVMs.experimentalEips(
+                        gasCalculator, chainId.orElse(BigInteger.ZERO), evmConfiguration))
+            .hardforkId(EXPERIMENTAL_EIPS);
+
+    Set<EIP> configuredEips = genesisConfigOptions.getEipEnumsForHardfork("experimentalEips");
+    if (!configuredEips.isEmpty()) {
+      builder.activatedEips(configuredEips);
+    }
+
+    return builder;
   }
 
   private static class FrontierTransactionReceiptFactory implements TransactionReceiptFactory {

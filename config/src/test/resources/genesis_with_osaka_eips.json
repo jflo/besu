@@ -1,0 +1,31 @@
+{
+  "config": {
+    "chainId": 1337,
+    "homesteadBlock": 0,
+    "eip150Block": 0,
+    "eip158Block": 0,
+    "byzantiumBlock": 0,
+    "constantinopleBlock": 0,
+    "petersburgBlock": 0,
+    "istanbulBlock": 0,
+    "berlinBlock": 0,
+    "londonBlock": 0,
+    "shanghaiTime": 0,
+    "cancunTime": 0,
+    "pragueTime": 0,
+    "osakaTime": 3000,
+    "osaka": {
+      "eips": [3074, 7692]
+    },
+    "depositContractAddress": "0x00000000219ab540356cbb839cbe05303d7705fa",
+    "withdrawalRequestContractAddress": "0x0c15f14308530b7cdb8460094daf9dd1e549d54d",
+    "consolidationRequestContractAddress": "0x01aBEa29659e5e97C95107F20bb753cD3e09bBBb"
+  },
+  "difficulty": "0x0",
+  "extraData": "0x",
+  "gasLimit": "0x1000000",
+  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "nonce": "0x0000000000000042",
+  "timestamp": "0x0",
+  "alloc": {}
+}

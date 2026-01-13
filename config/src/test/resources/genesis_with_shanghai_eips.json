@@ -1,0 +1,25 @@
+{
+  "config": {
+    "chainId": 1337,
+    "homesteadBlock": 0,
+    "eip150Block": 0,
+    "eip158Block": 0,
+    "byzantiumBlock": 0,
+    "constantinopleBlock": 0,
+    "petersburgBlock": 0,
+    "istanbulBlock": 0,
+    "berlinBlock": 0,
+    "londonBlock": 0,
+    "shanghaiTime": 1000,
+    "shanghai": {
+      "eips": [3651, 3855, 3860, 4895]
+    }
+  },
+  "difficulty": "0x0",
+  "extraData": "0x",
+  "gasLimit": "0x1000000",
+  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "nonce": "0x0000000000000042",
+  "timestamp": "0x0",
+  "alloc": {}
+}

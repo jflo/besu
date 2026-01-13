@@ -22,7 +22,10 @@ import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -524,24 +527,33 @@ public class JsonGenesisConfigOptions implements GenesisConfigOptions {
     getIstanbulBlockNumber().ifPresent(l -> builder.put("istanbulBlock", l));
     getMuirGlacierBlockNumber().ifPresent(l -> builder.put("muirGlacierBlock", l));
     getBerlinBlockNumber().ifPresent(l -> builder.put("berlinBlock", l));
+    addHardforkEips(builder, "berlin");
     getLondonBlockNumber().ifPresent(l -> builder.put("londonBlock", l));
+    addHardforkEips(builder, "london");
     getArrowGlacierBlockNumber().ifPresent(l -> builder.put("arrowGlacierBlock", l));
     getGrayGlacierBlockNumber().ifPresent(l -> builder.put("grayGlacierBlock", l));
     getMergeNetSplitBlockNumber().ifPresent(l -> builder.put("mergeNetSplitBlock", l));
     getShanghaiTime().ifPresent(l -> builder.put("shanghaiTime", l));
+    addHardforkEips(builder, "shanghai");
     getCancunTime().ifPresent(l -> builder.put("cancunTime", l));
+    addHardforkEips(builder, "cancun");
     getPragueTime().ifPresent(l -> builder.put("pragueTime", l));
+    addHardforkEips(builder, "prague");
     getOsakaTime().ifPresent(l -> builder.put("osakaTime", l));
+    addHardforkEips(builder, "osaka");
     getBpo1Time().ifPresent(l -> builder.put("bpo1Time", l));
     getBpo2Time().ifPresent(l -> builder.put("bpo2Time", l));
     getBpo3Time().ifPresent(l -> builder.put("bpo3Time", l));
     getBpo4Time().ifPresent(l -> builder.put("bpo4Time", l));
     getBpo5Time().ifPresent(l -> builder.put("bpo5Time", l));
     getAmsterdamTime().ifPresent(l -> builder.put("amsterdamTime", l));
+    addHardforkEips(builder, "amsterdam");
     getTerminalBlockNumber().ifPresent(l -> builder.put("terminalBlockNumber", l));
     getTerminalBlockHash().ifPresent(h -> builder.put("terminalBlockHash", h.toHexString()));
     getFutureEipsTime().ifPresent(l -> builder.put("futureEipsTime", l));
+    addHardforkEips(builder, "futureeips");
     getExperimentalEipsTime().ifPresent(l -> builder.put("experimentalEipsTime", l));
+    addHardforkEips(builder, "experimentaleips");
 
     // classic fork blocks
     getClassicForkBlock().ifPresent(l -> builder.put("classicForkBlock", l));
@@ -596,6 +608,22 @@ public class JsonGenesisConfigOptions implements GenesisConfigOptions {
     }
 
     return builder.build();
+  }
+
+  /**
+   * Adds EIP configuration for a hardfork to the map builder if the hardfork has EIPs configured.
+   *
+   * @param builder the map builder
+   * @param hardforkName the hardfork name
+   */
+  private void addHardforkEips(
+      final ImmutableMap.Builder<String, Object> builder, final String hardforkName) {
+    List<Integer> eips = getEipsForHardfork(hardforkName);
+    if (!eips.isEmpty()) {
+      Map<String, Object> hardforkConfig = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+      hardforkConfig.put("eips", eips);
+      builder.put(hardforkName, hardforkConfig);
+    }
   }
 
   private OptionalLong getOptionalLong(final String key) {
@@ -714,6 +742,24 @@ public class JsonGenesisConfigOptions implements GenesisConfigOptions {
         .distinct()
         .sorted()
         .toList();
+  }
+
+  @Override
+  public List<Integer> getEipsForHardfork(final String hardforkName) {
+    return JsonUtil.getObjectNode(configRoot, hardforkName.toLowerCase(Locale.ROOT))
+        .flatMap(obj -> JsonUtil.getArrayNode(obj, "eips"))
+        .map(
+            arr -> {
+              final List<Integer> eips = new ArrayList<>();
+              arr.forEach(
+                  node -> {
+                    if (node.isNumber()) {
+                      eips.add(node.asInt());
+                    }
+                  });
+              return eips;
+            })
+        .orElse(Collections.emptyList());
   }
 
   @Override

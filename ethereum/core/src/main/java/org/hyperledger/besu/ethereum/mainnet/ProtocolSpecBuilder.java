@@ -17,6 +17,7 @@ package org.hyperledger.besu.ethereum.mainnet;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.hyperledger.besu.config.BlobSchedule;
+import org.hyperledger.besu.datatypes.EIP;
 import org.hyperledger.besu.datatypes.HardforkId;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.BlockValidator;
@@ -42,7 +43,9 @@ import org.hyperledger.besu.evm.processor.ContractCreationProcessor;
 import org.hyperledger.besu.evm.processor.MessageCallProcessor;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -99,6 +102,10 @@ public class ProtocolSpecBuilder {
   private StateRootCommitterFactory stateRootCommitterFactory =
       new StateRootCommitterFactoryDefault();
   private BalConfiguration balConfiguration = BalConfiguration.DEFAULT;
+  private Set<EIP> activatedEips = Collections.emptySet(); // EIPs activated in this hardfork
+
+  @SuppressWarnings("FieldCanBeFinal") // Mutated in activatedEips() method
+  private Set<EIP> activeEips = new java.util.HashSet<>(); // Accumulated active EIPs
 
   public ProtocolSpecBuilder gasCalculator(final Supplier<GasCalculator> gasCalculatorBuilder) {
     this.gasCalculatorBuilder = gasCalculatorBuilder;
@@ -323,6 +330,35 @@ public class ProtocolSpecBuilder {
     return this;
   }
 
+  /**
+   * Sets the EIPs activated in this specific hardfork and automatically accumulates them into the
+   * set of all active EIPs. This enables tracking both hardfork-specific activation and overall EIP
+   * availability.
+   *
+   * @param eips the set of EIPs activated in this hardfork
+   * @return this builder for method chaining
+   */
+  public ProtocolSpecBuilder activatedEips(final Set<EIP> eips) {
+    this.activatedEips = eips;
+    // Automatically accumulate into activeEips
+    this.activeEips.addAll(eips);
+    return this;
+  }
+
+  /**
+   * Sets the EIPs for this protocol specification.
+   *
+   * @param eips the set of EIPs
+   * @return this builder for method chaining
+   * @deprecated Use {@link #activatedEips(Set)} instead. This method now delegates to activatedEips
+   *     to maintain the accumulation behavior.
+   */
+  @Deprecated(forRemoval = false)
+  @com.google.errorprone.annotations.InlineMe(replacement = "this.activatedEips(eips)")
+  public final ProtocolSpecBuilder activeEips(final Set<EIP> eips) {
+    return activatedEips(eips);
+  }
+
   public ProtocolSpec build(final ProtocolSchedule protocolSchedule) {
     checkNotNull(gasCalculatorBuilder, "Missing gasCalculator");
     checkNotNull(gasLimitCalculatorBuilder, "Missing gasLimitCalculatorBuilder");
@@ -440,7 +476,9 @@ public class ProtocolSpecBuilder {
         isReplayProtectionSupported,
         Optional.ofNullable(transactionPoolPreProcessor),
         Optional.ofNullable(finalBalFactory),
-        stateRootCommitterFactory);
+        stateRootCommitterFactory,
+        activatedEips,
+        activeEips);
   }
 
   private BlockProcessor createBlockProcessor(

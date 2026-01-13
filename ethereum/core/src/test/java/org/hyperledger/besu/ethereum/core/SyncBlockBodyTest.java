@@ -222,6 +222,8 @@ public class SyncBlockBodyTest {
         true,
         Optional.empty(),
         Optional.empty(),
-        new StateRootCommitterFactoryDefault());
+        new StateRootCommitterFactoryDefault(),
+        Collections.emptySet(), // activatedEips
+        Collections.emptySet()); // activeEips (accumulated)
   }
 }

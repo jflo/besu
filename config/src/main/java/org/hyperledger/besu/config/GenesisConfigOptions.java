@@ -15,15 +15,19 @@
 package org.hyperledger.besu.config;
 
 import org.hyperledger.besu.datatypes.Address;
+import org.hyperledger.besu.datatypes.EIP;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
 
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.tuweni.units.bigints.UInt256;
 
@@ -604,4 +608,29 @@ public interface GenesisConfigOptions {
    * @return the blob schedule
    */
   Optional<BlobScheduleOptions> getBlobScheduleOptions();
+
+  /**
+   * Get the list of EIP numbers configured for a specific hardfork. Returns only the EIPs directly
+   * configured for this hardfork, not inherited from previous hardforks.
+   *
+   * @param hardforkName the hardfork name (e.g., "london", "cancun", "futureEips")
+   * @return list of EIP numbers configured for this hardfork, empty list if none specified
+   */
+  default List<Integer> getEipsForHardfork(final String hardforkName) {
+    return Collections.emptyList();
+  }
+
+  /**
+   * Get the set of EIP enums configured for a specific hardfork. Returns only the EIPs directly
+   * configured for this hardfork, not inherited from previous hardforks.
+   *
+   * @param hardforkName the hardfork name (e.g., "london", "cancun", "futureEips")
+   * @return set of EIP enums configured for this hardfork, empty set if none specified
+   */
+  default Set<EIP> getEipEnumsForHardfork(final String hardforkName) {
+    return getEipsForHardfork(hardforkName).stream()
+        .map(EIP::fromNumber)
+        .flatMap(Optional::stream)
+        .collect(Collectors.toSet());
+  }
 }
