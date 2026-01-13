@@ -176,7 +176,9 @@ public class EthGetTransactionReceiptTest {
           true,
           Optional.empty(),
           Optional.empty(),
-          new StateRootCommitterFactoryDefault());
+          new StateRootCommitterFactoryDefault(),
+          Collections.emptySet(),
+          Collections.emptySet());
   private final ProtocolSpec statusTransactionTypeSpec =
       new ProtocolSpec(
           TestHardforkId.STATUS,
@@ -210,7 +212,9 @@ public class EthGetTransactionReceiptTest {
           true,
           Optional.empty(),
           Optional.empty(),
-          new StateRootCommitterFactoryDefault());
+          new StateRootCommitterFactoryDefault(),
+          Collections.emptySet(),
+          Collections.emptySet());
 
   @SuppressWarnings("unchecked")
   private final ProtocolSchedule protocolSchedule = mock(ProtocolSchedule.class);
