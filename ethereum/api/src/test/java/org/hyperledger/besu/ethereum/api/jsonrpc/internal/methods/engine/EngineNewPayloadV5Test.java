@@ -17,7 +17,9 @@ package org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine;
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hyperledger.besu.datatypes.HardforkId.MainnetHardforkId.AMSTERDAM;
+import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INCLUSION_LIST_UNSATISFIED;
 import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.INVALID;
+import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.ExecutionEngineJsonRpcMethod.EngineStatus.VALID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -31,12 +33,16 @@ import org.hyperledger.besu.datatypes.StorageSlotKey;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.BlockProcessingOutputs;
 import org.hyperledger.besu.ethereum.BlockProcessingResult;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequest;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.JsonRpcRequestContext;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.EnginePayloadParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.WithdrawalParameter;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.response.JsonRpcResponse;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.results.EnginePayloadStatusResult;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.BlockHeaderTestFixture;
+import org.hyperledger.besu.ethereum.core.LenientInclusionListValidator;
+import org.hyperledger.besu.ethereum.core.StrictInclusionListValidator;
 import org.hyperledger.besu.ethereum.core.Withdrawal;
 import org.hyperledger.besu.ethereum.mainnet.BodyValidation;
 import org.hyperledger.besu.ethereum.mainnet.ScheduledProtocolSpec;
@@ -53,6 +59,7 @@ import org.hyperledger.besu.ethereum.rlp.BytesValueRLPOutput;
 import org.hyperledger.besu.evm.gascalculator.PragueGasCalculator;
 import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -68,6 +75,8 @@ public class EngineNewPayloadV5Test extends EngineNewPayloadV4Test {
   private static final String ENCODED_BLOCK_ACCESS_LIST = encodeBlockAccessList(BLOCK_ACCESS_LIST);
   private static final String INVALID_BLOCK_ACCESS_LIST_ENCODING = "0xzz";
   private static final String INVALID_BLOCK_ACCESS_LIST_RLP = "0x01";
+
+  private static final String SAMPLE_TX_HEX = "0xaabb";
 
   @BeforeEach
   @Override
@@ -87,7 +96,8 @@ public class EngineNewPayloadV5Test extends EngineNewPayloadV4Test {
             mergeCoordinator,
             ethPeers,
             engineCallListener,
-            new NoOpMetricsSystem());
+            new NoOpMetricsSystem(),
+            new StrictInclusionListValidator());
   }
 
   @Override
@@ -180,6 +190,95 @@ public class EngineNewPayloadV5Test extends EngineNewPayloadV4Test {
     assertValidResponse(header, resp);
   }
 
+  @Test
+  public void shouldReturnValidWithEmptyInclusionList() {
+    final BlockHeader header =
+        setupValidPayload(
+            new BlockProcessingResult(
+                Optional.of(
+                    new BlockProcessingOutputs(null, List.of(), Optional.of(VALID_REQUESTS)))),
+            Optional.empty());
+    when(blockchain.getBlockHeader(header.getParentHash()))
+        .thenReturn(Optional.of(mock(BlockHeader.class)));
+    when(mergeCoordinator.getLatestValidAncestor(header)).thenReturn(Optional.of(header.getHash()));
+
+    final JsonRpcResponse resp =
+        respWithInclusionList(mockEnginePayload(header, emptyList()), emptyList());
+
+    assertValidResponse(header, resp);
+  }
+
+  @Test
+  public void shouldReturnInclusionListUnsatisfiedInStrictModeWhenILTxMissing() {
+    final BlockHeader header =
+        setupValidPayload(
+            new BlockProcessingResult(
+                Optional.of(
+                    new BlockProcessingOutputs(null, List.of(), Optional.of(VALID_REQUESTS)))),
+            Optional.empty());
+    when(blockchain.getBlockHeader(header.getParentHash()))
+        .thenReturn(Optional.of(mock(BlockHeader.class)));
+    when(mergeCoordinator.getLatestValidAncestor(header)).thenReturn(Optional.of(header.getHash()));
+
+    final JsonRpcResponse resp =
+        respWithInclusionList(mockEnginePayload(header, emptyList()), List.of(SAMPLE_TX_HEX));
+
+    final EnginePayloadStatusResult result = fromSuccessResp(resp);
+    assertThat(result.getStatusAsString()).isEqualTo(INCLUSION_LIST_UNSATISFIED.name());
+    assertThat(result.getError()).isNotNull();
+    assertThat(result.getLatestValidHash()).isPresent();
+    verify(engineCallListener, times(1)).executionEngineCalled();
+  }
+
+  @Test
+  public void shouldReturnValidInLenientModeWhenILTxMissing() {
+    this.method =
+        new EngineNewPayloadV5(
+            vertx,
+            protocolSchedule,
+            protocolContext,
+            mergeCoordinator,
+            ethPeers,
+            engineCallListener,
+            new NoOpMetricsSystem(),
+            new LenientInclusionListValidator());
+
+    final BlockHeader header =
+        setupValidPayload(
+            new BlockProcessingResult(
+                Optional.of(
+                    new BlockProcessingOutputs(null, List.of(), Optional.of(VALID_REQUESTS)))),
+            Optional.empty());
+    when(blockchain.getBlockHeader(header.getParentHash()))
+        .thenReturn(Optional.of(mock(BlockHeader.class)));
+    when(mergeCoordinator.getLatestValidAncestor(header)).thenReturn(Optional.of(header.getHash()));
+
+    final JsonRpcResponse resp =
+        respWithInclusionList(mockEnginePayload(header, emptyList()), List.of(SAMPLE_TX_HEX));
+
+    final EnginePayloadStatusResult result = fromSuccessResp(resp);
+    assertThat(result.getStatusAsString()).isEqualTo(VALID.name());
+    verify(engineCallListener, times(1)).executionEngineCalled();
+  }
+
+  @Test
+  public void shouldReturnValidWithNoInclusionListTransactionsParameter() {
+    final BlockHeader header =
+        setupValidPayload(
+            new BlockProcessingResult(
+                Optional.of(
+                    new BlockProcessingOutputs(null, List.of(), Optional.of(VALID_REQUESTS)))),
+            Optional.empty());
+    when(blockchain.getBlockHeader(header.getParentHash()))
+        .thenReturn(Optional.of(mock(BlockHeader.class)));
+    when(mergeCoordinator.getLatestValidAncestor(header)).thenReturn(Optional.of(header.getHash()));
+
+    final JsonRpcResponse resp =
+        respWithInclusionList(mockEnginePayload(header, emptyList()), null);
+
+    assertValidResponse(header, resp);
+  }
+
   @Override
   protected EnginePayloadParameter mockEnginePayload(
       final BlockHeader header, final List<String> txs) {
@@ -192,6 +291,37 @@ public class EngineNewPayloadV5Test extends EngineNewPayloadV4Test {
       final List<String> txs,
       final List<WithdrawalParameter> withdrawals) {
     return super.mockEnginePayload(header, txs, withdrawals, ENCODED_BLOCK_ACCESS_LIST);
+  }
+
+  @Override
+  protected JsonRpcResponse resp(final EnginePayloadParameter payload) {
+    return respWithInclusionList(payload, null);
+  }
+
+  protected JsonRpcResponse respWithInclusionList(
+      final EnginePayloadParameter payload, final List<String> inclusionListTxs) {
+    final List<String> requestsWithoutRequestId =
+        VALID_REQUESTS.stream()
+            .sorted(Comparator.comparing(r -> r.getType()))
+            .map(
+                r ->
+                    Bytes.concatenate(Bytes.of(r.getType().getSerializedType()), r.getData())
+                        .toHexString())
+            .toList();
+    Object[] params =
+        maybeParentBeaconBlockRoot
+            .map(
+                bytes32 ->
+                    new Object[] {
+                      payload,
+                      emptyList(),
+                      bytes32.toHexString(),
+                      requestsWithoutRequestId,
+                      inclusionListTxs
+                    })
+            .orElseGet(() -> new Object[] {payload});
+    return method.response(
+        new JsonRpcRequestContext(new JsonRpcRequest("2.0", this.method.getName(), params)));
   }
 
   @Override

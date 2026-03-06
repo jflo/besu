@@ -65,6 +65,7 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.subscription.syncing.
 import org.hyperledger.besu.ethereum.api.query.BlockchainQueries;
 import org.hyperledger.besu.ethereum.blockcreation.MiningCoordinator;
 import org.hyperledger.besu.ethereum.chain.Blockchain;
+import org.hyperledger.besu.ethereum.core.InclusionListValidationMode;
 import org.hyperledger.besu.ethereum.core.MiningConfiguration;
 import org.hyperledger.besu.ethereum.core.Synchronizer;
 import org.hyperledger.besu.ethereum.eth.manager.EthPeers;
@@ -198,6 +199,8 @@ public class RunnerBuilder {
   private List<SubnetInfo> allowedSubnets = new ArrayList<>();
   private boolean poaDiscoveryRetryBootnodes = true;
   private TransactionValidatorServiceImpl transactionValidatorService;
+  private InclusionListValidationMode inclusionListValidationMode =
+      InclusionListValidationMode.STRICT;
 
   /** Instantiates a new Runner builder. */
   public RunnerBuilder() {}
@@ -647,6 +650,18 @@ public class RunnerBuilder {
   public RunnerBuilder transactionValidatorService(
       final TransactionValidatorServiceImpl transactionValidatorService) {
     this.transactionValidatorService = transactionValidatorService;
+    return this;
+  }
+
+  /**
+   * Set inclusion list validation mode.
+   *
+   * @param inclusionListValidationMode the validation mode
+   * @return runner builder
+   */
+  public RunnerBuilder inclusionListValidationMode(
+      final InclusionListValidationMode inclusionListValidationMode) {
+    this.inclusionListValidationMode = inclusionListValidationMode;
     return this;
   }
 
@@ -1378,7 +1393,8 @@ public class RunnerBuilder {
                 apiConfiguration,
                 enodeDnsConfiguration,
                 transactionSimulator,
-                ethScheduler);
+                ethScheduler,
+                inclusionListValidationMode);
     methods.putAll(besuController.getAdditionalJsonRpcMethods(jsonRpcApis));
 
     final var pluginMethods =
