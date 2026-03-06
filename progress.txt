@@ -90,3 +90,14 @@ Started: Fri Mar  6 19:43:39 UTC 2026
   - No other test files directly construct EngineRPCConfiguration, so record changes are safe
   - Factory method on enum (createValidator()) keeps wiring logic close to the mode definition
 ---
+
+## 2026-03-06 - US-007
+- What was implemented: Created InclusionListTransactionSelector interface with selectTransactions(Hash, List<Transaction>, int) and isEnabled() methods
+- Files changed:
+  - ethereum/core/src/main/java/.../core/InclusionListTransactionSelector.java (new - interface definition)
+  - ethereum/core/src/test/java/.../core/InclusionListTransactionSelectorTest.java (new - 3 tests verifying interface contract)
+- **Learnings for future iterations:**
+  - Interface uses Hash for parentHash, List<Transaction> for mempool txs (decoded objects from pool), returns List<Bytes> (raw encoded)
+  - isEnabled() method supports DI pattern - disabled selectors return empty lists
+  - Anonymous class implementations in tests verify interface contract without needing concrete class
+---
