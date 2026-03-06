@@ -18,6 +18,8 @@ Started: Fri Mar  6 19:43:39 UTC 2026
 - Engine API methods extend ExecutionEngineJsonRpcMethod; call engineCallListener.executionEngineCalled() at start of syncResponse()
 - New Engine API methods: add to RpcMethod enum, register in ExecutionEngineJsonRpcMethods.create(), conditionally under hardfork milestone
 - PendingTransaction.newPendingTransaction() requires 4 args: (tx, isLocal, hasPriority, score) - score is a byte
+- AbstractEngineNewPayload.handleSuccessfulExecution() is a hook for V5+ to add post-execution validation (e.g., inclusion list)
+- Use overloaded constructors for backwards compatibility when adding new parameters to factories (e.g., JsonRpcMethodsFactory, ExecutionEngineJsonRpcMethods)
 ---
 
 ## 2026-03-06 - US-001
@@ -149,4 +151,23 @@ Started: Fri Mar  6 19:43:39 UTC 2026
   - TransactionPool.getPendingTransactions() returns Collection<PendingTransaction>; map with .getTransaction()
   - Register new engine methods conditionally under hardfork milestones (AMSTERDAM for EIP-7805)
   - Hash.class works directly with getRequiredParameter for hex hash deserialization
+---
+
+## 2026-03-06 - US-011
+- What was implemented: Updated engine_newPayloadV5 to accept inclusionListTransactions as 5th parameter (index 4), validate inclusion list constraints using configured InclusionListValidator, and return INCLUSION_LIST_UNSATISFIED status in strict mode or VALID in lenient mode. Added INCLUSION_LIST_UNSATISFIED to EngineStatus enum. Added handleSuccessfulExecution() template method hook in AbstractEngineNewPayload for post-execution validation. Wired InclusionListValidationMode from CLI config (EngineRPCConfiguration) through RunnerBuilder → JsonRpcMethodsFactory → ExecutionEngineJsonRpcMethods → EngineNewPayloadV5.
+- Files changed:
+  - ethereum/api/src/main/java/.../methods/ExecutionEngineJsonRpcMethod.java (added INCLUSION_LIST_UNSATISFIED enum value)
+  - ethereum/api/src/main/java/.../methods/engine/AbstractEngineNewPayload.java (added handleSuccessfulExecution hook)
+  - ethereum/api/src/main/java/.../methods/engine/EngineNewPayloadV5.java (added IL validator, 5th param extraction, post-exec validation)
+  - ethereum/api/src/main/java/.../methods/ExecutionEngineJsonRpcMethods.java (added IL validator wiring, overloaded constructor)
+  - ethereum/api/src/main/java/.../methods/JsonRpcMethodsFactory.java (added overloaded methods() with InclusionListValidationMode)
+  - app/src/main/java/.../RunnerBuilder.java (added inclusionListValidationMode field + builder method)
+  - app/src/main/java/.../cli/BesuCommand.java (passes engineRPCConfig.inclusionListValidationMode() to RunnerBuilder)
+  - ethereum/api/src/test/java/.../methods/engine/EngineNewPayloadV5Test.java (added 4 IL validation tests: empty IL, unsatisfied strict, valid lenient, null param)
+- **Learnings for future iterations:**
+  - Template method pattern (handleSuccessfulExecution) enables V5-specific post-execution logic without modifying base class flow
+  - Use overloaded constructors/methods to add new parameters without breaking existing callers
+  - EnginePayloadParameter.getTransactions() returns hex-encoded strings that can be decoded to Bytes for comparison
+  - For IL validation tests, can't use arbitrary hex as payload transactions (TransactionDecoder fails) - use empty list or real encoded transactions
+  - The 5th parameter (index 4) uses requestContext.getOptionalList(4, String.class) for extraction
 ---
