@@ -101,7 +101,7 @@ public abstract class AbstractEngineForkchoiceUpdatedTest {
   protected static final BlockHeaderTestFixture blockHeaderBuilder =
       new BlockHeaderTestFixture().baseFeePerGas(Wei.ONE);
 
-  @Mock private ProtocolSpec protocolSpec;
+  @Mock protected ProtocolSpec protocolSpec;
   @Mock protected ProtocolSchedule protocolSchedule;
   @Mock private ProtocolContext protocolContext;
 
@@ -261,6 +261,7 @@ public abstract class AbstractEngineForkchoiceUpdatedTest {
             payloadParams.getTimestamp(),
             payloadParams.getPrevRandao(),
             Address.ECREC,
+            Optional.empty(),
             Optional.empty(),
             Optional.empty(),
             Optional.empty()))
@@ -450,7 +451,7 @@ public abstract class AbstractEngineForkchoiceUpdatedTest {
     var forkchoiceRes = (EngineUpdateForkchoiceResult) resp.getResult();
 
     verify(mergeCoordinator, never())
-        .preparePayload(any(), any(), any(), any(), any(), any(), any());
+        .preparePayload(any(), any(), any(), any(), any(), any(), any(), any());
 
     assertThat(forkchoiceRes.getPayloadStatus().getStatus()).isEqualTo(VALID);
     assertThat(forkchoiceRes.getPayloadStatus().getError()).isNull();
@@ -550,6 +551,7 @@ public abstract class AbstractEngineForkchoiceUpdatedTest {
             Address.ECREC,
             Optional.empty(),
             Optional.empty(),
+            Optional.empty(),
             Optional.empty()))
         .thenReturn(mockPayloadId);
 
@@ -641,6 +643,7 @@ public abstract class AbstractEngineForkchoiceUpdatedTest {
             Address.ECREC,
             withdrawals,
             Optional.empty(),
+            Optional.empty(),
             Optional.empty()))
         .thenReturn(mockPayloadId);
 
@@ -685,6 +688,7 @@ public abstract class AbstractEngineForkchoiceUpdatedTest {
             payloadParams.getTimestamp(),
             payloadParams.getPrevRandao(),
             Address.ECREC,
+            Optional.empty(),
             Optional.empty(),
             Optional.empty(),
             Optional.empty()))
