@@ -1,3 +1,63 @@
 # Ralph Progress Log
-Started: Sat Jan 31 22:27:20 EST 2026
+Started: Fri Mar  6 19:43:39 UTC 2026
+
+## Codebase Patterns
+- EnginePayloadAttributesParameter uses @JsonCreator/@JsonProperty for JSON deserialization, hex strings decoded via Bytes32.fromHexString/Bytes.fromHexString
+- Test files use List.of() for non-null lists but Collections.singletonList() when nulls needed (List.of doesn't allow nulls)
+- Spotless formatting required: run `./gradlew :ethereum:api:spotlessApply` before committing
+- Constructor changes require updating all test call sites in AbstractEngineForkchoiceUpdatedTest and EngineForkchoiceUpdatedV2Test
+- Hex string test data must have even length (after 0x prefix) for Bytes.fromHexString()
+- Protocol-level EIP constants go in ethereum/core module (e.g., InclusionListConstants)
+- Validation interfaces/results also go in ethereum/core (e.g., InclusionListValidator, InclusionListValidationResult)
+- Use factory methods (valid(), invalid(msg), unsatisfied(msg)) for validation results with three-state status
+---
+
+## 2026-03-06 - US-001
+- What was implemented: Fixed EnginePayloadAttributesParameter inclusionListTransactions field (already partially implemented), fixed test constructor calls (added 7th null arg), fixed test hex data (odd-length), fixed null list construction
+- Files changed:
+  - ethereum/api/src/main/java/.../parameters/EnginePayloadAttributesParameter.java (spotless format only)
+  - ethereum/api/src/test/java/.../parameters/EnginePayloadAttributesParameterTest.java (fixed hex data, null list)
+  - ethereum/api/src/test/java/.../engine/AbstractEngineForkchoiceUpdatedTest.java (added 7th constructor arg)
+  - ethereum/api/src/test/java/.../engine/EngineForkchoiceUpdatedV2Test.java (added 7th constructor arg)
+- **Learnings for future iterations:**
+  - The inclusionListTransactions field and validation were already added to the source - only tests needed fixing
+  - When adding a new param to EnginePayloadAttributesParameter, update ~8 constructor calls in AbstractEngineForkchoiceUpdatedTest
+  - Use replace_all for batch edits of identical constructor patterns
+---
+
+## 2026-03-06 - US-002
+- What was implemented: Added MAX_BYTES_PER_INCLUSION_LIST constant (8192 bytes / 2^13) in InclusionListConstants class; updated EnginePayloadAttributesParameter validation to enforce byte limit; added unit tests
+- Files changed:
+  - ethereum/core/src/main/java/.../core/InclusionListConstants.java (new - constant definition)
+  - ethereum/core/src/test/java/.../core/InclusionListConstantsTest.java (new - constant value tests)
+  - ethereum/api/src/main/java/.../parameters/EnginePayloadAttributesParameter.java (added byte limit check)
+  - ethereum/api/src/test/java/.../parameters/EnginePayloadAttributesParameterTest.java (added byte limit tests)
+- **Learnings for future iterations:**
+  - Protocol-level constants go in ethereum/core module (e.g., InclusionListConstants)
+  - Constants class uses private constructor + public static final pattern
+  - Spotless apply needed for both :ethereum:core and :ethereum:api modules
+---
+
+## 2026-03-06 - US-003
+- What was implemented: Created InclusionListValidator interface, InclusionListValidationResult class with three-state status (VALID/INVALID/UNSATISFIED), and InclusionListValidationStatus enum
+- Files changed:
+  - ethereum/core/src/main/java/.../core/InclusionListValidationStatus.java (new - three-state enum)
+  - ethereum/core/src/main/java/.../core/InclusionListValidationResult.java (new - result with factory methods)
+  - ethereum/core/src/main/java/.../core/InclusionListValidator.java (new - interface with validate method)
+  - ethereum/core/src/test/java/.../core/InclusionListValidationResultTest.java (new - tests for all three states)
+- **Learnings for future iterations:**
+  - Used List<Bytes> for both payload and IL transactions (raw encoded bytes) - implementations will handle decoding
+  - Three-state validation: VALID (pass), INVALID (malformed data), UNSATISFIED (constraints not met)
+  - Factory methods pattern: valid(), invalid(msg), unsatisfied(msg) for clean result creation
+---
+
+## 2026-03-06 - US-004
+- What was implemented: StrictInclusionListValidator that enforces EIP-7805 constraints - checks all IL transactions appear in payload in order (allowing interleaved txs) and validates total byte size against MAX_BYTES_PER_INCLUSION_LIST
+- Files changed:
+  - ethereum/core/src/main/java/.../core/StrictInclusionListValidator.java (new - strict validator implementation)
+  - ethereum/core/src/test/java/.../core/StrictInclusionListValidatorTest.java (new - 10 tests covering valid, missing, wrong order, byte limits)
+- **Learnings for future iterations:**
+  - Ordered subsequence matching: iterate payload txs, advance IL index on match - simple O(n) algorithm
+  - INVALID for malformed data (byte limit exceeded), UNSATISFIED for constraint violations (missing/reordered txs)
+  - Null/empty IL list is always valid (no constraints to enforce)
 ---
