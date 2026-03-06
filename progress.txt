@@ -61,3 +61,14 @@ Started: Fri Mar  6 19:43:39 UTC 2026
   - INVALID for malformed data (byte limit exceeded), UNSATISFIED for constraint violations (missing/reordered txs)
   - Null/empty IL list is always valid (no constraints to enforce)
 ---
+
+## 2026-03-06 - US-005
+- What was implemented: LenientInclusionListValidator that performs same validation logic as strict but logs warnings and always returns VALID. Includes AtomicLong violation counter for metrics.
+- Files changed:
+  - ethereum/core/src/main/java/.../core/LenientInclusionListValidator.java (new - lenient validator)
+  - ethereum/core/src/test/java/.../core/LenientInclusionListValidatorTest.java (new - 9 tests)
+- **Learnings for future iterations:**
+  - Lenient validator reuses same validation logic as strict but returns VALID + logs WARN instead of rejecting
+  - AtomicLong counter for violations allows simple metrics without requiring MetricsSystem injection at this layer
+  - Tests verify both that result is VALID and that violation counter increments correctly
+---
