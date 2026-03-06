@@ -16,6 +16,8 @@ package org.hyperledger.besu.cli.options;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.hyperledger.besu.ethereum.core.InclusionListConfiguration;
+import org.hyperledger.besu.ethereum.core.InclusionListSelectorType;
 import org.hyperledger.besu.ethereum.core.InclusionListValidationMode;
 import org.hyperledger.besu.ethereum.core.InclusionListValidator;
 import org.hyperledger.besu.ethereum.core.LenientInclusionListValidator;
@@ -78,6 +80,40 @@ class EngineRPCOptionsTest {
     final Bytes tx = Bytes.fromHexString("0x1234");
     final var result = validator.validate(List.of(), List.of(tx));
     assertThat(result.isValid()).isTrue();
+  }
+
+  @Test
+  void defaultSelectorTypeIsDefault() {
+    final EngineRPCOptions options = new EngineRPCOptions();
+    final EngineRPCConfiguration config = options.toDomainObject();
+    assertThat(config.inclusionListSelectorType()).isEqualTo(InclusionListSelectorType.DEFAULT);
+  }
+
+  @Test
+  void parsesSelectorTypeDefault() {
+    final EngineRPCOptions options = parseOptions("--engine-inclusion-list-selector-type=DEFAULT");
+    final EngineRPCConfiguration config = options.toDomainObject();
+    assertThat(config.inclusionListSelectorType()).isEqualTo(InclusionListSelectorType.DEFAULT);
+  }
+
+  @Test
+  void toInclusionListConfigurationCombinesModeAndSelector() {
+    final EngineRPCOptions options =
+        parseOptions(
+            "--engine-inclusion-list-validation-mode=LENIENT",
+            "--engine-inclusion-list-selector-type=DEFAULT");
+    final InclusionListConfiguration ilConfig =
+        options.toDomainObject().toInclusionListConfiguration();
+    assertThat(ilConfig.validationMode()).isEqualTo(InclusionListValidationMode.LENIENT);
+    assertThat(ilConfig.selectorType()).isEqualTo(InclusionListSelectorType.DEFAULT);
+  }
+
+  @Test
+  void defaultToInclusionListConfigurationMatchesDefaults() {
+    final EngineRPCOptions options = new EngineRPCOptions();
+    final InclusionListConfiguration ilConfig =
+        options.toDomainObject().toInclusionListConfiguration();
+    assertThat(ilConfig).isEqualTo(InclusionListConfiguration.DEFAULT);
   }
 
   private EngineRPCOptions parseOptions(final String... args) {
