@@ -210,6 +210,49 @@ public class BlockTransactionSelector implements BlockTransactionSelectionServic
     return transactionSelectionResults;
   }
 
+  /**
+   * Builds a list of transactions for a block, processing inclusion list transactions first as
+   * priority transactions (EIP-7805), then filling remaining block space from the transaction pool.
+   *
+   * @param inclusionListTransactions the transactions from the inclusion list to prioritize
+   * @return The {@code TransactionSelectionResults} containing the results of transaction
+   *     evaluation.
+   */
+  public TransactionSelectionResults buildTransactionListForBlock(
+      final List<Transaction> inclusionListTransactions) {
+    selectorsStateManager.blockSelectionStarted();
+    int included = 0;
+    int failed = 0;
+    for (final Transaction ilTx : inclusionListTransactions) {
+      final TransactionSelectionResult result =
+          evaluateTransaction(new PendingTransaction.Local.Priority(ilTx));
+      if (result.selected()) {
+        included++;
+      } else {
+        failed++;
+        LOG.atDebug()
+            .setMessage("Inclusion list transaction {} was not selected for block: {}")
+            .addArgument(ilTx::getHash)
+            .addArgument(result)
+            .log();
+      }
+    }
+    LOG.atInfo()
+        .setMessage("Inclusion list processing complete: {} included, {} failed out of {} total")
+        .addArgument(included)
+        .addArgument(failed)
+        .addArgument(inclusionListTransactions.size())
+        .log();
+
+    // Fill remaining block space from the transaction pool
+    blockSelectionContext.transactionPool().selectTransactions(this::timeLimitedSelection);
+    LOG.atTrace()
+        .setMessage("Transaction selection result {}")
+        .addArgument(transactionSelectionResults::toTraceLog)
+        .log();
+    return transactionSelectionResults;
+  }
+
   public void cancel() {
     isCancelled.set(true);
     if (currTxSelectionTask != null) {

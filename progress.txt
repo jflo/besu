@@ -20,6 +20,10 @@ Started: Fri Mar  6 19:43:39 UTC 2026
 - PendingTransaction.newPendingTransaction() requires 4 args: (tx, isLocal, hasPriority, score) - score is a byte
 - AbstractEngineNewPayload.handleSuccessfulExecution() is a hook for V5+ to add post-execution validation (e.g., inclusion list)
 - Use overloaded constructors for backwards compatibility when adding new parameters to factories (e.g., JsonRpcMethodsFactory, ExecutionEngineJsonRpcMethods)
+- Use default interface methods for backwards-compatible parameter additions (e.g., 7-param → 8-param preparePayload in MergeMiningCoordinator)
+- @BeforeEach parent runs before child in JUnit 5; override parent's before() when child setup must happen first
+- blockHeaderBuilder is shared mutable static in AbstractEngineForkchoiceUpdatedTest; explicitly set timestamp before building headers
+- Use anyLong() not any() for primitive long parameters in Mockito matchers (any() returns null → NPE)
 ---
 
 ## 2026-03-06 - US-001
@@ -170,4 +174,21 @@ Started: Fri Mar  6 19:43:39 UTC 2026
   - EnginePayloadParameter.getTransactions() returns hex-encoded strings that can be decoded to Bytes for comparison
   - For IL validation tests, can't use arbitrary hex as payload transactions (TransactionDecoder fails) - use empty list or real encoded transactions
   - The 5th parameter (index 4) uses requestContext.getOptionalList(4, String.class) for extraction
+---
+
+## 2026-03-06 - US-012
+- What was implemented: Updated engine_forkchoiceUpdatedV4 to pass inclusionListTransactions from EnginePayloadAttributesParameter through to payload building. Extended MergeMiningCoordinator.preparePayload() with 8th param (Optional<List<Bytes>> inclusionListTransactions) using default interface method for backwards compatibility. Updated MergeCoordinator and TransitionCoordinator implementations. Added getInclusionListBytes() helper in AbstractEngineForkchoiceUpdated. Created comprehensive EngineForkchoiceUpdatedV4Test with 12+ tests.
+- Files changed:
+  - consensus/merge/src/main/java/.../MergeMiningCoordinator.java (added 8-param preparePayload with default method)
+  - consensus/merge/src/main/java/.../MergeCoordinator.java (updated preparePayload signature)
+  - consensus/merge/src/main/java/.../TransitionCoordinator.java (pass-through 8th param)
+  - ethereum/api/src/main/java/.../engine/AbstractEngineForkchoiceUpdated.java (added getInclusionListBytes helper, updated preparePayload call)
+  - ethereum/api/src/test/java/.../engine/AbstractEngineForkchoiceUpdatedTest.java (updated mocks from 7 to 8 params, made protocolSpec protected)
+  - ethereum/api/src/test/java/.../engine/EngineForkchoiceUpdatedV4Test.java (new - 12+ tests)
+- **Learnings for future iterations:**
+  - Use default interface methods for backwards-compatible parameter additions (7-param → 8-param preparePayload)
+  - @BeforeEach in parent runs BEFORE child in JUnit 5; override parent's before() when child needs setup first
+  - blockHeaderBuilder is shared mutable static in AbstractEngineForkchoiceUpdatedTest; always explicitly set timestamp before building headers in V4+ tests
+  - Use anyLong() not any() for primitive long parameters in Mockito matchers (any() returns null → NPE for primitives)
+  - V4 tests must override inherited abstract tests that use payload attributes without PBSR/slotNumber (V4 rejects those)
 ---
