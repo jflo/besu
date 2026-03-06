@@ -10,6 +10,8 @@ Started: Fri Mar  6 19:43:39 UTC 2026
 - Protocol-level EIP constants go in ethereum/core module (e.g., InclusionListConstants)
 - Validation interfaces/results also go in ethereum/core (e.g., InclusionListValidator, InclusionListValidationResult)
 - Use factory methods (valid(), invalid(msg), unsatisfied(msg)) for validation results with three-state status
+- Engine-related CLI flags go in EngineRPCOptions/EngineRPCConfiguration (PicoCLI supports enum types natively)
+- EngineRPCConfiguration is a Java record; adding fields only requires updating toDomainObject() in EngineRPCOptions
 ---
 
 ## 2026-03-06 - US-001
@@ -71,4 +73,20 @@ Started: Fri Mar  6 19:43:39 UTC 2026
   - Lenient validator reuses same validation logic as strict but returns VALID + logs WARN instead of rejecting
   - AtomicLong counter for violations allows simple metrics without requiring MetricsSystem injection at this layer
   - Tests verify both that result is VALID and that violation counter increments correctly
+---
+
+## 2026-03-06 - US-006
+- What was implemented: Added --engine-inclusion-list-validation-mode CLI flag (strict|lenient) to EngineRPCOptions/Configuration, created InclusionListValidationMode enum with factory method to create appropriate validator
+- Files changed:
+  - ethereum/core/src/main/java/.../core/InclusionListValidationMode.java (new - enum with createValidator() factory)
+  - ethereum/core/src/test/java/.../core/InclusionListValidationModeTest.java (new - enum and factory tests)
+  - app/src/main/java/.../cli/options/EngineRPCOptions.java (added CLI flag)
+  - app/src/main/java/.../cli/options/EngineRPCConfiguration.java (added field to record)
+  - app/src/test/java/.../cli/options/EngineRPCOptionsTest.java (new - integration test for flag parsing and validator behavior)
+- **Learnings for future iterations:**
+  - EngineRPCOptions/Configuration is the right place for engine-related CLI flags (follows existing pattern)
+  - PicoCLI supports enum types natively - just use the enum as the field type and it handles case-insensitive parsing
+  - EngineRPCConfiguration is a record; adding a field requires updating only the toDomainObject() call in EngineRPCOptions
+  - No other test files directly construct EngineRPCConfiguration, so record changes are safe
+  - Factory method on enum (createValidator()) keeps wiring logic close to the mode definition
 ---
