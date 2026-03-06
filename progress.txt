@@ -12,6 +12,9 @@ Started: Fri Mar  6 19:43:39 UTC 2026
 - Use factory methods (valid(), invalid(msg), unsatisfied(msg)) for validation results with three-state status
 - Engine-related CLI flags go in EngineRPCOptions/EngineRPCConfiguration (PicoCLI supports enum types natively)
 - EngineRPCConfiguration is a Java record; adding fields only requires updating toDomainObject() in EngineRPCOptions
+- Use getMaxGasPrice() to check if a tx can afford the base fee (returns maxFeePerGas or gasPrice); getEffectiveGasPrice returns baseFee even for underpaying txs
+- TransactionTestFixture (test-support) + KeyPair for creating signed test transactions; VersionedHash first byte must be 0x01
+- Error-prone UnusedMethod: unused private methods in tests cause compile failure with -Werror
 ---
 
 ## 2026-03-06 - US-001
@@ -100,4 +103,16 @@ Started: Fri Mar  6 19:43:39 UTC 2026
   - Interface uses Hash for parentHash, List<Transaction> for mempool txs (decoded objects from pool), returns List<Bytes> (raw encoded)
   - isEnabled() method supports DI pattern - disabled selectors return empty lists
   - Anonymous class implementations in tests verify interface contract without needing concrete class
+---
+
+## 2026-03-06 - US-008
+- What was implemented: DefaultInclusionListSelector using PriorityQueue sorted by effective gas price (highest first). Filters blob transactions, enforces sequential nonces per sender, respects byte limit, and filters transactions below base fee using getMaxGasPrice().
+- Files changed:
+  - ethereum/core/src/main/java/.../core/DefaultInclusionListSelector.java (new - default selector implementation)
+  - ethereum/core/src/test/java/.../core/DefaultInclusionListSelectorTest.java (new - 11 tests)
+- **Learnings for future iterations:**
+  - Use getMaxGasPrice() (not getEffectiveGasPrice) to check if a tx can pay the base fee — getEffectiveGasPrice returns baseFee even when tx can't pay it
+  - VersionedHash requires first byte to be 0x01; Bytes32.fromHexStringLenient("0x01") left-pads with zeros so first byte is 0x00
+  - TransactionTestFixture in test-support module provides builder pattern for creating test transactions with KeyPair signing
+  - Error-prone's UnusedMethod check treats unused private methods as errors (-Werror); remove unused helpers
 ---
