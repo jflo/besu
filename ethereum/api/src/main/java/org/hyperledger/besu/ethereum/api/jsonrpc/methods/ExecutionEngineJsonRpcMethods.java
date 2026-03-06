@@ -33,6 +33,7 @@ import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine.EngineG
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine.EngineGetBlobsV2;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine.EngineGetBlobsV3;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine.EngineGetClientVersionV1;
+import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine.EngineGetInclusionListV1;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine.EngineGetPayloadBodiesByHashV1;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine.EngineGetPayloadBodiesByHashV2;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.engine.EngineGetPayloadBodiesByRangeV1;
@@ -278,6 +279,9 @@ public class ExecutionEngineJsonRpcMethods extends ApiGroupJsonRpcMethods {
                 protocolContext,
                 mergeCoordinator.get(),
                 engineQosTimer));
+        executionEngineApisSupported.add(
+            new EngineGetInclusionListV1(
+                consensusEngineServer, protocolContext, engineQosTimer, transactionPool));
       }
 
       return mapOf(executionEngineApisSupported);
