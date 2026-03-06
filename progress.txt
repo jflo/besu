@@ -15,6 +15,9 @@ Started: Fri Mar  6 19:43:39 UTC 2026
 - Use getMaxGasPrice() to check if a tx can afford the base fee (returns maxFeePerGas or gasPrice); getEffectiveGasPrice returns baseFee even for underpaying txs
 - TransactionTestFixture (test-support) + KeyPair for creating signed test transactions; VersionedHash first byte must be 0x01
 - Error-prone UnusedMethod: unused private methods in tests cause compile failure with -Werror
+- Engine API methods extend ExecutionEngineJsonRpcMethod; call engineCallListener.executionEngineCalled() at start of syncResponse()
+- New Engine API methods: add to RpcMethod enum, register in ExecutionEngineJsonRpcMethods.create(), conditionally under hardfork milestone
+- PendingTransaction.newPendingTransaction() requires 4 args: (tx, isLocal, hasPriority, score) - score is a byte
 ---
 
 ## 2026-03-06 - US-001
@@ -130,4 +133,20 @@ Started: Fri Mar  6 19:43:39 UTC 2026
   - Record with static DEFAULT constant provides clean defaults pattern
   - EngineRPCConfiguration.toInclusionListConfiguration() bridges CLI config to domain config
   - Only EngineRPCOptions.toDomainObject() constructs EngineRPCConfiguration, so adding record fields is safe
+---
+
+## 2026-03-06 - US-010
+- What was implemented: EngineGetInclusionListV1 JSON-RPC method handler that accepts parentHash, looks up parent block, creates DefaultInclusionListSelector with parent's base fee, selects transactions from mempool, returns hex-encoded transaction bytes. Added UNKNOWN_PARENT (-38006) error code to RpcErrorType and ENGINE_GET_INCLUSION_LIST_V1 to RpcMethod enum.
+- Files changed:
+  - ethereum/api/src/main/java/.../methods/engine/EngineGetInclusionListV1.java (new - method handler)
+  - ethereum/api/src/test/java/.../methods/engine/EngineGetInclusionListV1Test.java (new - 6 tests)
+  - ethereum/api/src/main/java/.../jsonrpc/RpcMethod.java (added ENGINE_GET_INCLUSION_LIST_V1 enum)
+  - ethereum/api/src/main/java/.../response/RpcErrorType.java (added UNKNOWN_PARENT error code -38006)
+  - ethereum/api/src/main/java/.../methods/ExecutionEngineJsonRpcMethods.java (registered under AMSTERDAM milestone)
+- **Learnings for future iterations:**
+  - Engine API methods extend ExecutionEngineJsonRpcMethod and override syncResponse()
+  - DefaultInclusionListSelector needs base fee from parent block header - create per-request with parent's baseFee
+  - TransactionPool.getPendingTransactions() returns Collection<PendingTransaction>; map with .getTransaction()
+  - Register new engine methods conditionally under hardfork milestones (AMSTERDAM for EIP-7805)
+  - Hash.class works directly with getRequiredParameter for hex hash deserialization
 ---
