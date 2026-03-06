@@ -116,3 +116,18 @@ Started: Fri Mar  6 19:43:39 UTC 2026
   - TransactionTestFixture in test-support module provides builder pattern for creating test transactions with KeyPair signing
   - Error-prone's UnusedMethod check treats unused private methods as errors (-Werror); remove unused helpers
 ---
+
+## 2026-03-06 - US-009
+- What was implemented: InclusionListConfiguration record class consolidating validation mode and selector type; InclusionListSelectorType enum; added --engine-inclusion-list-selector-type CLI flag; wired EngineRPCConfiguration.toInclusionListConfiguration() factory method
+- Files changed:
+  - ethereum/core/src/main/java/.../core/InclusionListSelectorType.java (new - enum for selector types)
+  - ethereum/core/src/main/java/.../core/InclusionListConfiguration.java (new - consolidated config record)
+  - ethereum/core/src/test/java/.../core/InclusionListConfigurationTest.java (new - 4 tests)
+  - app/src/main/java/.../cli/options/EngineRPCOptions.java (added selector type CLI flag)
+  - app/src/main/java/.../cli/options/EngineRPCConfiguration.java (added selector type field + toInclusionListConfiguration())
+  - app/src/test/java/.../cli/options/EngineRPCOptionsTest.java (added 4 tests for selector type and configuration wiring)
+- **Learnings for future iterations:**
+  - Record with static DEFAULT constant provides clean defaults pattern
+  - EngineRPCConfiguration.toInclusionListConfiguration() bridges CLI config to domain config
+  - Only EngineRPCOptions.toDomainObject() constructs EngineRPCConfiguration, so adding record fields is safe
+---
