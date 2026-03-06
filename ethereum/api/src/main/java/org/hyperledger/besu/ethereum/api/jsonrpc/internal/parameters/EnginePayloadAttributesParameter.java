@@ -66,8 +66,7 @@ public class EnginePayloadAttributesParameter {
       try {
         Bytes.fromHexString(tx);
       } catch (final IllegalArgumentException e) {
-        throw new IllegalArgumentException(
-            "Invalid inclusion list transaction format: " + tx, e);
+        throw new IllegalArgumentException("Invalid inclusion list transaction format: " + tx, e);
       }
     }
     return transactions;

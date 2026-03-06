@@ -22,6 +22,7 @@ import static org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters.With
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.GWei;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.tuweni.bytes.Bytes32;
@@ -101,8 +102,8 @@ public class EnginePayloadAttributesParameterTest {
   public void attributesAreConvertedFromString_InclusionListPresent() {
     final List<String> inclusionListTxs =
         List.of(
-            "0xf86c0a8502540be40082520894000000000000000000000000000000000000000a0180820a95a0a7f8f45cce375bb7af8fc53e6987e94d46a71d64e1f9bb9f6c6b1d6c2f7b5b7da0420e5e4f8e6e4f8e6e4f8e6e4f8e6e4f8e6e4f8e6e4f8e6e4f8e6e4f8e6e4f8",
-            "0xf86c0b8502540be40082520894000000000000000000000000000000000000000b0180820a96a0a7f8f45cce375bb7af8fc53e6987e94d46a71d64e1f9bb9f6c6b1d6c2f7b5b7ea0420e5e4f8e6e4f8e6e4f8e6e4f8e6e4f8e6e4f8e6e4f8e6e4f8e6e4f8e6e4f9");
+            "0xf86c0a8502540be400825208940000000000000000000000000000000000000001018001a0",
+            "0xf86c0b8502540be400825208940000000000000000000000000000000000000002018001a0");
     final EnginePayloadAttributesParameter parameter =
         new EnginePayloadAttributesParameter(
             TIMESTAMP,
@@ -158,7 +159,7 @@ public class EnginePayloadAttributesParameterTest {
 
   @Test
   public void validate_NullInclusionListTransaction_ThrowsException() {
-    final List<String> nullInclusionListTxs = List.of((String) null);
+    final List<String> nullInclusionListTxs = Collections.singletonList(null);
     assertThatThrownBy(
             () ->
                 new EnginePayloadAttributesParameter(
