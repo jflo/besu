@@ -14,6 +14,8 @@
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters;
 
+import static org.hyperledger.besu.ethereum.core.InclusionListConstants.MAX_BYTES_PER_INCLUSION_LIST;
+
 import org.hyperledger.besu.datatypes.Address;
 
 import java.util.List;
@@ -58,16 +60,26 @@ public class EnginePayloadAttributesParameter {
     if (transactions == null) {
       return null;
     }
-    // Validate that each transaction is a valid hex string
+    int totalBytes = 0;
+    // Validate that each transaction is a valid hex string and enforce byte limit
     for (final String tx : transactions) {
       if (tx == null || tx.isEmpty()) {
         throw new IllegalArgumentException("Inclusion list transaction cannot be null or empty");
       }
       try {
-        Bytes.fromHexString(tx);
+        final Bytes txBytes = Bytes.fromHexString(tx);
+        totalBytes += txBytes.size();
       } catch (final IllegalArgumentException e) {
         throw new IllegalArgumentException("Invalid inclusion list transaction format: " + tx, e);
       }
+    }
+    if (totalBytes > MAX_BYTES_PER_INCLUSION_LIST) {
+      throw new IllegalArgumentException(
+          "Inclusion list exceeds maximum size: "
+              + totalBytes
+              + " bytes > "
+              + MAX_BYTES_PER_INCLUSION_LIST
+              + " bytes");
     }
     return transactions;
   }
