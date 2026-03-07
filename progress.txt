@@ -243,3 +243,13 @@ Started: Fri Mar  6 19:43:39 UTC 2026
   - mergeCoordinator.getEthScheduler() is needed when payload contains transactions - use empty tx lists to avoid needing EthScheduler mock
   - mergeContext.isSyncing() must be explicitly mocked to return false in standalone tests (not inherited from abstract base)
 ---
+
+## 2026-03-07 - US-016
+- What was implemented: Created comprehensive EIP-7805 Inclusion Lists Engine API documentation covering all three Engine API methods (getInclusionListV1, newPayloadV5, forkchoiceUpdatedV4), configuration options, metrics, error codes, constants, and example JSON-RPC requests/responses.
+- Files changed:
+  - docs/eip7805_inclusion_lists.md (new - complete API documentation)
+- **Learnings for future iterations:**
+  - Besu user docs are in a separate repo (besu-docs), but in-repo technical docs go in docs/ directory
+  - Existing docs pattern: markdown files in docs/ for technical notes (e.g., trace_rpc_apis.md, PROFILING.md)
+  - Documentation-only stories don't require spotless/compile changes but should still verify builds pass
+---
