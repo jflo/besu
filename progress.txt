@@ -24,6 +24,7 @@ Started: Fri Mar  6 19:43:39 UTC 2026
 - @BeforeEach parent runs before child in JUnit 5; override parent's before() when child setup must happen first
 - blockHeaderBuilder is shared mutable static in AbstractEngineForkchoiceUpdatedTest; explicitly set timestamp before building headers
 - Use anyLong() not any() for primitive long parameters in Mockito matchers (any() returns null → NPE)
+- Metrics: use BesuMetricCategory.RPC for engine API counters; StubMetricsSystem (from metrics:core testSupportArtifacts) for test verification
 ---
 
 ## 2026-03-06 - US-001
@@ -191,4 +192,39 @@ Started: Fri Mar  6 19:43:39 UTC 2026
   - blockHeaderBuilder is shared mutable static in AbstractEngineForkchoiceUpdatedTest; always explicitly set timestamp before building headers in V4+ tests
   - Use anyLong() not any() for primitive long parameters in Mockito matchers (any() returns null → NPE for primitives)
   - V4 tests must override inherited abstract tests that use payload attributes without PBSR/slotNumber (V4 rejects those)
+---
+
+## 2026-03-06 - US-013
+- What was implemented: Updated payload building to respect inclusion lists. Added new overload of BlockTransactionSelector.buildTransactionListForBlock(List<Transaction>) that processes IL transactions first as priority, then fills from pool. Threaded IL transactions from MergeCoordinator.preparePayload → tryToBuildBetterBlock → MergeBlockCreator.createBlock → AbstractBlockCreator.createBlock → selectTransactions. MergeCoordinator decodes IL bytes to Transaction objects using TransactionDecoder. Added logging for IL processing (included/failed counts).
+- Files changed:
+  - ethereum/blockcreation/src/main/java/.../txselection/BlockTransactionSelector.java (added buildTransactionListForBlock overload with IL support)
+  - ethereum/blockcreation/src/main/java/.../AbstractBlockCreator.java (added createBlock overload with IL param, updated selectTransactions)
+  - consensus/merge/src/main/java/.../MergeBlockCreator.java (added createBlock overload with IL param)
+  - consensus/merge/src/main/java/.../MergeCoordinator.java (decode IL bytes, pass to tryToBuildBetterBlock)
+  - ethereum/blockcreation/src/test/java/.../LondonFeeMarketBlockTransactionSelectorTest.java (4 new tests: IL first, ordering preserved, failed tx handling, empty IL)
+- **Learnings for future iterations:**
+  - BlockTransactionSelector.evaluateTransaction() already handles commit/rollback internally - don't call commit() again
+  - selectorsStateManager.blockSelectionStarted() is idempotent (sets flag to true) - safe to call multiple times
+  - Use TransactionDecoder.decodeOpaqueBytes(bytes, EncodingContext.BLOCK_BODY) for decoding IL transaction bytes
+  - Error-prone UnusedMethod check: if you create an overload that makes the old method unused, delete the old one
+  - Solidity compilation tasks fail on ARM64 (rosetta errors) - exclude with -x flag, not related to Java changes
+---
+
+## 2026-03-07 - US-014
+- What was implemented: Added comprehensive logging and metrics for IL operations. EngineGetInclusionListV1 now tracks transactions_generated, bytes_generated, and selector_duration_ms counters. EngineNewPayloadV5 tracks validation_failures counter. Added DEBUG/INFO/WARN logging to DefaultInclusionListSelector, StrictInclusionListValidator, and both engine methods.
+- Files changed:
+  - ethereum/api/src/main/java/.../methods/engine/EngineGetInclusionListV1.java (added MetricsSystem, 3 counters, enhanced logging)
+  - ethereum/api/src/main/java/.../methods/engine/EngineNewPayloadV5.java (added validation_failures counter, enhanced logging)
+  - ethereum/api/src/main/java/.../methods/ExecutionEngineJsonRpcMethods.java (pass metricsSystem to EngineGetInclusionListV1)
+  - ethereum/core/src/main/java/.../core/DefaultInclusionListSelector.java (added DEBUG logging for selection)
+  - ethereum/core/src/main/java/.../core/StrictInclusionListValidator.java (added DEBUG/WARN logging)
+  - ethereum/api/build.gradle (added metrics:core testSupportArtifacts dependency)
+  - ethereum/api/src/test/java/.../engine/EngineGetInclusionListV1Test.java (4 new metrics tests, StubMetricsSystem)
+  - ethereum/api/src/test/java/.../engine/EngineNewPayloadV5Test.java (2 new metrics tests, StubMetricsSystem)
+- **Learnings for future iterations:**
+  - StubMetricsSystem from metrics:core testSupportArtifacts allows verifying counter values in tests
+  - ethereum:api module didn't have metrics:core testSupportArtifacts dependency - had to add it
+  - createCounter() delegates to createLabelledCounter() with empty labels - StubMetricsSystem.getCounterValue(name) works with no extra labels
+  - Use BesuMetricCategory.RPC for engine API metrics (consistent with EngineGetBlobsV2 pattern)
+  - Use fluent LOG.atDebug()/atInfo()/atWarn() with .setMessage().addArgument().log() pattern for modern logging
 ---
