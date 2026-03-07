@@ -36,7 +36,9 @@ import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule;
 import org.hyperledger.besu.ethereum.mainnet.ValidationResult;
 import org.hyperledger.besu.ethereum.mainnet.block.access.list.BlockAccessList;
 import org.hyperledger.besu.ethereum.rlp.BytesValueRLPInput;
+import org.hyperledger.besu.metrics.BesuMetricCategory;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
+import org.hyperledger.besu.plugin.services.metrics.Counter;
 
 import java.util.Collections;
 import java.util.List;
@@ -52,6 +54,7 @@ public class EngineNewPayloadV5 extends AbstractEngineNewPayload {
   private static final Logger LOG = LoggerFactory.getLogger(EngineNewPayloadV5.class);
 
   private final InclusionListValidator inclusionListValidator;
+  private final Counter validationFailuresCounter;
 
   public EngineNewPayloadV5(
       final Vertx vertx,
@@ -71,6 +74,11 @@ public class EngineNewPayloadV5 extends AbstractEngineNewPayload {
         engineCallListener,
         metricsSystem);
     this.inclusionListValidator = inclusionListValidator;
+    this.validationFailuresCounter =
+        metricsSystem.createCounter(
+            BesuMetricCategory.RPC,
+            "engine_inclusion_list_validation_failures",
+            "Total number of inclusion list validation failures");
   }
 
   @Override
@@ -150,10 +158,19 @@ public class EngineNewPayloadV5 extends AbstractEngineNewPayload {
     final List<Bytes> payloadTxBytes =
         blockParam.getTransactions().stream().map(Bytes::fromHexString).toList();
 
+    LOG.atDebug()
+        .setMessage("IL validation: block={}, IL txs={}, payload txs={}, validator={}")
+        .addArgument(blockHash)
+        .addArgument(inclusionListTxBytes.size())
+        .addArgument(payloadTxBytes.size())
+        .addArgument(inclusionListValidator.getClass().getSimpleName())
+        .log();
+
     final InclusionListValidationResult ilResult =
         inclusionListValidator.validate(payloadTxBytes, inclusionListTxBytes);
 
     if (ilResult.getStatus() == InclusionListValidationStatus.UNSATISFIED) {
+      validationFailuresCounter.inc();
       LOG.warn(
           "Inclusion list unsatisfied for block {}: {}",
           blockHash,
@@ -165,6 +182,11 @@ public class EngineNewPayloadV5 extends AbstractEngineNewPayload {
     }
 
     if (ilResult.getStatus() == InclusionListValidationStatus.INVALID) {
+      validationFailuresCounter.inc();
+      LOG.warn(
+          "Inclusion list invalid for block {}: {}",
+          blockHash,
+          ilResult.getErrorMessage().orElse("unknown"));
       return respondWithInvalid(
           reqId,
           blockParam,
@@ -172,6 +194,12 @@ public class EngineNewPayloadV5 extends AbstractEngineNewPayload {
           EngineStatus.INVALID,
           ilResult.getErrorMessage().orElse("Invalid inclusion list"));
     }
+
+    LOG.atInfo()
+        .setMessage("IL validation passed for block {}: {} IL transactions validated")
+        .addArgument(blockHash)
+        .addArgument(inclusionListTxBytes.size())
+        .log();
 
     return respondWith(reqId, blockParam, blockHash, EngineStatus.VALID);
   }

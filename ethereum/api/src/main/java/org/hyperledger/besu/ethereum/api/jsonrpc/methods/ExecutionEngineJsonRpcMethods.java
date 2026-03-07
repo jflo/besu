@@ -310,7 +310,11 @@ public class ExecutionEngineJsonRpcMethods extends ApiGroupJsonRpcMethods {
                 engineQosTimer));
         executionEngineApisSupported.add(
             new EngineGetInclusionListV1(
-                consensusEngineServer, protocolContext, engineQosTimer, transactionPool));
+                consensusEngineServer,
+                protocolContext,
+                engineQosTimer,
+                transactionPool,
+                metricsSystem));
       }
 
       return mapOf(executionEngineApisSupported);

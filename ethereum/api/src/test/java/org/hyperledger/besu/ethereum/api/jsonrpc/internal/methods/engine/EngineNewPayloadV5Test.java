@@ -57,7 +57,7 @@ import org.hyperledger.besu.ethereum.mainnet.block.access.list.BlockAccessList.S
 import org.hyperledger.besu.ethereum.mainnet.requests.MainnetRequestsValidator;
 import org.hyperledger.besu.ethereum.rlp.BytesValueRLPOutput;
 import org.hyperledger.besu.evm.gascalculator.PragueGasCalculator;
-import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem;
+import org.hyperledger.besu.metrics.StubMetricsSystem;
 
 import java.util.Comparator;
 import java.util.List;
@@ -78,6 +78,8 @@ public class EngineNewPayloadV5Test extends EngineNewPayloadV4Test {
 
   private static final String SAMPLE_TX_HEX = "0xaabb";
 
+  private StubMetricsSystem stubMetricsSystem;
+
   @BeforeEach
   @Override
   public void before() {
@@ -88,6 +90,7 @@ public class EngineNewPayloadV5Test extends EngineNewPayloadV4Test {
         .thenReturn(Optional.of(amsterdamHardfork.milestone()));
     lenient().when(protocolSpec.getGasCalculator()).thenReturn(new PragueGasCalculator());
     lenient().when(protocolSpec.getRequestsValidator()).thenReturn(new MainnetRequestsValidator());
+    this.stubMetricsSystem = new StubMetricsSystem();
     this.method =
         new EngineNewPayloadV5(
             vertx,
@@ -96,7 +99,7 @@ public class EngineNewPayloadV5Test extends EngineNewPayloadV4Test {
             mergeCoordinator,
             ethPeers,
             engineCallListener,
-            new NoOpMetricsSystem(),
+            stubMetricsSystem,
             new StrictInclusionListValidator());
   }
 
@@ -240,7 +243,7 @@ public class EngineNewPayloadV5Test extends EngineNewPayloadV4Test {
             mergeCoordinator,
             ethPeers,
             engineCallListener,
-            new NoOpMetricsSystem(),
+            stubMetricsSystem,
             new LenientInclusionListValidator());
 
     final BlockHeader header =
@@ -259,6 +262,42 @@ public class EngineNewPayloadV5Test extends EngineNewPayloadV4Test {
     final EnginePayloadStatusResult result = fromSuccessResp(resp);
     assertThat(result.getStatusAsString()).isEqualTo(VALID.name());
     verify(engineCallListener, times(1)).executionEngineCalled();
+  }
+
+  @Test
+  public void shouldIncrementValidationFailuresMetricOnUnsatisfied() {
+    final BlockHeader header =
+        setupValidPayload(
+            new BlockProcessingResult(
+                Optional.of(
+                    new BlockProcessingOutputs(null, List.of(), Optional.of(VALID_REQUESTS)))),
+            Optional.empty());
+    when(blockchain.getBlockHeader(header.getParentHash()))
+        .thenReturn(Optional.of(mock(BlockHeader.class)));
+    when(mergeCoordinator.getLatestValidAncestor(header)).thenReturn(Optional.of(header.getHash()));
+
+    respWithInclusionList(mockEnginePayload(header, emptyList()), List.of(SAMPLE_TX_HEX));
+
+    assertThat(stubMetricsSystem.getCounterValue("engine_inclusion_list_validation_failures"))
+        .isEqualTo(1);
+  }
+
+  @Test
+  public void shouldNotIncrementValidationFailuresMetricOnValid() {
+    final BlockHeader header =
+        setupValidPayload(
+            new BlockProcessingResult(
+                Optional.of(
+                    new BlockProcessingOutputs(null, List.of(), Optional.of(VALID_REQUESTS)))),
+            Optional.empty());
+    when(blockchain.getBlockHeader(header.getParentHash()))
+        .thenReturn(Optional.of(mock(BlockHeader.class)));
+    when(mergeCoordinator.getLatestValidAncestor(header)).thenReturn(Optional.of(header.getHash()));
+
+    respWithInclusionList(mockEnginePayload(header, emptyList()), emptyList());
+
+    assertThat(stubMetricsSystem.getCounterValue("engine_inclusion_list_validation_failures"))
+        .isEqualTo(0);
   }
 
   @Test

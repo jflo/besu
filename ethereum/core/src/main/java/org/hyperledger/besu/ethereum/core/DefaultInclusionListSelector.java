@@ -27,6 +27,8 @@ import java.util.Optional;
 import java.util.PriorityQueue;
 
 import org.apache.tuweni.bytes.Bytes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation of {@link InclusionListTransactionSelector} that selects transactions for
@@ -34,6 +36,8 @@ import org.apache.tuweni.bytes.Bytes;
  * first), blob transactions are filtered out, and nonce sequentiality per sender is enforced.
  */
 public class DefaultInclusionListSelector implements InclusionListTransactionSelector {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultInclusionListSelector.class);
 
   private final Optional<Wei> baseFeePerGas;
 
@@ -50,6 +54,10 @@ public class DefaultInclusionListSelector implements InclusionListTransactionSel
   public List<Bytes> selectTransactions(
       final Hash parentHash, final List<Transaction> mempoolTransactions, final int maxBytes) {
     if (mempoolTransactions == null || mempoolTransactions.isEmpty()) {
+      LOG.atDebug()
+          .setMessage("IL selector: no mempool transactions available for parent {}")
+          .addArgument(parentHash)
+          .log();
       return List.of();
     }
 
@@ -69,6 +77,8 @@ public class DefaultInclusionListSelector implements InclusionListTransactionSel
       }
       candidates.add(tx);
     }
+
+    final int candidateCount = candidates.size();
 
     // Track next expected nonce per sender for sequential validation
     final Map<Address, Long> nextNonce = new HashMap<>();
@@ -98,6 +108,15 @@ public class DefaultInclusionListSelector implements InclusionListTransactionSel
       totalBytes += txSize;
       nextNonce.put(sender, nonce + 1);
     }
+
+    LOG.atDebug()
+        .setMessage(
+            "IL selector: selected {} transactions ({} bytes) from {} candidates for parent {}")
+        .addArgument(selected.size())
+        .addArgument(totalBytes)
+        .addArgument(candidateCount)
+        .addArgument(parentHash)
+        .log();
 
     return selected;
   }

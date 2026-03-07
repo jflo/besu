@@ -17,6 +17,8 @@ package org.hyperledger.besu.ethereum.core;
 import java.util.List;
 
 import org.apache.tuweni.bytes.Bytes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Strict inclusion list validator per EIP-7805. Enforces that all inclusion list transactions
@@ -24,6 +26,8 @@ import org.apache.tuweni.bytes.Bytes;
  * byte size of the inclusion list does not exceed MAX_BYTES_PER_INCLUSION_LIST.
  */
 public class StrictInclusionListValidator implements InclusionListValidator {
+
+  private static final Logger LOG = LoggerFactory.getLogger(StrictInclusionListValidator.class);
 
   @Override
   public InclusionListValidationResult validate(
@@ -33,9 +37,19 @@ public class StrictInclusionListValidator implements InclusionListValidator {
       return InclusionListValidationResult.valid();
     }
 
+    LOG.atDebug()
+        .setMessage("Strict IL validation: {} IL txs, {} payload txs")
+        .addArgument(inclusionListTransactions.size())
+        .addArgument(payloadTransactions.size())
+        .log();
+
     // Validate total byte size of inclusion list
     final int totalBytes = inclusionListTransactions.stream().mapToInt(Bytes::size).sum();
     if (totalBytes > InclusionListConstants.MAX_BYTES_PER_INCLUSION_LIST) {
+      LOG.warn(
+          "IL byte size exceeded: {} > {}",
+          totalBytes,
+          InclusionListConstants.MAX_BYTES_PER_INCLUSION_LIST);
       return InclusionListValidationResult.invalid(
           "Inclusion list exceeds MAX_BYTES_PER_INCLUSION_LIST: "
               + totalBytes
@@ -53,6 +67,7 @@ public class StrictInclusionListValidator implements InclusionListValidator {
     }
 
     if (ilIndex < inclusionListTransactions.size()) {
+      LOG.warn("IL unsatisfied: missing transaction at index {}", ilIndex);
       return InclusionListValidationResult.unsatisfied(
           "Inclusion list not satisfied: missing transaction at index "
               + ilIndex

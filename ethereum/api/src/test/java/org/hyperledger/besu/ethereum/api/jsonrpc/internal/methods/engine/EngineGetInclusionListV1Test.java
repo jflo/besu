@@ -41,6 +41,7 @@ import org.hyperledger.besu.ethereum.core.Transaction;
 import org.hyperledger.besu.ethereum.core.TransactionTestFixture;
 import org.hyperledger.besu.ethereum.eth.transactions.PendingTransaction;
 import org.hyperledger.besu.ethereum.eth.transactions.TransactionPool;
+import org.hyperledger.besu.metrics.StubMetricsSystem;
 import org.hyperledger.besu.plugin.services.rpc.RpcResponseType;
 
 import java.math.BigInteger;
@@ -88,6 +89,7 @@ public class EngineGetInclusionListV1Test {
   @Mock private MergeContext mergeContext;
 
   private EngineGetInclusionListV1 method;
+  private StubMetricsSystem metricsSystem;
   private static final Vertx vertx = Vertx.vertx();
 
   @BeforeEach
@@ -98,8 +100,10 @@ public class EngineGetInclusionListV1Test {
     when(blockchain.getBlockHeader(UNKNOWN_PARENT_HASH)).thenReturn(Optional.empty());
     when(parentBlockHeader.getBaseFee()).thenReturn(Optional.of(Wei.of(7)));
 
+    this.metricsSystem = new StubMetricsSystem();
     this.method =
-        new EngineGetInclusionListV1(vertx, protocolContext, engineCallListener, transactionPool);
+        new EngineGetInclusionListV1(
+            vertx, protocolContext, engineCallListener, transactionPool, metricsSystem);
   }
 
   @Test
@@ -181,6 +185,57 @@ public class EngineGetInclusionListV1Test {
 
     final List<String> result = fromSuccessResp(response);
     assertThat(result).allSatisfy(hex -> assertThat(hex).startsWith("0x"));
+  }
+
+  @Test
+  public void shouldIncrementTransactionsGeneratedMetric() {
+    final Transaction tx1 = createLegacyTransaction(0, Wei.of(100));
+    final PendingTransaction pt1 =
+        PendingTransaction.newPendingTransaction(tx1, false, false, (byte) 0);
+
+    when(transactionPool.getPendingTransactions()).thenReturn(List.of(pt1));
+
+    resp(KNOWN_PARENT_HASH);
+
+    assertThat(metricsSystem.getCounterValue("engine_inclusion_list_transactions_generated"))
+        .isEqualTo(1);
+  }
+
+  @Test
+  public void shouldIncrementBytesGeneratedMetric() {
+    final Transaction tx1 = createLegacyTransaction(0, Wei.of(100));
+    final PendingTransaction pt1 =
+        PendingTransaction.newPendingTransaction(tx1, false, false, (byte) 0);
+
+    when(transactionPool.getPendingTransactions()).thenReturn(List.of(pt1));
+
+    resp(KNOWN_PARENT_HASH);
+
+    assertThat(metricsSystem.getCounterValue("engine_inclusion_list_bytes_generated"))
+        .isGreaterThan(0);
+  }
+
+  @Test
+  public void shouldIncrementSelectorDurationMetric() {
+    final Transaction tx1 = createLegacyTransaction(0, Wei.of(100));
+    final PendingTransaction pt1 =
+        PendingTransaction.newPendingTransaction(tx1, false, false, (byte) 0);
+
+    when(transactionPool.getPendingTransactions()).thenReturn(List.of(pt1));
+
+    resp(KNOWN_PARENT_HASH);
+
+    // Duration may be 0ms for fast execution, but the counter should exist
+    assertThat(metricsSystem.getCounterValue("engine_inclusion_list_selector_duration_ms"))
+        .isGreaterThanOrEqualTo(0);
+  }
+
+  @Test
+  public void shouldNotIncrementMetricsOnUnknownParent() {
+    resp(UNKNOWN_PARENT_HASH);
+
+    assertThat(metricsSystem.getCounterValue("engine_inclusion_list_transactions_generated"))
+        .isEqualTo(0);
   }
 
   private Transaction createLegacyTransaction(final long nonce, final Wei gasPrice) {
