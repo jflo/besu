@@ -25,6 +25,8 @@ Started: Fri Mar  6 19:43:39 UTC 2026
 - blockHeaderBuilder is shared mutable static in AbstractEngineForkchoiceUpdatedTest; explicitly set timestamp before building headers
 - Use anyLong() not any() for primitive long parameters in Mockito matchers (any() returns null → NPE)
 - Metrics: use BesuMetricCategory.RPC for engine API counters; StubMetricsSystem (from metrics:core testSupportArtifacts) for test verification
+- EngineForkchoiceUpdatedParameter constructor order: (headBlockHash, finalizedBlockHash, safeBlockHash) - not (head, safe, finalized)
+- Standalone engine tests need: DefaultProtocolSchedule mock, protocolSpec.getGasLimitCalculator() mock, mergeContext.isSyncing() false, mergeCoordinator.isDescendantOf() true
 ---
 
 ## 2026-03-06 - US-001
@@ -227,4 +229,17 @@ Started: Fri Mar  6 19:43:39 UTC 2026
   - createCounter() delegates to createLabelledCounter() with empty labels - StubMetricsSystem.getCounterValue(name) works with no extra labels
   - Use BesuMetricCategory.RPC for engine API metrics (consistent with EngineGetBlobsV2 pattern)
   - Use fluent LOG.atDebug()/atInfo()/atWarn() with .setMessage().addArgument().log() pattern for modern logging
+---
+
+## 2026-03-07 - US-015
+- What was implemented: End-to-end integration test for complete IL workflow covering getInclusionListV1 -> forkchoiceUpdatedV4 -> newPayloadV5. Tests both strict and lenient validation modes, empty/null IL handling, metrics tracking across the workflow, and error cases (unknown parent, empty mempool).
+- Files changed:
+  - ethereum/api/src/test/java/.../engine/InclusionListWorkflowIntegrationTest.java (new - 8 integration tests)
+- **Learnings for future iterations:**
+  - EngineForkchoiceUpdatedParameter constructor order is (head, finalized, safe) - NOT (head, safe, finalized)
+  - ForkchoiceUpdated validation requires isDescendantOf mock to return true for safe/finalized blocks
+  - protocolSchedule must be DefaultProtocolSchedule mock (not ProtocolSchedule) because AbstractEngineNewPayload calls protocolSchedule.get().getByBlockHeader()
+  - protocolSpec.getGasLimitCalculator() must be mocked (CancunTargetingGasLimitCalculator) for newPayloadV5
+  - mergeCoordinator.getEthScheduler() is needed when payload contains transactions - use empty tx lists to avoid needing EthScheduler mock
+  - mergeContext.isSyncing() must be explicitly mocked to return false in standalone tests (not inherited from abstract base)
 ---
