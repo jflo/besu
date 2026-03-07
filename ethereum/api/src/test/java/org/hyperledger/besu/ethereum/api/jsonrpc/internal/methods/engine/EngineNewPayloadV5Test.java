@@ -228,8 +228,8 @@ public class EngineNewPayloadV5Test extends EngineNewPayloadV4Test {
 
     final EnginePayloadStatusResult result = fromSuccessResp(resp);
     assertThat(result.getStatusAsString()).isEqualTo(INCLUSION_LIST_UNSATISFIED.name());
-    assertThat(result.getError()).isNotNull();
-    assertThat(result.getLatestValidHash()).isPresent();
+    assertThat(result.getError()).isNull();
+    assertThat(result.getLatestValidHash()).isEmpty();
     verify(engineCallListener, times(1)).executionEngineCalled();
   }
 

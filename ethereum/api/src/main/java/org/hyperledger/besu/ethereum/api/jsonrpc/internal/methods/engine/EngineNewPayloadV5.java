@@ -178,7 +178,7 @@ public class EngineNewPayloadV5 extends AbstractEngineNewPayload {
       return new JsonRpcSuccessResponse(
           reqId,
           new EnginePayloadStatusResult(
-              EngineStatus.INCLUSION_LIST_UNSATISFIED, blockHash, ilResult.getErrorMessage()));
+              EngineStatus.INCLUSION_LIST_UNSATISFIED, null, Optional.empty()));
     }
 
     if (ilResult.getStatus() == InclusionListValidationStatus.INVALID) {

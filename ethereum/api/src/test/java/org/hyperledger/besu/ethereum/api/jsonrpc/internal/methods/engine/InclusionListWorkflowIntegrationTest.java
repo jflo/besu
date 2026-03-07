@@ -286,7 +286,7 @@ public class InclusionListWorkflowIntegrationTest {
 
     final EnginePayloadStatusResult result = fromSuccessResp(resp);
     assertThat(result.getStatusAsString()).isEqualTo(INCLUSION_LIST_UNSATISFIED.name());
-    assertThat(result.getError()).isNotNull();
+    assertThat(result.getError()).isNull();
     assertThat(metricsSystem.getCounterValue("engine_inclusion_list_validation_failures"))
         .isEqualTo(1);
   }
