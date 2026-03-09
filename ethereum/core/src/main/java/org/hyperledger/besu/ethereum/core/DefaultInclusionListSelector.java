@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Default implementation of {@link InclusionListTransactionSelector} that selects transactions for
  * inclusion lists per EIP-7805. Transactions are prioritized by effective gas price (highest
- * first), blob transactions are filtered out, and nonce sequentiality per sender is enforced.
+ * first) and nonce sequentiality per sender is enforced.
  */
 public class DefaultInclusionListSelector implements InclusionListTransactionSelector {
 
@@ -61,7 +61,7 @@ public class DefaultInclusionListSelector implements InclusionListTransactionSel
       return List.of();
     }
 
-    // Filter out blob transactions and those below base fee, then sort by effective gas price desc
+    // Filter those below base fee, then sort by effective gas price desc
     final PriorityQueue<Transaction> candidates =
         new PriorityQueue<>(
             Comparator.comparing(
@@ -69,9 +69,6 @@ public class DefaultInclusionListSelector implements InclusionListTransactionSel
                 .reversed());
 
     for (final Transaction tx : mempoolTransactions) {
-      if (tx.getType().supportsBlob()) {
-        continue;
-      }
       if (baseFeePerGas.isPresent() && tx.getMaxGasPrice().lessThan(baseFeePerGas.get())) {
         continue;
       }

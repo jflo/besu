@@ -106,7 +106,7 @@ class DefaultInclusionListSelectorTest {
   }
 
   @Test
-  void filtersBlobTransactions() {
+  void includesBlobTransactions() {
     final DefaultInclusionListSelector selector =
         new DefaultInclusionListSelector(Optional.of(BASE_FEE));
 
@@ -116,8 +116,7 @@ class DefaultInclusionListSelectorTest {
     final List<Bytes> result =
         selector.selectTransactions(Hash.ZERO, List.of(normalTx, blobTx), 8192);
 
-    assertThat(result).hasSize(1);
-    assertThat(result.get(0)).isEqualTo(normalTx.encoded());
+    assertThat(result).hasSize(2);
   }
 
   @Test
