@@ -19,6 +19,8 @@ import static org.hyperledger.besu.ethereum.api.jsonrpc.JsonRpcConfiguration.DEF
 import org.hyperledger.besu.cli.DefaultCommandValues;
 import org.hyperledger.besu.cli.custom.JsonRPCAllowlistHostsProperty;
 import org.hyperledger.besu.cli.util.CommandLineUtils;
+import org.hyperledger.besu.ethereum.core.InclusionListSelectorType;
+import org.hyperledger.besu.ethereum.core.InclusionListValidationMode;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -62,6 +64,21 @@ public class EngineRPCOptions implements CLIOptions<EngineRPCConfiguration> {
   private final JsonRPCAllowlistHostsProperty engineHostsAllowlist =
       new JsonRPCAllowlistHostsProperty();
 
+  @CommandLine.Option(
+      names = {"--engine-inclusion-list-validation-mode"},
+      paramLabel = "<MODE>",
+      description =
+          "Inclusion list validation mode: strict rejects non-compliant payloads, lenient logs warnings but accepts (default: ${DEFAULT-VALUE})")
+  private final InclusionListValidationMode inclusionListValidationMode =
+      InclusionListValidationMode.STRICT;
+
+  @CommandLine.Option(
+      names = {"--engine-inclusion-list-selector-type"},
+      paramLabel = "<TYPE>",
+      description = "Inclusion list transaction selector type (default: ${DEFAULT-VALUE})")
+  private final InclusionListSelectorType inclusionListSelectorType =
+      InclusionListSelectorType.DEFAULT;
+
   @Override
   public EngineRPCConfiguration toDomainObject() {
     return new EngineRPCConfiguration(
@@ -69,7 +86,9 @@ public class EngineRPCOptions implements CLIOptions<EngineRPCConfiguration> {
         engineRpcPort,
         engineJwtKeyFile,
         isEngineAuthDisabled,
-        engineHostsAllowlist);
+        engineHostsAllowlist,
+        inclusionListValidationMode,
+        inclusionListSelectorType);
   }
 
   @Override

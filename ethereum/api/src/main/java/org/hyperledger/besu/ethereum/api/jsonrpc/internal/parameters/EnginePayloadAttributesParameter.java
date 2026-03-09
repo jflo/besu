@@ -14,6 +14,8 @@
  */
 package org.hyperledger.besu.ethereum.api.jsonrpc.internal.parameters;
 
+import static org.hyperledger.besu.ethereum.core.InclusionListConstants.MAX_BYTES_PER_INCLUSION_LIST;
+
 import org.hyperledger.besu.datatypes.Address;
 
 import java.util.List;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.json.JsonObject;
+import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 
 public class EnginePayloadAttributesParameter {
@@ -32,6 +35,7 @@ public class EnginePayloadAttributesParameter {
   final List<WithdrawalParameter> withdrawals;
   private final Bytes32 parentBeaconBlockRoot;
   private final Long slotNumber;
+  private final List<String> inclusionListTransactions;
 
   @JsonCreator
   public EnginePayloadAttributesParameter(
@@ -40,7 +44,8 @@ public class EnginePayloadAttributesParameter {
       @JsonProperty("suggestedFeeRecipient") final String suggestedFeeRecipient,
       @JsonProperty("withdrawals") final List<WithdrawalParameter> withdrawals,
       @JsonProperty("parentBeaconBlockRoot") final String parentBeaconBlockRoot,
-      @JsonProperty("slotNumber") final String slotNumber) {
+      @JsonProperty("slotNumber") final String slotNumber,
+      @JsonProperty("inclusionListTransactions") final List<String> inclusionListTransactions) {
     this.timestamp = Long.decode(timestamp);
     this.prevRandao = Bytes32.fromHexString(prevRandao);
     this.suggestedFeeRecipient = Address.fromHexString(suggestedFeeRecipient);
@@ -48,6 +53,35 @@ public class EnginePayloadAttributesParameter {
     this.parentBeaconBlockRoot =
         parentBeaconBlockRoot == null ? null : Bytes32.fromHexString(parentBeaconBlockRoot);
     this.slotNumber = slotNumber == null ? null : Long.decode(slotNumber);
+    this.inclusionListTransactions = validateInclusionListTransactions(inclusionListTransactions);
+  }
+
+  private List<String> validateInclusionListTransactions(final List<String> transactions) {
+    if (transactions == null) {
+      return null;
+    }
+    int totalBytes = 0;
+    // Validate that each transaction is a valid hex string and enforce byte limit
+    for (final String tx : transactions) {
+      if (tx == null || tx.isEmpty()) {
+        throw new IllegalArgumentException("Inclusion list transaction cannot be null or empty");
+      }
+      try {
+        final Bytes txBytes = Bytes.fromHexString(tx);
+        totalBytes += txBytes.size();
+      } catch (final IllegalArgumentException e) {
+        throw new IllegalArgumentException("Invalid inclusion list transaction format: " + tx, e);
+      }
+    }
+    if (totalBytes > MAX_BYTES_PER_INCLUSION_LIST) {
+      throw new IllegalArgumentException(
+          "Inclusion list exceeds maximum size: "
+              + totalBytes
+              + " bytes > "
+              + MAX_BYTES_PER_INCLUSION_LIST
+              + " bytes");
+    }
+    return transactions;
   }
 
   public Long getTimestamp() {
@@ -74,6 +108,10 @@ public class EnginePayloadAttributesParameter {
     return slotNumber;
   }
 
+  public List<String> getInclusionListTransactions() {
+    return inclusionListTransactions;
+  }
+
   public String serialize() {
     final JsonObject json =
         new JsonObject()
@@ -90,6 +128,9 @@ public class EnginePayloadAttributesParameter {
     }
     if (slotNumber != null) {
       json.put("slotNumber", slotNumber);
+    }
+    if (inclusionListTransactions != null) {
+      json.put("inclusionListTransactions", inclusionListTransactions);
     }
     return json.encode();
   }

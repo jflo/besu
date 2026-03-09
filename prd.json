@@ -1,0 +1,280 @@
+{
+  "project": "Hyperledger Besu",
+  "branchName": "ralph/eip7805-inclusion-lists",
+  "description": "EIP-7805 Inclusion Lists Implementation - Add Engine API methods, data structures, and validation logic for inclusion list support in Ethereum blocks",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add EnginePayloadAttributesParameter data structure",
+      "description": "As a developer, I need the EnginePayloadAttributesParameter structure updated to support inclusion list transactions in payload building.",
+      "acceptanceCriteria": [
+        "Add inclusionListTransactions field (List of transaction byte arrays) to EnginePayloadAttributesParameter",
+        "Implement JSON serialization/deserialization",
+        "Add validation for inclusionListTransactions format",
+        "Unit tests verify structure creation and serialization",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add MAX_BYTES_PER_INCLUSION_LIST constant",
+      "description": "As a developer, I need the MAX_BYTES_PER_INCLUSION_LIST constant defined to enforce byte limits on inclusion lists.",
+      "acceptanceCriteria": [
+        "Define constant MAX_BYTES_PER_INCLUSION_LIST = 8192 (2^13)",
+        "Add constant to appropriate configuration class",
+        "Document constant value and purpose",
+        "Unit tests verify constant used in byte limit checks",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Define InclusionListValidator interface",
+      "description": "As a developer, I need an interface for inclusion list validation to be plugged into block validation.",
+      "acceptanceCriteria": [
+        "Create InclusionListValidator interface with validate(ExecutionPayload, List<Transaction>) method",
+        "Method returns validation result with status: VALID, INVALID, or UNSATISFIED",
+        "Include detailed error messages in validation result",
+        "Unit tests verify interface contract",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Implement strict inclusion list validator",
+      "description": "As a node operator, I need strict validation that enforces EIP-7805 inclusion list constraints to ensure spec compliance.",
+      "acceptanceCriteria": [
+        "Implement StrictInclusionListValidator per EIP-7805 specification",
+        "Validate all IL transactions are included in payload in order (allowing interleaved txs)",
+        "Return INCLUSION_LIST_UNSATISFIED if constraints violated",
+        "Respect MAX_BYTES_PER_INCLUSION_LIST constant (8192 bytes)",
+        "Unit tests cover: valid cases, missing tx, wrong order, invalid encoding",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Implement lenient inclusion list validator",
+      "description": "As a developer, I need a lenient validator for testing environments that logs warnings but doesn't reject non-compliant payloads.",
+      "acceptanceCriteria": [
+        "Implement LenientInclusionListValidator that logs violations without rejecting",
+        "Log detailed warning messages for each constraint violation",
+        "Return VALID status even when inclusion list unsatisfied",
+        "Include metrics counter for violations encountered",
+        "Unit tests verify warnings logged and payload accepted",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add configuration for inclusion list validation mode",
+      "description": "As a node operator, I want to configure strict vs lenient inclusion list validation based on my environment (mainnet vs testnet).",
+      "acceptanceCriteria": [
+        "Add --engine-inclusion-list-validation-mode=strict|lenient CLI flag",
+        "Default to strict mode for production safety",
+        "Load appropriate validator implementation based on config",
+        "Document configuration option in Besu docs",
+        "Integration test verifies flag changes validator behavior",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Define InclusionListTransactionSelector interface",
+      "description": "As a developer, I need a pluggable interface for transaction selection so custom strategies can select transactions for inclusion lists.",
+      "acceptanceCriteria": [
+        "Create InclusionListTransactionSelector interface",
+        "Method signature: selectTransactions(blockHash, mempoolTransactions, maxBytes) -> List<Transaction>",
+        "Include method to check if selector is enabled",
+        "Support dependency injection for different selector implementations",
+        "Unit tests verify interface contract",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Implement default transaction selector",
+      "description": "As a node operator, I need a default transaction selection strategy that prioritizes high-value, stale transactions for inclusion lists.",
+      "acceptanceCriteria": [
+        "Implement DefaultInclusionListSelector using priority queue",
+        "Select transactions by effective gas price (highest first, greater than current base fee)",
+        "Prioritize older transactions (time spent in transaction pool)",
+        "Respect MAX_BYTES_PER_INCLUSION_LIST byte limit (8192 bytes)",
+        "Filter out blob transactions per EIP-7805 spec",
+        "Validate transaction nonces are sequential from account state",
+        "Stop when byte limit reached",
+        "Unit tests cover: normal selection, byte limit, blob filtering, nonce validation",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Add InclusionListConfiguration class",
+      "description": "As a node operator, I need consolidated configuration for inclusion list behavior including validation mode and selector strategy.",
+      "acceptanceCriteria": [
+        "Add InclusionListConfiguration class with validation mode and selector type",
+        "Support CLI flags: --engine-inclusion-list-validation-mode, --engine-inclusion-list-selector-type",
+        "Default values: strict validation, default selector",
+        "Wire configuration to validator and selector instantiation",
+        "Unit tests verify configuration loading and defaults",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Implement engine_getInclusionListV1 method",
+      "description": "As a consensus client, I need to call engine_getInclusionListV1 to retrieve transactions for the inclusion list based on the execution client's mempool view.",
+      "acceptanceCriteria": [
+        "Create EngineGetInclusionListV1 JSON-RPC method handler",
+        "Accept parentHash parameter (32 bytes)",
+        "Return array of transaction byte arrays",
+        "Return -38006: Unknown parent error if parentHash block doesn't exist",
+        "Call configured InclusionListTransactionSelector implementation",
+        "Method timeout set to 1 second per spec",
+        "Unit tests verify: success case, unknown parent error, timeout handling",
+        "Integration test with mock consensus client",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Update engine_newPayloadV5 method",
+      "description": "As a consensus client, I need to call engine_newPayloadV5 with inclusion list transactions to validate payloads against inclusion list constraints.",
+      "acceptanceCriteria": [
+        "Extend EngineNewPayload to support V5 parameters",
+        "Add inclusionListTransactions parameter (5th parameter)",
+        "Maintain V4 parameters: executionPayload, expectedBlobVersionedHashes, parentBeaconBlockRoot, executionRequests",
+        "Call configured InclusionListValidator to check constraints",
+        "Return INCLUSION_LIST_UNSATISFIED status when validation fails (strict mode)",
+        "Return VALID status in lenient mode even if unsatisfied",
+        "Remove INVALID_BLOCK_HASH status per spec (use INVALID)",
+        "Unit tests verify: valid payload, unsatisfied IL, strict vs lenient modes",
+        "Integration test with mock consensus client requests",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Update engine_forkchoiceUpdatedV4 method",
+      "description": "As a consensus client, I need to call engine_forkchoiceUpdatedV4 with EnginePayloadAttributesParameter to initiate payload building with inclusion list support.",
+      "acceptanceCriteria": [
+        "Update EngineForkchoiceUpdated to support updated parameters in EnginePayloadAttributesParameter",
+        "Accept EnginePayloadAttributesParameter (or null) as second parameter",
+        "Validate EnginePayloadAttributesParameter structure, return -38003: Invalid payload attributes on failure",
+        "Pass inclusionListTransactions to payload building process",
+        "Maintain V3 functionality for forkchoice state updates",
+        "Method timeout remains 8 seconds per spec",
+        "Unit tests verify: V4 attributes validation, null attributes handling, invalid attributes error",
+        "Integration test with payload building",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Update payload building to respect inclusion lists",
+      "description": "As a block proposer, I need payload building to include inclusion list transactions in constructed blocks according to EIP-7805 constraints.",
+      "acceptanceCriteria": [
+        "Modify BlockTransactionSelector to prioritize IL transactions",
+        "Include all IL transactions in order (allowing interleaved non-IL txs)",
+        "Validate IL transaction execution doesn't fail",
+        "Track IL transaction inclusion in built payload",
+        "Log metrics for IL transactions included vs requested",
+        "Handle case where IL transaction becomes invalid during block building",
+        "Unit tests verify: IL txs included, ordering preserved, failed tx handling",
+        "Integration test builds valid payload with IL",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Add logging and metrics for IL operations",
+      "description": "As a node operator, I need comprehensive logging and metrics to monitor inclusion list behavior in production.",
+      "acceptanceCriteria": [
+        "Log IL generation: transaction count, total bytes, selection strategy",
+        "Log IL validation: result, violations detected, validation mode",
+        "Add metrics: engine_inclusion_list_transactions_generated, engine_inclusion_list_validation_failures",
+        "Add metrics: engine_inclusion_list_bytes_generated, engine_inclusion_list_selector_duration_ms",
+        "Log at appropriate levels: DEBUG for details, INFO for key events, WARN for violations",
+        "Unit tests verify metrics incremented correctly",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Integration test for complete IL workflow",
+      "description": "As a QA engineer, I need end-to-end integration tests that verify the complete inclusion list workflow from generation to validation.",
+      "acceptanceCriteria": [
+        "Test full flow: getInclusionListV1 → forkchoiceUpdatedV4 → payload building → newPayloadV5",
+        "Mock consensus client making sequential Engine API calls",
+        "Verify IL transactions generated from mempool",
+        "Verify payload built includes IL transactions",
+        "Verify newPayloadV5 validates IL constraints",
+        "Test both strict and lenient validation modes",
+        "Integration test suite passes",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Update API documentation",
+      "description": "As an integrator, I need updated API documentation that describes the new Engine API methods and parameters for EIP-7805.",
+      "acceptanceCriteria": [
+        "Document engine_getInclusionListV1 method: params, response, errors, examples",
+        "Document engine_newPayloadV5 method: new parameter, new status values",
+        "Document engine_forkchoiceUpdatedV4 method: EnginePayloadAttributesParameter structure",
+        "Add EIP-7805 overview section explaining inclusion list concept",
+        "Include configuration options documentation",
+        "Add example JSON-RPC requests and responses",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

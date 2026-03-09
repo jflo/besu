@@ -15,6 +15,9 @@
 package org.hyperledger.besu.cli.options;
 
 import org.hyperledger.besu.cli.custom.JsonRPCAllowlistHostsProperty;
+import org.hyperledger.besu.ethereum.core.InclusionListConfiguration;
+import org.hyperledger.besu.ethereum.core.InclusionListSelectorType;
+import org.hyperledger.besu.ethereum.core.InclusionListValidationMode;
 
 import java.nio.file.Path;
 
@@ -27,10 +30,24 @@ import java.nio.file.Path;
  * @param engineJwtKeyFile Path to file containing shared secret key for JWT signature verification
  * @param isEngineAuthDisabled Disable authentication for Engine APIs
  * @param engineHostsAllowlist List of hosts to allowlist for Engine APIs
+ * @param inclusionListValidationMode Inclusion list validation mode (strict or lenient)
+ * @param inclusionListSelectorType Inclusion list transaction selector type
  */
 public record EngineRPCConfiguration(
     Boolean overrideEngineRpcEnabled,
     Integer engineRpcPort,
     Path engineJwtKeyFile,
     Boolean isEngineAuthDisabled,
-    JsonRPCAllowlistHostsProperty engineHostsAllowlist) {}
+    JsonRPCAllowlistHostsProperty engineHostsAllowlist,
+    InclusionListValidationMode inclusionListValidationMode,
+    InclusionListSelectorType inclusionListSelectorType) {
+
+  /**
+   * Creates a consolidated InclusionListConfiguration from the Engine RPC settings.
+   *
+   * @return the inclusion list configuration
+   */
+  public InclusionListConfiguration toInclusionListConfiguration() {
+    return new InclusionListConfiguration(inclusionListValidationMode, inclusionListSelectorType);
+  }
+}
