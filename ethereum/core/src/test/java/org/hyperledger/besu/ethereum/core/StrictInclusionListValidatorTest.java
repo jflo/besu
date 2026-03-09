@@ -77,16 +77,11 @@ public class StrictInclusionListValidatorTest {
   }
 
   @Test
-  public void unsatisfiedWhenILTransactionsOutOfOrder() {
-    // IL requires A, B but payload has B, A (wrong order)
+  public void validWhenILTransactionsInDifferentOrder() {
+    // IL requires A, B but payload has B, A — per EIP-7805 "anywhere-in-block", order doesn't matter
     final InclusionListValidationResult result =
         validator.validate(List.of(TX_B, TX_A), List.of(TX_A, TX_B));
-    // B matches nothing at ilIndex=0 (looking for A), A matches A, but B is never found after
-    // Actually: payload[0]=B != IL[0]=A, payload[1]=A == IL[0]=A -> ilIndex=1, then no more payload
-    // ilIndex=1 < 2, so UNSATISFIED
-    assertThat(result.getStatus()).isEqualTo(InclusionListValidationStatus.UNSATISFIED);
-    assertThat(result.getErrorMessage()).isPresent();
-    assertThat(result.getErrorMessage().get()).contains("index 1");
+    assertThat(result.isValid()).isTrue();
   }
 
   @Test

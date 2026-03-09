@@ -78,11 +78,12 @@ public class LenientInclusionListValidatorTest {
   }
 
   @Test
-  public void validEvenWhenILTransactionsOutOfOrder() {
+  public void validWhenILTransactionsInDifferentOrder() {
+    // Per EIP-7805 "anywhere-in-block", order doesn't matter — no violation
     final InclusionListValidationResult result =
         validator.validate(List.of(TX_B, TX_A), List.of(TX_A, TX_B));
     assertThat(result.isValid()).isTrue();
-    assertThat(validator.getViolationCount()).isEqualTo(1);
+    assertThat(validator.getViolationCount()).isZero();
   }
 
   @Test

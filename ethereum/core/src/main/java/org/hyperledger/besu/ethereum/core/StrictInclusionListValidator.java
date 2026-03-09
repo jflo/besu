@@ -14,15 +14,17 @@
  */
 package org.hyperledger.besu.ethereum.core;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.tuweni.bytes.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Strict inclusion list validator per EIP-7805. Enforces that all inclusion list transactions
- * appear in the payload in order (allowing interleaved non-IL transactions), and that the total
+ * Strict inclusion list validator per EIP-7805. Enforces that all inclusion list transactions are
+ * present in the payload (in any order per the "anywhere-in-block" property), and that the total
  * byte size of the inclusion list does not exceed MAX_BYTES_PER_INCLUSION_LIST.
  */
 public class StrictInclusionListValidator implements InclusionListValidator {
@@ -57,23 +59,19 @@ public class StrictInclusionListValidator implements InclusionListValidator {
               + InclusionListConstants.MAX_BYTES_PER_INCLUSION_LIST);
     }
 
-    // Validate all IL transactions appear in payload in order (allowing interleaved txs)
-    int ilIndex = 0;
-    for (final Bytes payloadTx : payloadTransactions) {
-      if (ilIndex < inclusionListTransactions.size()
-          && payloadTx.equals(inclusionListTransactions.get(ilIndex))) {
-        ilIndex++;
+    // Validate all IL transactions are present in payload (anywhere-in-block per EIP-7805)
+    final Set<Bytes> payloadTxSet = new HashSet<>(payloadTransactions);
+    for (int i = 0; i < inclusionListTransactions.size(); i++) {
+      final Bytes ilTx = inclusionListTransactions.get(i);
+      if (!payloadTxSet.contains(ilTx)) {
+        LOG.warn("IL unsatisfied: missing transaction at index {}", i);
+        return InclusionListValidationResult.unsatisfied(
+            "Inclusion list not satisfied: missing transaction at index "
+                + i
+                + " ("
+                + ilTx.toHexString()
+                + ")");
       }
-    }
-
-    if (ilIndex < inclusionListTransactions.size()) {
-      LOG.warn("IL unsatisfied: missing transaction at index {}", ilIndex);
-      return InclusionListValidationResult.unsatisfied(
-          "Inclusion list not satisfied: missing transaction at index "
-              + ilIndex
-              + " ("
-              + inclusionListTransactions.get(ilIndex).toHexString()
-              + ")");
     }
 
     return InclusionListValidationResult.valid();

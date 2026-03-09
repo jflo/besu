@@ -14,7 +14,9 @@
  */
 package org.hyperledger.besu.ethereum.core;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.tuweni.bytes.Bytes;
@@ -50,22 +52,18 @@ public class LenientInclusionListValidator implements InclusionListValidator {
       return InclusionListValidationResult.valid();
     }
 
-    // Check ordered subsequence matching
-    int ilIndex = 0;
-    for (final Bytes payloadTx : payloadTransactions) {
-      if (ilIndex < inclusionListTransactions.size()
-          && payloadTx.equals(inclusionListTransactions.get(ilIndex))) {
-        ilIndex++;
+    // Check presence of all IL transactions in payload (anywhere-in-block per EIP-7805)
+    final Set<Bytes> payloadTxSet = new HashSet<>(payloadTransactions);
+    for (int i = 0; i < inclusionListTransactions.size(); i++) {
+      final Bytes ilTx = inclusionListTransactions.get(i);
+      if (!payloadTxSet.contains(ilTx)) {
+        violationCount.incrementAndGet();
+        LOG.warn(
+            "Inclusion list not satisfied: missing transaction at index {} ({}) (lenient mode - accepting)",
+            i,
+            ilTx.toHexString());
+        return InclusionListValidationResult.valid();
       }
-    }
-
-    if (ilIndex < inclusionListTransactions.size()) {
-      violationCount.incrementAndGet();
-      LOG.warn(
-          "Inclusion list not satisfied: missing transaction at index {} ({}) (lenient mode - accepting)",
-          ilIndex,
-          inclusionListTransactions.get(ilIndex).toHexString());
-      return InclusionListValidationResult.valid();
     }
 
     return InclusionListValidationResult.valid();
