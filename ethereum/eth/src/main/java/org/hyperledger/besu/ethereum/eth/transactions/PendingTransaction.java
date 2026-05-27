@@ -160,6 +160,7 @@ public abstract class PendingTransaction
           case EIP1559 -> computeEIP1559MemorySize();
           case BLOB -> computeBlobMemorySize();
           case DELEGATE_CODE -> computeDelegateCodeMemorySize();
+          case FRAME -> computeFrameMemorySize();
         }
         + PENDING_TRANSACTION_SHALLOW_SIZE;
   }
@@ -195,6 +196,11 @@ public abstract class PendingTransaction
 
   private int computeDelegateCodeMemorySize() {
     return computeEIP1559MemorySize() + computeCodeDelegationListMemorySize();
+  }
+
+  private int computeFrameMemorySize() {
+    // Frame transactions use EIP-1559 fee market plus frame/signature overhead
+    return computeEIP1559MemorySize();
   }
 
   private int computeBlobWithCommitmentsMemorySize() {
