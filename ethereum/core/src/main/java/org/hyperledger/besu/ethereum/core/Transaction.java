@@ -131,7 +131,6 @@ public class Transaction
 
   private final Optional<List<FrameTransactionFrame>> maybeFrames;
   private final Optional<List<FrameTransactionSignature>> maybeFrameSignatures;
-  private final Optional<Address> maybeFrameSender;
 
   private final Optional<Bytes> rawRlp;
 
@@ -213,7 +212,6 @@ public class Transaction
       final Optional<List<CodeDelegation>> maybeCodeDelegationList,
       final Optional<List<FrameTransactionFrame>> maybeFrames,
       final Optional<List<FrameTransactionSignature>> maybeFrameSignatures,
-      final Optional<Address> maybeFrameSender,
       final Optional<Bytes> rawRlp,
       final Optional<Hash> hash,
       final Optional<Integer> sizeForAnnouncement,
@@ -265,11 +263,7 @@ public class Transaction
             maybeFrames.isPresent() && !maybeFrames.get().isEmpty(),
             "Must specify at least one frame for frame transaction");
         checkArgument(
-            maybeFrameSignatures.isPresent(),
-            "Must specify signatures for frame transaction");
-        checkArgument(
-            maybeFrameSender.isPresent(),
-            "Must specify sender for frame transaction");
+            maybeFrameSignatures.isPresent(), "Must specify signatures for frame transaction");
       }
     }
 
@@ -292,7 +286,6 @@ public class Transaction
     this.maybeCodeDelegationList = maybeCodeDelegationList;
     this.maybeFrames = maybeFrames;
     this.maybeFrameSignatures = maybeFrameSignatures;
-    this.maybeFrameSender = maybeFrameSender;
     this.rawRlp = rawRlp;
     hash.ifPresent(h -> this.hash = h);
     sizeForAnnouncement.ifPresent(i -> this.sizeForAnnouncement = i);
@@ -796,11 +789,6 @@ public class Transaction
     return maybeFrameSignatures;
   }
 
-  @Override
-  public Optional<Address> getFrameSender() {
-    return maybeFrameSender;
-  }
-
   /**
    * Return the list of transaction hashes extracted from the collection of Transaction passed as
    * argument
@@ -941,9 +929,7 @@ public class Transaction
           case FRAME ->
               // Frame transactions use a different signature mechanism;
               // the preimage is computed via the sig_hash in the frame tx spec
-              Bytes.concatenate(
-                  Bytes.of(TransactionType.FRAME.getSerializedType()),
-                  Bytes.EMPTY);
+              Bytes.concatenate(Bytes.of(TransactionType.FRAME.getSerializedType()), Bytes.EMPTY);
         };
     return preimage;
   }
@@ -1307,7 +1293,6 @@ public class Transaction
             detachedCodeDelegationList,
             maybeFrames,
             maybeFrameSignatures,
-            maybeFrameSender,
             Optional.empty(),
             Optional.ofNullable(hash),
             Optional.of(sizeForAnnouncement),
@@ -1392,7 +1377,6 @@ public class Transaction
     protected Optional<List<CodeDelegation>> codeDelegationAuthorizations = Optional.empty();
     protected Optional<List<FrameTransactionFrame>> frames = Optional.empty();
     protected Optional<List<FrameTransactionSignature>> frameSignatures = Optional.empty();
-    protected Optional<Address> frameSender = Optional.empty();
     protected Bytes rawRlp = null;
     private Optional<Hash> hash = Optional.empty();
     private Optional<Integer> sizeForAnnouncement = Optional.empty();
@@ -1418,7 +1402,6 @@ public class Transaction
       this.codeDelegationAuthorizations = toCopy.maybeCodeDelegationList;
       this.frames = toCopy.maybeFrames;
       this.frameSignatures = toCopy.maybeFrameSignatures;
-      this.frameSender = toCopy.maybeFrameSender;
       return this;
     }
 
@@ -1569,7 +1552,6 @@ public class Transaction
           codeDelegationAuthorizations,
           frames,
           frameSignatures,
-          frameSender,
           Optional.ofNullable(rawRlp),
           hash,
           sizeForAnnouncement,
@@ -1634,11 +1616,6 @@ public class Transaction
 
     public Builder frameSignatures(final List<FrameTransactionSignature> frameSignatures) {
       this.frameSignatures = Optional.ofNullable(frameSignatures);
-      return this;
-    }
-
-    public Builder frameSender(final Address frameSender) {
-      this.frameSender = Optional.ofNullable(frameSender);
       return this;
     }
   }

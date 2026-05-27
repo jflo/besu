@@ -39,27 +39,24 @@ public class FrameTransactionEncoder {
     out.startList();
     out.writeBigIntegerScalar(transaction.getChainId().orElseThrow());
     out.writeLongScalar(transaction.getNonce());
-    out.writeBytes(
-        transaction.getFrameSender().map(BytesHolder::getBytes).map(Bytes::copy).orElse(Bytes.EMPTY));
+    out.writeBytes(transaction.getSender().getBytes().copy());
 
     encodeFrames(
         transaction
             .getFrames()
-            .orElseThrow(
-                () -> new IllegalStateException("Frame transaction must have frames")),
+            .orElseThrow(() -> new IllegalStateException("Frame transaction must have frames")),
         out);
 
     encodeSignatures(
         transaction
             .getFrameSignatures()
-            .orElseThrow(
-                () -> new IllegalStateException("Frame transaction must have signatures")),
+            .orElseThrow(() -> new IllegalStateException("Frame transaction must have signatures")),
         out);
 
     out.writeUInt256Scalar(transaction.getMaxPriorityFeePerGas().orElseThrow());
     out.writeUInt256Scalar(transaction.getMaxFeePerGas().orElseThrow());
-    out.writeUInt256Scalar(transaction.getMaxFeePerBlobGas().orElse(
-        org.hyperledger.besu.datatypes.Wei.ZERO));
+    out.writeUInt256Scalar(
+        transaction.getMaxFeePerBlobGas().orElse(org.hyperledger.besu.datatypes.Wei.ZERO));
 
     writeBlobVersionedHashes(out, transaction.getVersionedHashes().orElse(List.of()));
 
@@ -78,8 +75,7 @@ public class FrameTransactionEncoder {
     out.startList();
     out.writeIntScalar(frame.mode());
     out.writeIntScalar(frame.flags());
-    out.writeBytes(
-        frame.target().map(BytesHolder::getBytes).map(Bytes::copy).orElse(Bytes.EMPTY));
+    out.writeBytes(frame.target().map(BytesHolder::getBytes).map(Bytes::copy).orElse(Bytes.EMPTY));
     out.writeLongScalar(frame.gasLimit());
     out.writeUInt256Scalar(frame.value());
     out.writeBytes(frame.data());

@@ -32,9 +32,16 @@ import org.apache.tuweni.bytes.Bytes;
  */
 public class FrameDataCopyOperation extends AbstractOperation {
 
+  /** FRAMEDATACOPY opcode number. */
   public static final int OPCODE = 0xb2;
+
   private static final long BASE_GAS_COST = 3L;
 
+  /**
+   * Instantiates a new FrameDataCopy operation.
+   *
+   * @param gasCalculator the gas calculator
+   */
   public FrameDataCopyOperation(final GasCalculator gasCalculator) {
     super(OPCODE, "FRAMEDATACOPY", 4, 0, gasCalculator);
   }
@@ -43,9 +50,9 @@ public class FrameDataCopyOperation extends AbstractOperation {
   public OperationResult execute(final MessageFrame frame, final EVM evm) {
     try {
       final Bytes frameIndexBytes = frame.popStackItem();
-      final Bytes dataOffsetBytes = frame.popStackItem();
-      final Bytes lengthBytes = frame.popStackItem();
-      final Bytes memOffsetBytes = frame.popStackItem();
+      frame.popStackItem(); // dataOffset
+      frame.popStackItem(); // length
+      frame.popStackItem(); // memOffset
 
       if (frame.getRemainingGas() < BASE_GAS_COST) {
         return new OperationResult(BASE_GAS_COST, ExceptionalHaltReason.INSUFFICIENT_GAS);

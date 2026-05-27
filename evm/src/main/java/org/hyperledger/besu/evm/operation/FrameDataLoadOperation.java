@@ -33,9 +33,16 @@ import org.apache.tuweni.bytes.Bytes32;
  */
 public class FrameDataLoadOperation extends AbstractOperation {
 
+  /** FRAMEDATALOAD opcode number. */
   public static final int OPCODE = 0xb1;
+
   private static final long GAS_COST = 3L;
 
+  /**
+   * Instantiates a new FrameDataLoad operation.
+   *
+   * @param gasCalculator the gas calculator
+   */
   public FrameDataLoadOperation(final GasCalculator gasCalculator) {
     super(OPCODE, "FRAMEDATALOAD", 2, 1, gasCalculator);
   }
@@ -44,7 +51,7 @@ public class FrameDataLoadOperation extends AbstractOperation {
   public OperationResult execute(final MessageFrame frame, final EVM evm) {
     try {
       final Bytes frameIndexBytes = frame.popStackItem();
-      final Bytes offsetBytes = frame.popStackItem();
+      frame.popStackItem(); // offset
 
       if (frame.getRemainingGas() < GAS_COST) {
         return new OperationResult(GAS_COST, ExceptionalHaltReason.INSUFFICIENT_GAS);
@@ -55,8 +62,6 @@ public class FrameDataLoadOperation extends AbstractOperation {
       if (trimmedIndex.size() > 4) {
         return new OperationResult(GAS_COST, ExceptionalHaltReason.OUT_OF_BOUNDS);
       }
-      final int frameIndex = trimmedIndex.isEmpty() ? 0 : trimmedIndex.toInt();
-
       // Access the frame data from the transaction context
       // For now, push zero - full frame data access requires MessageFrame integration
       frame.pushStackItem(Bytes32.ZERO);

@@ -59,8 +59,7 @@ public class FrameTransactionDecoder {
     final Wei maxFeePerGas = Wei.of(txRlp.readUInt256Scalar());
     final Wei maxFeePerBlobGas = Wei.of(txRlp.readUInt256Scalar());
 
-    final var blobVersionedHashes =
-        txRlp.readList(rlp -> new VersionedHash(rlp.readBytes32()));
+    final var blobVersionedHashes = txRlp.readList(rlp -> new VersionedHash(rlp.readBytes32()));
 
     txRlp.leaveList();
 
@@ -74,7 +73,6 @@ public class FrameTransactionDecoder {
         .type(TransactionType.FRAME)
         .chainId(chainId)
         .nonce(nonce)
-        .frameSender(sender)
         .sender(sender)
         .frames(frames)
         .frameSignatures(signatures)

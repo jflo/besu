@@ -62,7 +62,6 @@ class FrameTransactionEncodingTest {
             .type(TransactionType.FRAME)
             .chainId(BigInteger.ONE)
             .nonce(1L)
-            .frameSender(TEST_SENDER)
             .sender(TEST_SENDER)
             .frames(List.of(frame))
             .frameSignatures(List.of(sig))
@@ -87,7 +86,7 @@ class FrameTransactionEncodingTest {
     assertThat(decoded.getType()).isEqualTo(TransactionType.FRAME);
     assertThat(decoded.getChainId()).contains(BigInteger.ONE);
     assertThat(decoded.getNonce()).isEqualTo(1L);
-    assertThat(decoded.getFrameSender()).contains(TEST_SENDER);
+    assertThat(decoded.getSender()).isEqualTo(TEST_SENDER);
     assertThat(decoded.getMaxPriorityFeePerGas()).contains(Wei.of(1_000_000_000L));
     assertThat(decoded.getMaxFeePerGas()).contains(Wei.of(2_000_000_000L));
 
@@ -144,7 +143,6 @@ class FrameTransactionEncodingTest {
             .type(TransactionType.FRAME)
             .chainId(BigInteger.valueOf(1337))
             .nonce(42L)
-            .frameSender(TEST_SENDER)
             .sender(TEST_SENDER)
             .frames(List.of(verifyFrame, senderFrame))
             .frameSignatures(List.of(sig))
@@ -217,7 +215,6 @@ class FrameTransactionEncodingTest {
             .type(TransactionType.FRAME)
             .chainId(BigInteger.ONE)
             .nonce(0L)
-            .frameSender(TEST_SENDER)
             .sender(TEST_SENDER)
             .frames(List.of(frame1, frame2))
             .frameSignatures(
@@ -280,10 +277,7 @@ class FrameTransactionEncodingTest {
   void frameTransactionSignatureGasCost() {
     final FrameTransactionSignature secp =
         new FrameTransactionSignature(
-            FrameTransactionSignature.SCHEME_SECP256K1,
-            TEST_SENDER,
-            Bytes.EMPTY,
-            Bytes.EMPTY);
+            FrameTransactionSignature.SCHEME_SECP256K1, TEST_SENDER, Bytes.EMPTY, Bytes.EMPTY);
     assertThat(secp.verificationGasCost()).isEqualTo(2800L);
     assertThat(secp.isCanonical()).isTrue();
 

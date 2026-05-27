@@ -33,23 +33,52 @@ import org.apache.tuweni.bytes.Bytes32;
  */
 public class TxParamOperation extends AbstractOperation {
 
+  /** TXPARAM opcode number. */
   public static final int OPCODE = 0xb0;
 
+  /** Param: current transaction type. */
   public static final int PARAM_TX_TYPE = 0x00;
+
+  /** Param: nonce. */
   public static final int PARAM_NONCE = 0x01;
+
+  /** Param: sender address. */
   public static final int PARAM_SENDER = 0x02;
+
+  /** Param: max priority fee per gas. */
   public static final int PARAM_MAX_PRIORITY_FEE = 0x03;
+
+  /** Param: max fee per gas. */
   public static final int PARAM_MAX_FEE = 0x04;
+
+  /** Param: max fee per blob gas. */
   public static final int PARAM_MAX_BLOB_FEE = 0x05;
+
+  /** Param: maximum total cost. */
   public static final int PARAM_MAX_TOTAL_COST = 0x06;
+
+  /** Param: blob versioned hash count. */
   public static final int PARAM_BLOB_HASH_COUNT = 0x07;
+
+  /** Param: canonical signature hash. */
   public static final int PARAM_SIG_HASH = 0x08;
+
+  /** Param: number of frames. */
   public static final int PARAM_FRAME_COUNT = 0x09;
+
+  /** Param: currently executing frame index. */
   public static final int PARAM_CURRENT_FRAME = 0x0A;
+
+  /** Param: number of signatures. */
   public static final int PARAM_SIG_COUNT = 0x0B;
 
   private static final long GAS_COST = 2L;
 
+  /**
+   * Instantiates a new TxParam operation.
+   *
+   * @param gasCalculator the gas calculator
+   */
   public TxParamOperation(final GasCalculator gasCalculator) {
     super(OPCODE, "TXPARAM", 1, 1, gasCalculator);
   }

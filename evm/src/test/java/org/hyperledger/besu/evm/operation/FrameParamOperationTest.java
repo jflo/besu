@@ -30,8 +30,7 @@ import org.junit.jupiter.api.Test;
 
 class FrameParamOperationTest {
 
-  private final FrameParamOperation operation =
-      new FrameParamOperation(new PragueGasCalculator());
+  private final FrameParamOperation operation = new FrameParamOperation(new PragueGasCalculator());
   private final EVM fakeEVM = mock(EVM.class);
 
   @Test
@@ -66,9 +65,7 @@ class FrameParamOperationTest {
   @Test
   void insufficientGasReturnsHalt() {
     MessageFrame frame = mock(MessageFrame.class);
-    when(frame.popStackItem())
-        .thenReturn(Bytes.of(0))
-        .thenReturn(Bytes.of(0));
+    when(frame.popStackItem()).thenReturn(Bytes.of(0)).thenReturn(Bytes.of(0));
     when(frame.getRemainingGas()).thenReturn(1L);
 
     Operation.OperationResult result = operation.execute(frame, fakeEVM);

@@ -33,15 +33,28 @@ import org.apache.tuweni.bytes.Bytes32;
  */
 public class SigParamOperation extends AbstractOperation {
 
+  /** SIGPARAM opcode number. */
   public static final int OPCODE = 0xb4;
 
+  /** Param: effective signer address. */
   public static final int PARAM_SIGNER = 0x00;
+
+  /** Param: scheme (0=SECP256K1, 1=P256). */
   public static final int PARAM_SCHEME = 0x01;
+
+  /** Param: message digest. */
   public static final int PARAM_MSG = 0x02;
+
+  /** Param: signature length. */
   public static final int PARAM_SIG_LENGTH = 0x03;
 
   private static final long GAS_COST = 2L;
 
+  /**
+   * Instantiates a new SigParam operation.
+   *
+   * @param gasCalculator the gas calculator
+   */
   public SigParamOperation(final GasCalculator gasCalculator) {
     super(OPCODE, "SIGPARAM", 2, 1, gasCalculator);
   }
@@ -50,7 +63,7 @@ public class SigParamOperation extends AbstractOperation {
   public OperationResult execute(final MessageFrame frame, final EVM evm) {
     try {
       final Bytes sigIndexBytes = frame.popStackItem();
-      final Bytes paramBytes = frame.popStackItem();
+      frame.popStackItem(); // param
 
       if (frame.getRemainingGas() < GAS_COST) {
         return new OperationResult(GAS_COST, ExceptionalHaltReason.INSUFFICIENT_GAS);

@@ -33,20 +33,43 @@ import org.apache.tuweni.bytes.Bytes32;
  */
 public class FrameParamOperation extends AbstractOperation {
 
+  /** FRAMEPARAM opcode number. */
   public static final int OPCODE = 0xb3;
 
+  /** Param: resolved target address. */
   public static final int PARAM_TARGET = 0x00;
+
+  /** Param: gas limit. */
   public static final int PARAM_GAS_LIMIT = 0x01;
+
+  /** Param: mode (0/1/2). */
   public static final int PARAM_MODE = 0x02;
+
+  /** Param: flags. */
   public static final int PARAM_FLAGS = 0x03;
+
+  /** Param: data length. */
   public static final int PARAM_DATA_LENGTH = 0x04;
+
+  /** Param: status (1=success, 0=fail). */
   public static final int PARAM_STATUS = 0x05;
+
+  /** Param: allowed scope (flags &amp; 3). */
   public static final int PARAM_ALLOWED_SCOPE = 0x06;
+
+  /** Param: atomic batch flag (bit 2). */
   public static final int PARAM_ATOMIC_BATCH = 0x07;
+
+  /** Param: value. */
   public static final int PARAM_VALUE = 0x08;
 
   private static final long GAS_COST = 2L;
 
+  /**
+   * Instantiates a new FrameParam operation.
+   *
+   * @param gasCalculator the gas calculator
+   */
   public FrameParamOperation(final GasCalculator gasCalculator) {
     super(OPCODE, "FRAMEPARAM", 2, 1, gasCalculator);
   }
@@ -55,7 +78,7 @@ public class FrameParamOperation extends AbstractOperation {
   public OperationResult execute(final MessageFrame frame, final EVM evm) {
     try {
       final Bytes frameIndexBytes = frame.popStackItem();
-      final Bytes paramBytes = frame.popStackItem();
+      frame.popStackItem(); // param
 
       if (frame.getRemainingGas() < GAS_COST) {
         return new OperationResult(GAS_COST, ExceptionalHaltReason.INSUFFICIENT_GAS);

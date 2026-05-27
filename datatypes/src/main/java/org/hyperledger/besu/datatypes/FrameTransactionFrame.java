@@ -30,12 +30,7 @@ import org.apache.tuweni.bytes.Bytes;
  * @param data calldata for frame execution
  */
 public record FrameTransactionFrame(
-    int mode,
-    int flags,
-    Optional<Address> target,
-    long gasLimit,
-    Wei value,
-    Bytes data) {
+    int mode, int flags, Optional<Address> target, long gasLimit, Wei value, Bytes data) {
 
   /** DEFAULT mode: execute with ENTRY_POINT as caller. */
   public static final int MODE_DEFAULT = 0;

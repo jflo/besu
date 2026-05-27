@@ -32,15 +32,28 @@ import org.apache.tuweni.bytes.Bytes;
  */
 public class ApproveOperation extends AbstractOperation {
 
+  /** APPROVE opcode number. */
   public static final int OPCODE = 0xaa;
 
+  /** No approval scope. */
   public static final int APPROVE_NONE = 0x0;
+
+  /** Payment approval only. */
   public static final int APPROVE_PAYMENT = 0x1;
+
+  /** Execution approval only. */
   public static final int APPROVE_EXECUTION = 0x2;
+
+  /** Both execution and payment approval. */
   public static final int APPROVE_EXECUTION_AND_PAYMENT = 0x3;
 
   private static final long GAS_COST = 0L;
 
+  /**
+   * Instantiates a new Approve operation.
+   *
+   * @param gasCalculator the gas calculator
+   */
   public ApproveOperation(final GasCalculator gasCalculator) {
     super(OPCODE, "APPROVE", 3, 0, gasCalculator);
   }

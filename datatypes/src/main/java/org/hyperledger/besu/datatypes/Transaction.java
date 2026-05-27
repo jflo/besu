@@ -300,13 +300,4 @@ public interface Transaction {
   default Optional<List<FrameTransactionSignature>> getFrameSignatures() {
     return Optional.empty();
   }
-
-  /**
-   * Returns the explicit sender for EIP-8141 frame transactions.
-   *
-   * @return optional explicit sender address
-   */
-  default Optional<Address> getFrameSender() {
-    return Optional.empty();
-  }
 }
