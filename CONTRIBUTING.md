@@ -32,8 +32,17 @@ Having the following accounts is necessary for contributing code/issues to Besu.
 * [Code of Conduct](https://wiki.hyperledger.org/display/BESU/Code+of+Conduct)
 * [Governance](https://wiki.hyperledger.org/display/BESU/Governance)
 
-### Guidelines for Non-Code and other Trivial Contributions
+### Guidelines for PR Quality
+
+With the advent of agentic coding tools it has become far easier to create and submit a pull request, than it is to responsibly review it. In order to protect maintainers time, we must set a very high quality bar for PRs to meet. 
+
+The PR description and summary are critical. Agentic summaries tend to be overly verbose; care should be taken to write these as concisely as possible, while still directing reviewers to the highest impact parts of the code to pay attention to. 
+
+CI/CD will not be run on incoming PRs till after review for security reasons. Passing CI/CD should be a foregone conclusion, and contributors are responsible for running tests locally before submission.
+
 Please keep in mind that we do not accept non-code contributions like fixing comments, typos or some other trivial fixes. Although we appreciate the extra help, managing lots of these small contributions is unfeasible, and puts extra pressure in our continuous delivery systems (running all tests, etc). Feel free to open an issue pointing any of those errors, and we will batch them into a single change.
+
+The Github ids of contributors who repeatedly submit PRs that fail to meet these standards will be noted, and deprioritized for review.
 
 [How to Contribute]: https://wiki.hyperledger.org/display/BESU/How+to+Contribute
 [Linux Foundation (LF) account]: https://identity.linuxfoundation.org/
