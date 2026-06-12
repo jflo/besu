@@ -19,10 +19,11 @@
 
 ### Bug fixes
 - Fix `engine_getBlobsV2` returning `UNSUPPORTED_FORK (-38005)` during full sync on post-merge networks (e.g. Hoodi). `PostMergeContext.isSyncing()` now correctly returns `true` while the node is catching up, so the syncing short-circuit fires instead of failing fork validation against a pre-fork chain head. [#10613](https://github.com/besu-eth/besu/pull/10613)
-- Demote `ClosedChannelException` in JSON-RPC handler from `ERROR` to `DEBUG` — this exception indicates the remote client closed the connection before the response was written, not an internal Besu error. [#10616](https://github.com/besu-eth/besu/pull/10616)
+- Improve handling of `ClosedChannelException` in JSON-RPC handler - don't respond on the closed channel. [#10616](https://github.com/besu-eth/besu/pull/10616), [#10626](https://github.com/besu-eth/besu/pull/10626)
 - Fix WebSocket RPC event-loop stall caused by slow clients filling the TCP write queue. [#10354](https://github.com/besu-eth/besu/pull/10354)
 - Fix handshake-resend hive test failure by updating the DiscV5 library ([Consensys/discovery#236](https://github.com/Consensys/discovery/pull/236)). [#10612](https://github.com/besu-eth/besu/pull/10612)
 - Fix QBFT/IBFT2 block creation for contracts that use `block.prevrandao`. [#10611](https://github.com/besu-eth/besu/pull/10611)
+- Return `SYNCING` from `engine_newPayload` when the parent block's world state is not immediately available in the Bonsai cache, preventing worker thread blocking during CL backfill or post-restart catch-up. [#10600](https://github.com/besu-eth/besu/pull/10600)
 
 ### Additions and Improvements
 - Add `eth_getTransactionBySenderAndNonce` JSON-RPC method to look up a transaction by sender address and nonce (pending or mined).
