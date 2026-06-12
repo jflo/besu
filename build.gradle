@@ -1161,32 +1161,6 @@ task dockerUpload(type: Exec) {
   args "-c", cmd
 }
 
-task dockerUploadReleaseArm64(type: Exec) {
-  def architecture = "arm64"
-  def image = "${dockerImageName}:${dockerBuildVersion}"
-
-  doFirst {
-    def cmd = "docker pull '${image}-${architecture}' && docker tag '${image}-${architecture}' '${dockerImageName}:latest-${architecture}' && docker push '${dockerImageName}:latest-${architecture}'"
-    println "Executing '${cmd}'"
-    commandLine shell, "-c", cmd
-  }
-}
-
-task dockerUploadReleaseAmd64(type: Exec) {
-  def architecture = "amd64"
-  def image = "${dockerImageName}:${dockerBuildVersion}"
-
-  doFirst {
-    def cmd = "docker pull '${image}-${architecture}' && docker tag '${image}-${architecture}' '${dockerImageName}:latest-${architecture}' && docker push '${dockerImageName}:latest-${architecture}'"
-    println "Executing '${cmd}'"
-    commandLine shell, "-c", cmd
-  }
-}
-
-task dockerUploadRelease {
-  dependsOn dockerUploadReleaseArm64, dockerUploadReleaseAmd64
-}
-
 task manifestDockerCreate(type: Exec) {
   def image = "${dockerImageName}:${dockerBuildVersion}"
   def archs = [
@@ -1214,34 +1188,6 @@ task manifestDockerPush(type: Exec) {
 
 task manifestDocker {
   dependsOn manifestDockerPush
-}
-
-task manifestDockerReleaseCreate(type: Exec) {
-  def archs = ["arm64", "amd64"]
-  def baseTag = "${dockerImageName}:latest"
-
-  doFirst {
-    def targets = ""
-    archs.forEach { arch -> targets += "'${baseTag}-${arch}' " }
-    def cmd = "docker manifest create '${baseTag}' ${targets} --amend"
-    println "Executing '${cmd}'"
-    commandLine shell, "-c", cmd
-  }
-}
-
-task manifestDockerReleasePush(type: Exec) {
-  dependsOn manifestDockerReleaseCreate
-  def baseTag = "${dockerImageName}:latest"
-
-  doFirst {
-    def cmd = "docker manifest push '${baseTag}'"
-    println "Executing '${cmd}'"
-    commandLine shell, "-c", cmd
-  }
-}
-
-task manifestDockerRelease {
-  dependsOn manifestDockerReleasePush
 }
 
 def sep = Pattern.quote(File.separator)
