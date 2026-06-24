@@ -475,6 +475,28 @@ public interface GasCalculator {
   }
 
   /**
+   * Returns the cold-access surcharge added to an SSTORE when the slot has not previously been
+   * accessed in the TX context. Defaults to {@link #getColdSloadCost()}; forks where the SSTORE
+   * access cost is decoupled from the SLOAD cold cost (e.g. EIP-8038) override this.
+   *
+   * @return the SSTORE cold-access surcharge.
+   */
+  default long getSStoreColdAccessGasCost() {
+    return getColdSloadCost();
+  }
+
+  /**
+   * Whether a SELFDESTRUCT preserves the originator's balance instead of burning it (EIP-8246).
+   * When true, a destroyed account is cleared (nonce, code, storage) at transaction finalization
+   * but its balance is left untouched, so a self-referential SELFDESTRUCT no longer burns ether.
+   *
+   * @return true if SELFDESTRUCT balance burning is removed (EIP-8246).
+   */
+  default boolean isSelfDestructBalancePreserved() {
+    return false;
+  }
+
+  /**
    * Returns the cost to access an account not previously accessed in the TX context.
    *
    * @return the cost to access an account not previously accessed in the TX context.

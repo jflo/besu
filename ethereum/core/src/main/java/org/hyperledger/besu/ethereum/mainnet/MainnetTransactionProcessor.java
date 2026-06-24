@@ -37,6 +37,7 @@ import org.hyperledger.besu.evm.account.Account;
 import org.hyperledger.besu.evm.account.MutableAccount;
 import org.hyperledger.besu.evm.blockhash.BlockHashLookup;
 import org.hyperledger.besu.evm.frame.Eip8037Trace;
+import org.hyperledger.besu.evm.frame.ExceptionalHaltReason;
 import org.hyperledger.besu.evm.frame.MessageFrame;
 import org.hyperledger.besu.evm.gascalculator.GasCalculator;
 import org.hyperledger.besu.evm.gascalculator.StateGasCostCalculator;
@@ -283,8 +284,13 @@ public class MainnetTransactionProcessor {
                 .get()
                 .process(delegationUpdater, transaction, accessLocationTracker);
         eip2930WarmAddressList.addAll(codeDelegationResult.accessedDelegatorAddresses());
-        alreadyExistingDelegators = codeDelegationResult.alreadyExistingDelegators();
-        authBaseRefundCount = codeDelegationResult.authBaseRefundCount();
+        // EIP-7702 (#11715): an invalid authorization grows no state, so it refunds its full
+        // worst-case intrinsic charge — NEW_ACCOUNT + AUTH_BASE state gas plus the regular
+        // ACCOUNT_WRITE — exactly like an authority whose account already existed.
+        final long invalidAuthorizations = codeDelegationResult.invalidAuthorizations();
+        alreadyExistingDelegators =
+            codeDelegationResult.alreadyExistingDelegators() + invalidAuthorizations;
+        authBaseRefundCount = codeDelegationResult.authBaseRefundCount() + invalidAuthorizations;
         codeDelegationRefund =
             gasCalculator.calculateDelegateCodeGasRefund(alreadyExistingDelegators);
         delegationUpdater.commit();
@@ -376,9 +382,16 @@ public class MainnetTransactionProcessor {
       }
 
       final MessageFrame initialFrame;
+      // EIP-8037: whether a contract-creation transaction's target address was already alive
+      // (existed and non-empty, e.g. pre-funded) before execution. On a successful creation to an
+      // already-alive target no new account leaf is added, so the intrinsic NEW_ACCOUNT state gas
+      // is refunded — matching EELS process_transaction's created_target_alive path.
+      boolean createTargetAlreadyAlive = false;
       if (transaction.isContractCreation()) {
         final Address contractAddress =
             Address.contractAddress(senderAddress, sender.getNonce() - 1L);
+        final Account existingTarget = worldState.get(contractAddress);
+        createTargetAlreadyAlive = existingTarget != null && !existingTarget.isEmpty();
         accessLocationTracker.ifPresent(t -> t.addTouchedAccount(contractAddress));
 
         final Bytes initCodeBytes = transaction.getPayload();
@@ -413,10 +426,19 @@ public class MainnetTransactionProcessor {
       initializeStateGasReservoir(initialFrame, gasAvailable, intrinsicRegularGas, stateGasCalc);
       chargeIntrinsicStateGas(
           initialFrame, transaction, alreadyExistingDelegators, authBaseRefundCount, stateGasCalc);
+      chargeEip2780TopFrameCharges(initialFrame, transaction, worldState, stateGasCalc);
       // EIP-8037: Advance the undo mark so intrinsic state gas charges (auth delegation,
       // contract creation) are not rolled back if the initial frame's execution reverts.
       // These are transaction-level costs that persist regardless of execution outcome.
       initialFrame.advanceUndoMark();
+      // EIP-8037: the intrinsic/top-frame state-gas charges above drew from gasRemaining when the
+      // reservoir was empty, which would otherwise count as frame spill. In EELS these intrinsic
+      // costs are pre-deducted (the frame's state_gas_spilled starts at zero), and their refund on
+      // a failed contract-creation tx is credited solely to the reservoir via
+      // refundTxCreateIntrinsicStateGas. Clearing the spill here prevents the frame-failure handler
+      // from also returning that intrinsic spill to gasRemaining on revert (a double refund); only
+      // genuine execution-time spill is tracked from this point.
+      initialFrame.resetStateGasSpilled();
 
       Deque<MessageFrame> messageFrameStack = initialFrame.getMessageFrameStack();
       while (!messageFrameStack.isEmpty()) {
@@ -450,6 +472,14 @@ public class MainnetTransactionProcessor {
 
       if (txSucceeded) {
         worldUpdater.commit();
+        // EIP-8037: a successful creation transaction to an already-alive target adds no new
+        // account leaf, so the intrinsic NEW_ACCOUNT state gas is refunded (EELS
+        // created_target_alive). The failure case is handled symmetrically below.
+        if (stateGasCalc.isActive()
+            && transaction.isContractCreation()
+            && createTargetAlreadyAlive) {
+          stateGasCalc.refundTxCreateIntrinsicStateGas(initialFrame);
+        }
       } else {
         if (initialFrame.getExceptionalHaltReason().isPresent()) {
           validationResult =
@@ -562,10 +592,12 @@ public class MainnetTransactionProcessor {
         coinbase.incrementBalance(coinbaseWeiDelta);
       }
 
-      // EIP-7708: Emit closure logs for accounts with remaining balance before deletion
-      // Noop before Amsterdam
-      transferLogEmitter.emitClosureLogs(
-          worldState, initialFrame.getSelfDestructs(), initialFrame::addLog);
+      // EIP-7708: Emit closure (burn) logs for self-destructed accounts whose balance is burned.
+      // EIP-8246 preserves the balance instead of burning it, so no closure log is emitted then.
+      if (!gasCalculator.isSelfDestructBalancePreserved()) {
+        transferLogEmitter.emitClosureLogs(
+            worldState, initialFrame.getSelfDestructs(), initialFrame::addLog);
+      }
 
       operationTracer.traceEndTransaction(
           worldState.updater(),
@@ -577,7 +609,7 @@ public class MainnetTransactionProcessor {
           initialFrame.getSelfDestructs(),
           0L);
 
-      initialFrame.getSelfDestructs().forEach(worldState::deleteAccount);
+      settleSelfDestructs(worldState, initialFrame.getSelfDestructs());
 
       if (clearEmptyAccounts) {
         worldState.clearAccountsThatAreEmpty();
@@ -587,15 +619,18 @@ public class MainnetTransactionProcessor {
           accessLocationTracker.map(tracker -> tracker.createPartialBlockAccessView(worldState));
 
       if (txSucceeded) {
-        return TransactionProcessingResult.successful(
-            initialFrame.getLogs(),
-            gasUsedByTransaction,
-            refundedGas,
-            usedGas,
-            effectiveStateGas,
-            initialFrame.getOutputData(),
-            partialBlockAccessView,
-            validationResult);
+        final TransactionProcessingResult successResult =
+            TransactionProcessingResult.successful(
+                initialFrame.getLogs(),
+                gasUsedByTransaction,
+                refundedGas,
+                usedGas,
+                effectiveStateGas,
+                initialFrame.getOutputData(),
+                partialBlockAccessView,
+                validationResult);
+        successResult.setRegularGasUsedForBlock(gasResult.regularGas());
+        return successResult;
       } else {
         if (initialFrame.getExceptionalHaltReason().isPresent()) {
           LOG.debug(
@@ -609,15 +644,18 @@ public class MainnetTransactionProcessor {
               transaction.getHash(),
               initialFrame.getRevertReason().get());
         }
-        return TransactionProcessingResult.failed(
-            gasUsedByTransaction,
-            refundedGas,
-            usedGas,
-            effectiveStateGas,
-            validationResult,
-            initialFrame.getRevertReason(),
-            initialFrame.getExceptionalHaltReason(),
-            partialBlockAccessView);
+        final TransactionProcessingResult failedResult =
+            TransactionProcessingResult.failed(
+                gasUsedByTransaction,
+                refundedGas,
+                usedGas,
+                effectiveStateGas,
+                validationResult,
+                initialFrame.getRevertReason(),
+                initialFrame.getExceptionalHaltReason(),
+                partialBlockAccessView);
+        failedResult.setRegularGasUsedForBlock(gasResult.regularGas());
+        return failedResult;
       }
     } catch (final MerkleTrieException re) {
       operationTracer.traceEndTransaction(
@@ -708,6 +746,29 @@ public class MainnetTransactionProcessor {
     initialFrame.setStateGasReservoir(reservoir);
   }
 
+  /**
+   * Settles accounts marked for self-destruction at transaction finalization. Under EIP-8246 each
+   * account is cleared (nonce reset, code and storage removed) but keeps its balance — EIP-161
+   * state clearing then removes any account left with a zero balance. Pre-EIP-8246 the accounts are
+   * deleted outright.
+   */
+  private void settleSelfDestructs(
+      final WorldUpdater worldState, final Set<Address> selfDestructs) {
+    if (gasCalculator.isSelfDestructBalancePreserved()) {
+      selfDestructs.forEach(
+          address -> {
+            final MutableAccount account = worldState.getAccount(address);
+            if (account != null) {
+              account.setNonce(0L);
+              account.setCode(Bytes.EMPTY);
+              account.clearStorage();
+            }
+          });
+    } else {
+      selfDestructs.forEach(worldState::deleteAccount);
+    }
+  }
+
   /** Charges EIP-8037 intrinsic state gas (contract creation and authorization delegation). */
   private static void chargeIntrinsicStateGas(
       final MessageFrame initialFrame,
@@ -724,6 +785,44 @@ public class MainnetTransactionProcessor {
           transaction.codeDelegationListSize(),
           alreadyExistingDelegators,
           authBaseRefundCount);
+    }
+  }
+
+  /**
+   * EIP-2780 top-frame charges applied to the depth-0 frame of a non-create transaction before any
+   * opcode runs (mirrors {@code process_message_call}): NEW_ACCOUNT state gas for a positive value
+   * transfer to a non-precompile, non-alive recipient, and a cold-account-access regular charge
+   * when the recipient carries an EIP-7702 delegation. Reads pre-value-transfer state.
+   */
+  private void chargeEip2780TopFrameCharges(
+      final MessageFrame initialFrame,
+      final Transaction transaction,
+      final WorldUpdater worldState,
+      final StateGasCostCalculator stateGasCalc) {
+    if (transaction.isContractCreation()) {
+      return;
+    }
+    final Address to = transaction.getTo().orElseThrow();
+    final Account recipient = worldState.get(to);
+    boolean outOfGas = false;
+    // NEW_ACCOUNT state gas: positive value sent to a non-precompile, non-alive recipient.
+    if (transaction.getValue().getAsBigInteger().signum() > 0
+        && !gasCalculator.isPrecompile(to)
+        && (recipient == null || recipient.isEmpty())) {
+      outOfGas = !initialFrame.consumeStateGas(stateGasCalc.newAccountStateGas());
+    }
+    // EIP-7702: top-level access to a delegated recipient's target costs cold account access.
+    if (!outOfGas && recipient != null && hasCodeDelegation(recipient.getCode())) {
+      final long delegationAccessCost = gasCalculator.getColdAccountAccessCost();
+      if (initialFrame.getRemainingGas() >= delegationAccessCost) {
+        initialFrame.decrementRemainingGas(delegationAccessCost);
+      } else {
+        outOfGas = true;
+      }
+    }
+    if (outOfGas) {
+      initialFrame.setExceptionalHaltReason(Optional.of(ExceptionalHaltReason.INSUFFICIENT_GAS));
+      initialFrame.setState(MessageFrame.State.EXCEPTIONAL_HALT);
     }
   }
 
