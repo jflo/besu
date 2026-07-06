@@ -16,6 +16,7 @@ jobs:
       statuses: write
       checks: write
       packages: read
+      contents: read
     strategy:
       fail-fast: true
       matrix:
