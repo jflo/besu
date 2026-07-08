@@ -17,8 +17,6 @@ package org.hyperledger.besu.cli.options;
 import org.hyperledger.besu.ethereum.mainnet.BalConfiguration;
 import org.hyperledger.besu.ethereum.mainnet.ImmutableBalConfiguration;
 
-import java.time.Duration;
-
 import picocli.CommandLine;
 
 /** Command-line options for configuring Block Access List behaviour. */
@@ -34,19 +32,6 @@ public class BalConfigurationOptions {
   boolean balPerfectParallelizationEnabled = true;
 
   @CommandLine.Option(
-      names = {"--Xbal-lenient-on-state-root-mismatch"},
-      hidden = true,
-      description =
-          "Log an error instead of throwing when the BAL-computed state root does not match the synchronously computed root.")
-  boolean balLenientOnStateRootMismatch = true;
-
-  @CommandLine.Option(
-      names = {"--Xbal-trust-state-root"},
-      hidden = true,
-      description = "Trust the BAL-computed state root without verification.")
-  boolean balTrustStateRoot = true;
-
-  @CommandLine.Option(
       names = {"--Xbal-state-root-enabled"},
       hidden = true,
       negatable = true,
@@ -59,20 +44,6 @@ public class BalConfigurationOptions {
       hidden = true,
       description = "Log the constructed and block's BAL when they differ.")
   boolean balLogBalsOnMismatch = false;
-
-  @CommandLine.Option(
-      names = {"--Xbal-state-root-timeout"},
-      hidden = true,
-      paramLabel = "<INTEGER>",
-      description = "Timeout in milliseconds when waiting for the BAL-computed state root.")
-  private long balStateRootTimeoutMs = -1;
-
-  @CommandLine.Option(
-      names = {"--Xbal-processing-timeout"},
-      hidden = true,
-      paramLabel = "<INTEGER>",
-      description = "Timeout in milliseconds when waiting for BAL transaction processing results.")
-  private long balProcessingTimeoutMs = -1;
 
   @CommandLine.Option(
       names = {"--Xbal-prefetch-reading-enabled"},
@@ -91,7 +62,7 @@ public class BalConfigurationOptions {
       names = {"--Xbal-prefetch-batch-size"},
       hidden = true,
       description = "Enable custom BAL prefetch batch size (default: ${DEFAULT-VALUE}).")
-  int balPreFetchBatch = 100;
+  int balPreFetchBatch = 8;
 
   /**
    * Builds the immutable {@link BalConfiguration} corresponding to the parsed CLI options.
@@ -102,14 +73,10 @@ public class BalConfigurationOptions {
     return ImmutableBalConfiguration.builder()
         .isPerfectParallelizationEnabled(balPerfectParallelizationEnabled)
         .shouldLogBalsOnMismatch(balLogBalsOnMismatch)
-        .isBalLenientOnStateRootMismatch(balLenientOnStateRootMismatch)
-        .isBalStateRootTrusted(balTrustStateRoot)
         .isBalStateRootEnabled(balStateRootEnabled)
         .isBalPreFetchReadingEnabled(balPreFetchReadingEnabled)
         .isBalPreFetchSortingEnabled(balPreFetchSortingEnabled)
         .balPreFetchBatchSize(balPreFetchBatch)
-        .balStateRootTimeout(Duration.ofMillis(balStateRootTimeoutMs))
-        .balProcessingTimeout(Duration.ofMillis(balProcessingTimeoutMs))
         .build();
   }
 }

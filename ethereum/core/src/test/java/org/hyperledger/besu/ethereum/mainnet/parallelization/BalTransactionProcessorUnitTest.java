@@ -41,6 +41,7 @@ import org.hyperledger.besu.ethereum.mainnet.MainnetTransactionProcessor;
 import org.hyperledger.besu.ethereum.mainnet.TransactionValidationParams;
 import org.hyperledger.besu.ethereum.mainnet.ValidationResult;
 import org.hyperledger.besu.ethereum.mainnet.block.access.list.BlockAccessList;
+import org.hyperledger.besu.ethereum.mainnet.block.access.list.BlockAccessListOverlay;
 import org.hyperledger.besu.ethereum.mainnet.block.access.list.PartialBlockAccessView;
 import org.hyperledger.besu.ethereum.processing.TransactionProcessingResult;
 import org.hyperledger.besu.ethereum.trie.pathbased.bonsai.NoOpBonsaiCachedWorldStorageManager;
@@ -54,6 +55,7 @@ import org.hyperledger.besu.ethereum.worldstate.DataStorageConfiguration;
 import org.hyperledger.besu.ethereum.worldstate.WorldStateArchive;
 import org.hyperledger.besu.evm.account.Account;
 import org.hyperledger.besu.evm.blockhash.BlockHashLookup;
+import org.hyperledger.besu.evm.frame.MessageFrame;
 import org.hyperledger.besu.evm.internal.EvmConfiguration;
 import org.hyperledger.besu.evm.tracing.OperationTracer;
 import org.hyperledger.besu.evm.worldstate.WorldUpdater;
@@ -82,6 +84,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class BalTransactionProcessorUnitTest {
 
+  /** Stateless lookup for tests that exercise parallel processors (requires {@code fork}). */
+  private static final BlockHashLookup EMPTY_BLOCK_HASH_LOOKUP =
+      new BlockHashLookup() {
+        @Override
+        public Hash apply(final MessageFrame frame, final Long blockNumber) {
+          return Hash.EMPTY;
+        }
+
+        @Override
+        public BlockHashLookup forkForParallelWorker() {
+          return this;
+        }
+      };
+
   private static final Address MINING_BENEFICIARY = Address.fromHexString("0x1");
   private static final Wei BLOB_GAS_PRICE = Wei.ZERO;
   private final Executor sameThreadExecutor = Runnable::run;
@@ -96,20 +112,29 @@ class BalTransactionProcessorUnitTest {
       BonsaiWorldState worldState) {}
 
   private BonsaiWorldState createEmptyWorldState() {
+    return createEmptyWorldState(Optional.empty());
+  }
+
+  private BonsaiWorldState createEmptyWorldState(
+      final Optional<BlockAccessListOverlay> blockAccessListOverlay) {
     final BonsaiWorldStateKeyValueStorage storage =
         new BonsaiWorldStateKeyValueStorage(
             new InMemoryKeyValueStorageProvider(),
             new NoOpMetricsSystem(),
             DataStorageConfiguration.DEFAULT_BONSAI_CONFIG);
 
-    return new BonsaiWorldState(
-        storage,
-        new NoopBonsaiCachedMerkleTrieLoader(),
-        new NoOpBonsaiCachedWorldStorageManager(storage, EvmConfiguration.DEFAULT, new CodeCache()),
-        new NoOpTrieLogManager(),
-        EvmConfiguration.DEFAULT,
-        createStatefulConfigWithTrie(),
-        new CodeCache());
+    final BonsaiWorldState worldState =
+        new BonsaiWorldState(
+            storage,
+            new NoopBonsaiCachedMerkleTrieLoader(),
+            new NoOpBonsaiCachedWorldStorageManager(
+                storage, EvmConfiguration.DEFAULT, new CodeCache()),
+            new NoOpTrieLogManager(),
+            EvmConfiguration.DEFAULT,
+            createStatefulConfigWithTrie(),
+            new CodeCache());
+    blockAccessListOverlay.ifPresent(worldState::applyBlockAccessListOverlay);
+    return worldState;
   }
 
   private TestEnvironment createTestEnvironment() {
@@ -120,7 +145,22 @@ class BalTransactionProcessorUnitTest {
     final BonsaiWorldState worldState = createEmptyWorldState();
 
     when(protocolContext.getWorldStateArchive()).thenReturn(worldStateArchive);
-    when(worldStateArchive.getWorldState(any())).thenReturn(Optional.of(worldState));
+    when(worldStateArchive.getWorldState(any()))
+        .thenAnswer(
+            invocation -> {
+              final WorldStateQueryParams queryParams = invocation.getArgument(0);
+              if (queryParams == null) {
+                return Optional.empty();
+              }
+              final Optional<BlockAccessListOverlay> overlay =
+                  queryParams
+                      .getBalOverlayQuery()
+                      .map(
+                          q ->
+                              new BlockAccessListOverlay(
+                                  q.blockAccessListAddressView(), q.maxTxIndexExclusive()));
+              return Optional.of(createEmptyWorldState(overlay));
+            });
     when(parentHeader.getBlockHash()).thenReturn(Hash.ZERO);
     when(parentHeader.getStateRoot()).thenReturn(Hash.EMPTY_TRIE_HASH);
 
@@ -178,7 +218,7 @@ class BalTransactionProcessorUnitTest {
           env.blockHeader(),
           Collections.singletonList(transaction),
           MINING_BENEFICIARY,
-          (__, ___) -> Hash.EMPTY,
+          EMPTY_BLOCK_HASH_LOOKUP,
           BLOB_GAS_PRICE,
           sameThreadExecutor,
           Optional.empty(),
@@ -216,7 +256,7 @@ class BalTransactionProcessorUnitTest {
           env.blockHeader(),
           List.of(tx1, tx2, tx3),
           MINING_BENEFICIARY,
-          (__, ___) -> Hash.EMPTY,
+          EMPTY_BLOCK_HASH_LOOKUP,
           BLOB_GAS_PRICE,
           sameThreadExecutor,
           Optional.empty(),
@@ -243,7 +283,7 @@ class BalTransactionProcessorUnitTest {
           env.blockHeader(),
           Collections.singletonList(transaction),
           MINING_BENEFICIARY,
-          (__, ___) -> Hash.EMPTY,
+          EMPTY_BLOCK_HASH_LOOKUP,
           BLOB_GAS_PRICE,
           sameThreadExecutor,
           Optional.empty(),
@@ -315,7 +355,7 @@ class BalTransactionProcessorUnitTest {
           env.blockHeader(),
           Collections.singletonList(transaction),
           MINING_BENEFICIARY,
-          (__, ___) -> Hash.EMPTY,
+          EMPTY_BLOCK_HASH_LOOKUP,
           BLOB_GAS_PRICE,
           sameThreadExecutor,
           Optional.empty(),
@@ -432,7 +472,7 @@ class BalTransactionProcessorUnitTest {
           blockHeader,
           Collections.singletonList(transaction),
           MINING_BENEFICIARY,
-          (__, ___) -> Hash.EMPTY,
+          EMPTY_BLOCK_HASH_LOOKUP,
           BLOB_GAS_PRICE,
           sameThreadExecutor,
           Optional.empty(),
@@ -469,7 +509,7 @@ class BalTransactionProcessorUnitTest {
           env.blockHeader(),
           Collections.singletonList(transaction),
           MINING_BENEFICIARY,
-          (__, ___) -> Hash.EMPTY,
+          EMPTY_BLOCK_HASH_LOOKUP,
           BLOB_GAS_PRICE,
           sameThreadExecutor,
           Optional.empty(),
@@ -507,7 +547,7 @@ class BalTransactionProcessorUnitTest {
           env.blockHeader(),
           Collections.singletonList(transaction),
           MINING_BENEFICIARY,
-          (__, ___) -> Hash.EMPTY,
+          EMPTY_BLOCK_HASH_LOOKUP,
           BLOB_GAS_PRICE,
           sameThreadExecutor,
           Optional.empty(),
@@ -654,7 +694,7 @@ class BalTransactionProcessorUnitTest {
           env.blockHeader(),
           List.of(tx0, tx1, tx2),
           MINING_BENEFICIARY,
-          (__, ___) -> Hash.EMPTY,
+          EMPTY_BLOCK_HASH_LOOKUP,
           BLOB_GAS_PRICE,
           sameThreadExecutor,
           Optional.empty(),
@@ -705,7 +745,7 @@ class BalTransactionProcessorUnitTest {
           env.blockHeader(),
           Collections.singletonList(transaction),
           MINING_BENEFICIARY,
-          (__, ___) -> Hash.EMPTY,
+          EMPTY_BLOCK_HASH_LOOKUP,
           BLOB_GAS_PRICE,
           sameThreadExecutor,
           Optional.empty(),
