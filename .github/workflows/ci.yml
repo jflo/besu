@@ -190,7 +190,7 @@ jobs:
       actions: read
       contents: read
       checks: write
-      statuses: write      
+      statuses: write
     uses: ./.github/workflows/integration-tests.yml
 
   referenceTests:

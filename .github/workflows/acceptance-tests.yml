@@ -39,8 +39,47 @@ jobs:
           name: acceptance-tests-current-list
           path: tmp/currentTests.list
 
+  compileSolidity:
+    name: "Compile Solidity Contracts"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: 25
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # v6.0.1
+        with:
+          cache-disabled: true
+      - name: Cache Gradle build outputs for Solidity compilation
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches/build-cache-1
+          # Key covers everything that determines compileSolidity's outputs: the .sol sources,
+          # the per-project build files (which pin solc version and evmVersion), and the Gradle
+          # wrapper (in case a Gradle upgrade changes cache serialisation).
+          key: gradle-solidity-build-cache-${{ hashFiles('acceptance-tests/tests/contracts/**/*.sol', 'acceptance-tests/tests/shanghai/shanghaicontracts/**/*.sol', 'acceptance-tests/tests/osaka/osakacontracts/**/*.sol', 'acceptance-tests/tests/build.gradle', 'acceptance-tests/tests/shanghai/build.gradle', 'acceptance-tests/tests/osaka/build.gradle', 'gradle/wrapper/gradle-wrapper.properties') }}
+      - name: Compile Solidity and generate web3j wrappers
+        run: ./gradlew :acceptance-tests:tests:compileSolidity :acceptance-tests:tests:shanghai:compileSolidity :acceptance-tests:tests:osaka:compileSolidity
+      - name: Upload solidity build outputs
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: solidity-build-outputs
+          # Shares the solc binaries with matrix runners so registerSolcDownload's
+          # onlyIf { !target.exists() } guard skips the GitHub release download on each runner.
+          # compileSolidity itself is skipped via the Gradle build cache (restored below).
+          path: build/solc/
+
   acceptanceTests:
-    needs: [ listAcceptanceTests ]
+    needs: [ listAcceptanceTests, compileSolidity ]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     name: "Acceptance Runner"
@@ -90,6 +129,18 @@ jobs:
       - name: format gradle args
         # we do not need the module task here
         run:  cat testList.txt | cut -f 2- -d ' ' | tee gradleArgs.txt
+      - name: Restore solidity build outputs
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: solidity-build-outputs
+          path: .
+      - name: Mark solc binaries executable
+        run: find build/solc -type f -exec chmod +x {} +
+      - name: Restore Gradle build cache for Solidity compilation
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.gradle/caches/build-cache-1
+          key: gradle-solidity-build-cache-${{ hashFiles('acceptance-tests/tests/contracts/**/*.sol', 'acceptance-tests/tests/shanghai/shanghaicontracts/**/*.sol', 'acceptance-tests/tests/osaka/osakacontracts/**/*.sol', 'acceptance-tests/tests/build.gradle', 'acceptance-tests/tests/shanghai/build.gradle', 'acceptance-tests/tests/osaka/build.gradle', 'gradle/wrapper/gradle-wrapper.properties') }}
       - name: Upload Timing
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: matrix.runner_index == 0
