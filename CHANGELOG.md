@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+ bunch of crazy zk shit you have no idea
 
 ### Breaking Changes
 
