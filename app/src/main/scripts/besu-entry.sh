@@ -27,7 +27,8 @@ output=$(/opt/besu/bin/besu --print-paths-and-exit $BESU_USER_NAME "$@")
 
 # Parse the output to find the paths and their required access types
 echo "$output" | while IFS=: read -r prefix path accessType; do
-    if [[ "$prefix" == "PERMISSION_CHECK_PATH" ]]; then
+    # a log line printed before may leave a color reset code at the start of the line
+    if [[ "$prefix" == *"PERMISSION_CHECK_PATH" ]]; then
       # Change ownership to besu user and group
       chown -R $BESU_USER_NAME:$BESU_USER_NAME $path
 

@@ -106,8 +106,6 @@ dependencies {
 
     api 'com.google.protobuf:protobuf-java:3.25.5'
 
-    api 'com.graphql-java:graphql-java:22.3'
-
     api 'com.splunk.logging:splunk-library-javalogging:1.11.8'
 
     api 'com.squareup.okhttp3:okhttp:4.12.0'

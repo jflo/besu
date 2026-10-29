@@ -36,7 +36,6 @@ import org.hyperledger.besu.cryptoservices.NodeKey;
 import org.hyperledger.besu.cryptoservices.NodeKeyUtils;
 import org.hyperledger.besu.ethereum.ProtocolContext;
 import org.hyperledger.besu.ethereum.api.ImmutableApiConfiguration;
-import org.hyperledger.besu.ethereum.api.graphql.GraphQLConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.ImmutableInProcessRpcConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.JsonRpcConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.ipc.JsonRpcIpcConfiguration;
@@ -246,7 +245,6 @@ public final class RunnerTest {
             .besuController(controllerAhead)
             .ethNetworkConfig(EthNetworkConfig.getNetworkConfig(DEV))
             .jsonRpcConfiguration(jsonRpcConfiguration())
-            .graphQLConfiguration(graphQLConfiguration())
             .webSocketConfiguration(wsRpcConfiguration())
             .jsonRpcIpcConfiguration(new JsonRpcIpcConfiguration())
             .inProcessRpcConfiguration(ImmutableInProcessRpcConfiguration.builder().build())
@@ -298,7 +296,6 @@ public final class RunnerTest {
               .besuController(controllerBehind)
               .ethNetworkConfig(behindEthNetworkConfiguration)
               .jsonRpcConfiguration(jsonRpcConfiguration())
-              .graphQLConfiguration(graphQLConfiguration())
               .webSocketConfiguration(wsRpcConfiguration())
               .metricsConfiguration(metricsConfiguration())
               .dataDir(dataDirBehind)
@@ -540,13 +537,6 @@ public final class RunnerTest {
     configuration.setPort(0);
     configuration.setEnabled(true);
     configuration.setHostsAllowlist(Collections.singletonList("*"));
-    return configuration;
-  }
-
-  private GraphQLConfiguration graphQLConfiguration() {
-    final GraphQLConfiguration configuration = GraphQLConfiguration.createDefault();
-    configuration.setPort(0);
-    configuration.setEnabled(false);
     return configuration;
   }
 

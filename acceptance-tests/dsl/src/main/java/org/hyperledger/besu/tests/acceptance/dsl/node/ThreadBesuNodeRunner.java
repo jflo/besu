@@ -39,7 +39,6 @@ import org.hyperledger.besu.cryptoservices.KeyPairSecurityModule;
 import org.hyperledger.besu.cryptoservices.NodeKey;
 import org.hyperledger.besu.cryptoservices.pluginadapter.SecurityModuleServiceImpl;
 import org.hyperledger.besu.ethereum.api.ApiConfiguration;
-import org.hyperledger.besu.ethereum.api.graphql.GraphQLConfiguration;
 import org.hyperledger.besu.ethereum.api.handlers.TimeoutOptions;
 import org.hyperledger.besu.ethereum.api.jsonrpc.InProcessRpcConfiguration;
 import org.hyperledger.besu.ethereum.api.pluginadapter.NetworkEndpointServiceImpl;
@@ -222,7 +221,6 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
         .permissioningService(permissioningService)
         .metricsConfiguration(node.getMetricsConfiguration())
         .p2pEnabled(node.isP2pEnabled())
-        .graphQLConfiguration(GraphQLConfiguration.createDefault())
         .staticNodes(node.getStaticNodes().stream().map(EnodeURLImpl::fromString).toList())
         .besuPluginContext(besuPluginContext)
         .autoLogBloomCaching(false)
@@ -644,7 +642,9 @@ public class ThreadBesuNodeRunner implements BesuNodeRunner {
         final @Named("RequestedPlugins") List<String> requestedPlugins,
         final BesuPluginContextImpl besuPluginContext) {
       final CommandLine commandLine = new CommandLine(CommandSpec.create());
-      besuPluginContext.addService(PicoCLIOptions.class, new PicoCLIOptionsImpl(commandLine));
+      besuPluginContext.addService(
+          PicoCLIOptions.class,
+          new PicoCLIOptionsImpl(commandLine, besuPluginContext::isRegisteringBundledPlugin));
       besuPluginContext.addService(BesuConfiguration.class, commonPluginConfiguration);
       besuPluginContext.addService(CoreConfiguration.class, commonPluginConfiguration);
       besuPluginContext.addService(StorageConfiguration.class, commonPluginConfiguration);

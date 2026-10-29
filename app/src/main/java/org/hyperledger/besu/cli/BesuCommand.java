@@ -51,7 +51,6 @@ import org.hyperledger.besu.cli.options.EngineRPCOptions;
 import org.hyperledger.besu.cli.options.EthProtocolOptions;
 import org.hyperledger.besu.cli.options.EthstatsOptions;
 import org.hyperledger.besu.cli.options.EvmOptions;
-import org.hyperledger.besu.cli.options.GraphQlOptions;
 import org.hyperledger.besu.cli.options.InProcessRpcOptions;
 import org.hyperledger.besu.cli.options.IpcOptions;
 import org.hyperledger.besu.cli.options.JsonRpcHttpOptions;
@@ -111,7 +110,6 @@ import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.api.ApiConfiguration;
-import org.hyperledger.besu.ethereum.api.graphql.GraphQLConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.InProcessRpcConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.JsonRpcConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.RpcApis;
@@ -548,9 +546,6 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
           "Perform compatibility checks between the version of Besu being started and the version of Besu that last started with this data directory. (default: ${DEFAULT-VALUE})")
   private Boolean versionCompatibilityProtection = null;
 
-  @CommandLine.ArgGroup(validate = false, heading = "@|bold GraphQL Options|@%n")
-  GraphQlOptions graphQlOptions = new GraphQlOptions();
-
   // Engine JSON-PRC Options
   @CommandLine.ArgGroup(validate = false, heading = "@|bold Engine JSON-RPC Options|@%n")
   EngineRPCOptions engineRPCOptions = new EngineRPCOptions();
@@ -700,7 +695,6 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
   private EthNetworkConfig ethNetworkConfig;
   private JsonRpcConfiguration jsonRpcConfiguration;
   private JsonRpcConfiguration engineJsonRpcConfiguration;
-  private GraphQLConfiguration graphQLConfiguration;
   private WebSocketConfiguration webSocketConfiguration;
   private JsonRpcIpcConfiguration jsonRpcIpcConfiguration;
   private InProcessRpcConfiguration inProcessRpcConfiguration;
@@ -906,9 +900,12 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
 
   private IExecutionStrategy createPluginRegistrationTask(final IExecutionStrategy nextStep) {
     return parseResult -> {
-      if (parseResult.isUsageHelpRequested() || parseResult.isVersionHelpRequested()) {
+      if (parseResult.isUsageHelpRequested()
+          || parseResult.isVersionHelpRequested()
+          || parseResult.hasMatchedOption("--print-paths-and-exit")) {
         // suppressing the info log to avoid that plugin registrations logs are printed
-        // before the help or the version information
+        // before the help, the version information or the paths, which the Docker image's
+        // besu-entry.sh parses (the bundled plugins are always registered)
         suppressInfoLog();
       }
       besuPluginContext.initialize(PluginsConfigurationOptions.fromCommandLine(commandLine));
@@ -1061,6 +1058,7 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
       vertx = createVertx(besuComponent.getMetricsSystem());
 
       validateOptions();
+      warnIfBundledGraphQLIsEnabled();
 
       initialProcess();
 
@@ -1362,7 +1360,9 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
   }
 
   private void preparePlugins() {
-    besuPluginContext.addService(PicoCLIOptions.class, new PicoCLIOptionsImpl(commandLine));
+    besuPluginContext.addService(
+        PicoCLIOptions.class,
+        new PicoCLIOptionsImpl(commandLine, besuPluginContext::isRegisteringBundledPlugin));
 
     metricCategoryRegistry.addCategories(BesuMetricCategory.class);
     metricCategoryRegistry.addCategories(StandardMetricCategory.class);
@@ -1419,7 +1419,6 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
         p2PDiscoveryConfig.p2pHost(),
         p2PDiscoveryConfig.p2pInterface(),
         p2PDiscoveryConfig.p2pPort(),
-        graphQLConfiguration,
         jsonRpcConfiguration,
         engineJsonRpcConfiguration,
         webSocketConfiguration,
@@ -1595,6 +1594,21 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
     }
   }
 
+  // DEPRECATED: GraphQL moved out of Besu into the besu-graphql-plugin, which Besu bundles for now
+  private void warnIfBundledGraphQLIsEnabled() {
+    if (besuPluginContext.getRegisteredBundledPlugins().contains("GraphQLPlugin")
+        && networkEndpointService.getEndpoints().stream()
+            .anyMatch(
+                endpoint -> "graphQL".equals(endpoint.getServiceName()) && endpoint.isEnabled())) {
+      logger.warn(
+          "GraphQL is served by the besu-graphql-plugin bundled with Besu. Bundling this plugin, and"
+              + " its --graphql-* option names (with their TOML keys and BESU_GRAPHQL_* environment"
+              + " variables), are deprecated and will be removed in a future release: install the"
+              + " plugin from https://github.com/jflo/besu-graphql-plugin and use its"
+              + " --plugin-graphql-* options instead.");
+    }
+  }
+
   private void validateOptions() {
     issueOptionWarnings();
     validateP2POptions();
@@ -1609,7 +1623,6 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
     validateAndResolveCheckpointRelatedConfig();
     validateTransactionPoolOptions();
     validateDataStorageOptions();
-    validateGraphQlOptions();
     validatePluginOptions();
     validateUnstableNetworkingOptions();
   }
@@ -1655,10 +1668,6 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
    */
   protected P2PDiscoveryOptions.NetworkInterfaceChecker getNetworkInterfaceChecker() {
     return NetworkUtility::isNetworkInterfaceAvailable;
-  }
-
-  private void validateGraphQlOptions() {
-    graphQlOptions.validate(logger, commandLine);
   }
 
   @SuppressWarnings("ConstantConditions")
@@ -2077,10 +2086,6 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
               engineJsonRpcConfiguration.getMaxRequestContentLength());
       configureVertxJsonDecodingMaxLength((int) maxRequestContentLength);
     }
-
-    graphQLConfiguration =
-        graphQlOptions.graphQLConfiguration(
-            hostsAllowlist, p2PDiscoveryConfig.p2pHost(), unstableRPCOptions.getHttpTimeoutSec());
 
     webSocketConfiguration =
         rpcWebsocketOptions.webSocketConfiguration(
@@ -2511,7 +2516,6 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
       final String p2pAdvertisedHost,
       final String p2pListenInterface,
       final int p2pListenPort,
-      final GraphQLConfiguration graphQLConfiguration,
       final JsonRpcConfiguration jsonRpcConfiguration,
       final JsonRpcConfiguration engineJsonRpcConfiguration,
       final WebSocketConfiguration webSocketConfiguration,
@@ -2544,7 +2548,6 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
             .p2pListenPortIpv6(p2PDiscoveryConfig.p2pPortIpv6())
             .p2pDiscoveryListenPortIpv6(p2PDiscoveryConfig.p2pDiscoveryPortIpv6())
             .networkingConfiguration(unstableNetworkingOptions.toDomainObject())
-            .graphQLConfiguration(graphQLConfiguration)
             .jsonRpcConfiguration(jsonRpcConfiguration)
             .engineJsonRpcConfiguration(engineJsonRpcConfiguration)
             .webSocketConfiguration(webSocketConfiguration)
@@ -2930,11 +2933,6 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
             p2PDiscoveryConfig.p2pEnabled());
       }
     }
-    addPortIfEnabled(
-        effectivePorts,
-        graphQlOptions.getGraphQLHttpPort(),
-        Transport.TCP,
-        graphQlOptions.isGraphQLHttpEnabled());
     // Listeners owned by plugins, registered during plugin registration.
     for (final NetworkEndpointService.NetworkEndpoint endpoint :
         networkEndpointService.getEndpoints()) {
@@ -3255,15 +3253,6 @@ public class BesuCommand implements DefaultCommandValues, Runnable {
    */
   public KeyPair getKeyPair() {
     return keyPair;
-  }
-
-  /**
-   * returns commandLine for Ephemery restart.
-   *
-   * @return KeyPair
-   */
-  public CommandLine getCommandLine() {
-    return this.commandLine;
   }
 
   /** Clears all allocated ports for Ephemery restart. */

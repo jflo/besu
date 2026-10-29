@@ -35,3 +35,13 @@ command:
   check-besu-graphql-http-host:
     exec: "test \"$BESU_GRAPHQL_HTTP_HOST\" = \"0.0.0.0\""
     exit-status: 0
+http:
+  # the GraphQL plugin bundled with the distribution serves GraphQL
+  http://localhost:8547/graphql:
+    status: 200
+    method: POST
+    request-headers:
+      - "Content-Type: application/json"
+    request-body: '{"query":"{block(number:0){number}}"}'
+    body:
+      - '/"number"\s*:\s*"0x0"/'

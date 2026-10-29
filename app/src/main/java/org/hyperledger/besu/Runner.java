@@ -17,10 +17,8 @@ package org.hyperledger.besu;
 import static java.lang.Thread.sleep;
 
 import org.hyperledger.besu.cli.BesuCommand;
-import org.hyperledger.besu.cli.options.PluginsConfigurationOptions;
 import org.hyperledger.besu.controller.BesuController;
 import org.hyperledger.besu.crypto.KeyPairUtil;
-import org.hyperledger.besu.ethereum.api.graphql.GraphQLHttpService;
 import org.hyperledger.besu.ethereum.api.jsonrpc.EngineJsonRpcService;
 import org.hyperledger.besu.ethereum.api.jsonrpc.JsonRpcHttpService;
 import org.hyperledger.besu.ethereum.api.jsonrpc.internal.methods.JsonRpcMethod;
@@ -76,7 +74,6 @@ public class Runner implements AutoCloseable {
   private final NatService natService;
   private final NetworkRunner networkRunner;
   private final Optional<EthStatsService> ethStatsService;
-  private final Optional<GraphQLHttpService> graphQLHttp;
   private final Optional<JsonRpcHttpService> jsonRpc;
   private final Optional<EngineJsonRpcService> engineJsonRpc;
   private final Optional<MetricsService> metrics;
@@ -103,7 +100,6 @@ public class Runner implements AutoCloseable {
    * @param natService the nat service
    * @param jsonRpc the json rpc
    * @param engineJsonRpc the engine json rpc
-   * @param graphQLHttp the graph ql http
    * @param webSocketRpc the web socket rpc
    * @param ipcJsonRpc the ipc json rpc
    * @param inProcessRpcMethods the in-process rpc methods
@@ -123,7 +119,6 @@ public class Runner implements AutoCloseable {
       final NatService natService,
       final Optional<JsonRpcHttpService> jsonRpc,
       final Optional<EngineJsonRpcService> engineJsonRpc,
-      final Optional<GraphQLHttpService> graphQLHttp,
       final Optional<WebSocketService> webSocketRpc,
       final Optional<JsonRpcIpcService> ipcJsonRpc,
       final Map<String, JsonRpcMethod> inProcessRpcMethods,
@@ -139,7 +134,6 @@ public class Runner implements AutoCloseable {
     this.vertx = vertx;
     this.networkRunner = networkRunner;
     this.natService = natService;
-    this.graphQLHttp = graphQLHttp;
     this.pidPath = pidPath;
     this.jsonRpc = jsonRpc;
     this.engineJsonRpc = engineJsonRpc;
@@ -166,7 +160,6 @@ public class Runner implements AutoCloseable {
 
     jsonRpc.ifPresent(service -> waitForServiceToStart("jsonRpc", service.start()));
     engineJsonRpc.ifPresent(service -> waitForServiceToStart("engineJsonRpc", service.start()));
-    graphQLHttp.ifPresent(service -> waitForServiceToStart("graphQLHttp", service.start()));
     webSocketRpc.ifPresent(service -> waitForServiceToStart("websocketRpc", service.start()));
     ipcJsonRpc.ifPresent(
         service ->
@@ -268,6 +261,9 @@ public class Runner implements AutoCloseable {
    */
   public void stopEphemery(final BesuCommand besuCommand) throws IOException, InterruptedException {
     if (besuController != null) {
+      // stop the plugins first, as on shutdown, so that the listeners they own (such as GraphQL's)
+      // free their ports before the restart binds them again
+      besuCommand.getBesuPluginContext().stopPluginsForRestart();
       stopServices();
       clearDirectory(dataDir);
       besuCommand.setDataPathToParent();
@@ -296,12 +292,9 @@ public class Runner implements AutoCloseable {
   }
 
   private void ephemeryRestartPrepare(final BesuCommand besuCommand) {
-    besuCommand.getBesuPluginContext().resetState();
+    // the registered plugins are kept, with their parsed options, and started again by
+    // initialProcess(); registering them again would add their options to the command line twice
     besuCommand.getRocksDBPlugin().reset();
-    besuCommand
-        .getBesuPluginContext()
-        .initialize(PluginsConfigurationOptions.fromCommandLine(besuCommand.getCommandLine()));
-    besuCommand.getBesuPluginContext().registerPlugins();
   }
 
   /** Stop services but not shutdown */
@@ -309,7 +302,6 @@ public class Runner implements AutoCloseable {
     transactionPoolEvictionService.stop();
     jsonRpc.ifPresent(service -> waitForServiceToStop("jsonRpc", service.stop()));
     engineJsonRpc.ifPresent(service -> waitForServiceToStop("engineJsonRpc", service.stop()));
-    graphQLHttp.ifPresent(service -> waitForServiceToStop("graphQLHttp", service.stop()));
     webSocketRpc.ifPresent(service -> waitForServiceToStop("websocketRpc", service.stop()));
     ipcJsonRpc.ifPresent(
         service ->
@@ -423,10 +415,6 @@ public class Runner implements AutoCloseable {
     if (port.isPresent()) {
       properties.setProperty("json-rpc", String.valueOf(port.get()));
     }
-    port = getGraphQLHttpPort();
-    if (port.isPresent()) {
-      properties.setProperty("graphql-http", String.valueOf(port.get()));
-    }
     port = getWebSocketPort();
     if (port.isPresent()) {
       properties.setProperty("ws-rpc", String.valueOf(port.get()));
@@ -534,15 +522,6 @@ public class Runner implements AutoCloseable {
    */
   public Optional<Integer> getEngineJsonRpcPort() {
     return engineJsonRpc.map(service -> service.socketAddress().getPort());
-  }
-
-  /**
-   * Gets GraphQl http port.
-   *
-   * @return the graph ql http port
-   */
-  public Optional<Integer> getGraphQLHttpPort() {
-    return graphQLHttp.map(service -> service.socketAddress().getPort());
   }
 
   /**

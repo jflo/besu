@@ -27,7 +27,6 @@ import static org.mockito.Mockito.verify;
 import org.hyperledger.besu.cli.config.EthNetworkConfig;
 import org.hyperledger.besu.config.GenesisConfig;
 import org.hyperledger.besu.datatypes.Wei;
-import org.hyperledger.besu.ethereum.api.graphql.GraphQLConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.JsonRpcConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.WebSocketConfiguration;
 import org.hyperledger.besu.ethereum.core.MiningConfiguration;
@@ -61,8 +60,8 @@ public class CascadingDefaultProviderTest extends CommandTestAbstract {
   /**
    * Test if the default values are overridden if the key is present in the configuration file. The
    * test checks if the configuration file correctly overrides the default values for various
-   * settings, such as the JSON-RPC configuration, GraphQL configuration, WebSocket configuration,
-   * and metrics configuration.
+   * settings, such as the JSON-RPC configuration, WebSocket configuration, and metrics
+   * configuration.
    */
   @Test
   public void overrideDefaultValuesIfKeyIsPresentInConfigFile(final @TempDir File dataFolder)
@@ -88,11 +87,6 @@ public class CascadingDefaultProviderTest extends CommandTestAbstract {
     jsonRpcConfiguration.setRpcApis(expectedApis);
     jsonRpcConfiguration.setMaxActiveConnections(1000);
 
-    final GraphQLConfiguration graphQLConfiguration = GraphQLConfiguration.createDefault();
-    graphQLConfiguration.setEnabled(false);
-    graphQLConfiguration.setHost("6.7.8.9");
-    graphQLConfiguration.setPort(6789);
-
     final WebSocketConfiguration webSocketConfiguration = WebSocketConfiguration.createDefault();
     webSocketConfiguration.setEnabled(false);
     webSocketConfiguration.setHost("9.10.11.12");
@@ -112,7 +106,6 @@ public class CascadingDefaultProviderTest extends CommandTestAbstract {
     verify(mockRunnerBuilder).p2pAdvertisedHost(eq("1.2.3.4"));
     verify(mockRunnerBuilder).p2pListenPort(eq(1234));
     verify(mockRunnerBuilder).jsonRpcConfiguration(eq(jsonRpcConfiguration));
-    verify(mockRunnerBuilder).graphQLConfiguration(eq(graphQLConfiguration));
     verify(mockRunnerBuilder).webSocketConfiguration(eq(webSocketConfiguration));
     verify(mockRunnerBuilder).metricsConfiguration(eq(metricsConfiguration));
     verify(mockRunnerBuilder).build();
@@ -156,8 +149,6 @@ public class CascadingDefaultProviderTest extends CommandTestAbstract {
 
     final JsonRpcConfiguration jsonRpcConfiguration = JsonRpcConfiguration.createDefault();
 
-    final GraphQLConfiguration graphQLConfiguration = GraphQLConfiguration.createDefault();
-
     final WebSocketConfiguration webSocketConfiguration = WebSocketConfiguration.createDefault();
 
     final MetricsConfiguration metricsConfiguration = MetricsConfiguration.builder().build();
@@ -167,7 +158,6 @@ public class CascadingDefaultProviderTest extends CommandTestAbstract {
     verify(mockRunnerBuilder).p2pAdvertisedHost(eq("127.0.0.1"));
     verify(mockRunnerBuilder).p2pListenPort(eq(30303));
     verify(mockRunnerBuilder).jsonRpcConfiguration(eq(jsonRpcConfiguration));
-    verify(mockRunnerBuilder).graphQLConfiguration(eq(graphQLConfiguration));
     verify(mockRunnerBuilder).webSocketConfiguration(eq(webSocketConfiguration));
     verify(mockRunnerBuilder).metricsConfiguration(eq(metricsConfiguration));
     verify(mockRunnerBuilder).build();

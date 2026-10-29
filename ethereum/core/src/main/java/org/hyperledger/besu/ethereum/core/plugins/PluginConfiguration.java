@@ -49,6 +49,16 @@ public interface PluginConfiguration {
         : Paths.get(pluginsDirProperty);
   }
 
+  /**
+   * The directory of the plugins bundled with the Besu distribution, which are always registered.
+   *
+   * @return the bundled plugins directory, {@code bundled-plugins} under the Besu home directory
+   */
+  @Value.Default
+  default Path getBundledPluginsDir() {
+    return Paths.get(System.getProperty("besu.home", "."), "bundled-plugins");
+  }
+
   @Value.Default
   default boolean isExternalPluginsEnabled() {
     return DEFAULT_EXTERNAL_PLUGINS_ENABLED;

@@ -19,7 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hyperledger.besu.config.NetworkDefinition.EPHEMERY;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,7 +40,6 @@ import org.hyperledger.besu.crypto.KeyPairUtil;
 import org.hyperledger.besu.cryptoservices.NodeKey;
 import org.hyperledger.besu.cryptoservices.NodeKeyUtils;
 import org.hyperledger.besu.ethereum.api.ImmutableApiConfiguration;
-import org.hyperledger.besu.ethereum.api.graphql.GraphQLConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.ImmutableInProcessRpcConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.JsonRpcConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.ipc.JsonRpcIpcConfiguration;
@@ -87,6 +88,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -229,6 +231,9 @@ public class EphemeryTest extends CommandTestAbstract {
   @Test
   public void testStopEphemery() throws Exception {
     runner.stopEphemery(besuCommand);
+    // the plugins are stopped, which frees the ports of the listeners they own, but stay registered
+    verify(getBesuPluginContext()).stopPluginsForRestart();
+    verify(getBesuPluginContext(), never()).stopPlugins();
     assertThat(besuCommand.dataPath.toString()).doesNotContain(ephemeryDataPathPrefix);
     assertThat(initialCycleId)
         .isEqualTo(besuCommand.getGenesisConfigOptions().getChainId().get().add(BigInteger.ONE));
@@ -245,6 +250,13 @@ public class EphemeryTest extends CommandTestAbstract {
   public void testRestartEphemery() throws Exception {
     runner.stopEphemery(besuCommand);
     runner.startEphemery(besuCommand);
+    // the same plugins are started again, without registering them a second time
+    final InOrder inOrder = inOrder(getBesuPluginContext());
+    inOrder.verify(getBesuPluginContext()).stopPluginsForRestart();
+    inOrder.verify(getBesuPluginContext()).beforeExternalServices();
+    inOrder.verify(getBesuPluginContext()).startPlugins();
+    // registered once, on the initial start only
+    verify(getBesuPluginContext()).registerPlugins();
     assertThat(besuCommand.dataPath.toString()).contains(ephemeryDataPathPrefix);
     assertThat(initialCycleId)
         .isEqualTo(besuCommand.getGenesisConfigOptions().getChainId().get().add(BigInteger.ONE));
@@ -408,7 +420,6 @@ public class EphemeryTest extends CommandTestAbstract {
             .besuController(controller)
             .ethNetworkConfig(EthNetworkConfig.getNetworkConfig(EPHEMERY))
             .jsonRpcConfiguration(jsonRpcConfiguration())
-            .graphQLConfiguration(graphQLConfiguration())
             .webSocketConfiguration(wsRpcConfiguration())
             .jsonRpcIpcConfiguration(new JsonRpcIpcConfiguration())
             .inProcessRpcConfiguration(ImmutableInProcessRpcConfiguration.builder().build())
@@ -481,13 +492,6 @@ public class EphemeryTest extends CommandTestAbstract {
     configuration.setPort(0);
     configuration.setEnabled(true);
     configuration.setHostsAllowlist(Collections.singletonList("*"));
-    return configuration;
-  }
-
-  private GraphQLConfiguration graphQLConfiguration() {
-    final GraphQLConfiguration configuration = GraphQLConfiguration.createDefault();
-    configuration.setPort(0);
-    configuration.setEnabled(false);
     return configuration;
   }
 

@@ -129,6 +129,10 @@ licenseReport {
   // If set to true, then all boms will be excluded from the report
   excludeBoms = true
 
+  // bundledPlugins: the plugins bundled with the distribution and the libraries they ship with it
+  // (DEPRECATED, see the bundledPlugins configuration below)
+  configurations = ['runtimeClasspath', 'bundledPlugins']
+
   filters = [
     new LicenseBundleNormalizer(bundlePath: "$rootDir/gradle/license-normalizer-bundle.json")
   ]
@@ -501,7 +505,9 @@ configure(allprojects - project(':platform')) {
 //   extra property (e.g. the Plugin API baseline in plugin-api/build.gradle), since detached
 //   configurations are not part of `proj.configurations`.
 ext.forEachProjectSourceArtifact = { Project proj, Closure action ->
-  def resolvableConfigs = proj.configurations.matching { it.canBeResolved }.toList()
+  // bundledPlugins only feeds the distribution (bundled-plugins/), it is not a compile or IDE
+  // class path, so its sources are not needed
+  def resolvableConfigs = proj.configurations.matching { it.canBeResolved && it.name != 'bundledPlugins' }.toList()
   if (proj.ext.has('verificationMetadataConfigurations')) {
     resolvableConfigs.addAll(proj.ext.verificationMetadataConfigurations)
   }
@@ -670,6 +676,8 @@ task updateVerificationMetadata {
   // checkLicense fails verification on a fresh clone. generateLicenseReport needs serial
   // execution for its exclusive lock, hence --no-parallel in the command above.
   dependsOn ':generateLicenseReport'
+  // Only the distribution tasks download the jars bundled in bundled-plugins/.
+  dependsOn ':resolveBundledPlugins'
 }
 
 gradle.taskGraph.whenReady { graph ->
@@ -1579,6 +1587,62 @@ class BouncyCastleCapability implements ComponentMetadataRule {
   }
 }
 
+// Plugins bundled with the distribution, in bundled-plugins/ where Besu always registers them,
+// with the libraries they need that Besu does not ship. Only the distribution tasks (and
+// resolveBundledPlugins, for updateVerificationMetadata) resolve them.
+// DEPRECATED: GraphQL moved out of Besu into the besu-graphql-plugin, which is bundled until a
+// future release removes it (see the CHANGELOG).
+configurations {
+  bundledPlugins {
+    canBeConsumed = false
+    // Besu provides its own artifacts to plugins
+    exclude group: 'org.hyperledger.besu'
+    exclude group: 'org.hyperledger.besu.internal'
+  }
+}
+
+repositories {
+  def bundledPluginRepositories = []
+  // -PuseMavenLocalForBundledPlugins resolves the bundled plugins from mavenLocal first
+  if (project.hasProperty('useMavenLocalForBundledPlugins')) {
+    bundledPluginRepositories << mavenLocal()
+  }
+  bundledPluginRepositories << maven {
+    name = 'JitPack'
+    url = 'https://jitpack.io'
+  }
+  exclusiveContent {
+    forRepositories(*bundledPluginRepositories)
+    filter { includeGroup('com.github.jflo') }
+  }
+}
+
+dependencies {
+  bundledPlugins "com.github.jflo:besu-graphql-plugin:${graphqlPluginVersion}"
+}
+
+def besuRuntimeModules = null
+def bundledPluginFiles = configurations.bundledPlugins.incoming.artifactView {
+  // leave out the libraries Besu already ships: the bundled plugins load them from Besu's class path,
+  // so they get Besu's version of them whatever version they were built with
+  componentFilter { id ->
+    if (besuRuntimeModules == null) {
+      besuRuntimeModules = configurations.runtimeClasspath.incoming.resolutionResult.allComponents
+        .collect { "${it.moduleVersion.group}:${it.moduleVersion.name}".toString() } as Set
+    }
+    !(id instanceof ModuleComponentIdentifier) || !besuRuntimeModules.contains("${id.group}:${id.module}".toString())
+  }
+}.files
+
+tasks.register('resolveBundledPlugins') {
+  group = 'verification'
+  description = 'Downloads the plugins bundled with the distribution and the libraries they ship with it.'
+  inputs.files(bundledPluginFiles)
+  doLast {
+    bundledPluginFiles.files.each { logger.info("Bundled plugin file: {}", it.name) }
+  }
+}
+
 distributions {
   main {
     contents {
@@ -1588,6 +1652,7 @@ distributions {
       from("./docs/README.md") { into "." }
       from("./app/src/main/scripts/besu-entry.sh") { into "./bin/" }
       from(autocomplete) { into "." }
+      from(bundledPluginFiles) { into "bundled-plugins" }
     }
   }
 }

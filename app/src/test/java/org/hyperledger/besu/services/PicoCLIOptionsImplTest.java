@@ -41,6 +41,15 @@ public class PicoCLIOptionsImplTest {
     String mixinOption = "defaultmixin";
   }
 
+  /** Options of a plugin that kept, as aliases, the names its feature had in Besu. */
+  static final class LegacyNamedOptions {
+    @Option(names = {"--plugin-graphql-http-enabled", "--graphql-http-enabled"})
+    Boolean enabled = false;
+
+    @Option(names = {"--plugin-graphql-http-port", "--graphql-http-port"})
+    Integer port = 8547;
+  }
+
   private SimpleCommand command;
   private MixinOptions mixin;
   private CommandLine commandLine;
@@ -75,6 +84,35 @@ public class PicoCLIOptionsImplTest {
     commandLine.parseArgs("--plugin-Test1-mixin", "2");
     assertThat(command.existingOption).isEqualTo("defaultexisting");
     assertThat(mixin.mixinOption).isEqualTo("2");
+  }
+
+  @Test
+  public void testLegacyOptionNamesAreAllowedForTheirNamespaceToBundledPlugins() {
+    final PicoCLIOptionsImpl bundledPluginOptions = new PicoCLIOptionsImpl(commandLine, () -> true);
+    final LegacyNamedOptions options = new LegacyNamedOptions();
+    bundledPluginOptions.addPicoCLIOptions("graphql", options);
+
+    commandLine.parseArgs("--graphql-http-enabled", "--plugin-graphql-http-port", "1234");
+    assertThat(options.enabled).isTrue();
+    assertThat(options.port).isEqualTo(1234);
+  }
+
+  @Test
+  public void testLegacyOptionNamesAreRejectedForOtherNamespaces() {
+    final PicoCLIOptionsImpl bundledPluginOptions = new PicoCLIOptionsImpl(commandLine, () -> true);
+    assertThatExceptionOfType(RuntimeException.class)
+        .isThrownBy(() -> bundledPluginOptions.addPicoCLIOptions("other", new LegacyNamedOptions()))
+        .withMessage("Error loading CLI options");
+    assertThat(commandLine.getCommandSpec().findOption("--graphql-http-enabled")).isNull();
+  }
+
+  @Test
+  public void testLegacyOptionNamesAreRejectedForPluginsThatAreNotBundled() {
+    assertThatExceptionOfType(RuntimeException.class)
+        .isThrownBy(() -> serviceImpl.addPicoCLIOptions("graphql", new LegacyNamedOptions()))
+        .withMessage("Error loading CLI options");
+    assertThat(commandLine.getCommandSpec().findOption("--graphql-http-enabled")).isNull();
+    assertThat(commandLine.getCommandSpec().findOption("--plugin-graphql-http-enabled")).isNull();
   }
 
   @Test

@@ -16,6 +16,7 @@ package org.hyperledger.besu.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.stream.Collectors.toSet;
 
 import org.hyperledger.besu.ethereum.core.plugins.PluginConfiguration;
 import org.hyperledger.besu.plugin.BesuPlugin;
@@ -47,6 +48,7 @@ import java.util.stream.StreamSupport;
 import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import picocli.CommandLine.ParameterException;
 
 /** The Besu plugin context implementation. */
 // PluginVersionsProvider is deprecated for removal from the plugin API
@@ -85,10 +87,12 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
   private List<String> requestedPlugins = new ArrayList<>();
 
   private final List<BesuPlugin> registeredPlugins = new ArrayList<>();
+  private final List<BesuPlugin> bundledPlugins = new ArrayList<>();
+  private BesuPlugin registeringPlugin;
 
   private final Map<String, String> pluginVersions = new LinkedHashMap<>();
   private PluginConfiguration config;
-  private URLClassLoader pluginClassLoader;
+  private final List<URLClassLoader> pluginClassLoaders = new ArrayList<>();
 
   /** Instantiates a new Besu plugin context. */
   public BesuPluginContextImpl() {}
@@ -132,7 +136,13 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
   /**
    * Registers plugins based on the provided {@link PluginConfiguration}. This method finds plugins
    * according to the configuration settings, filters them if necessary and then registers the
-   * filtered or found plugins
+   * filtered or found plugins.
+   *
+   * <p>Plugins bundled with the Besu distribution (in {@link
+   * PluginConfiguration#getBundledPluginsDir()}) are part of Besu: they are always registered,
+   * whatever {@code --plugins} and {@code --Xplugins-external-enabled} say, unless a plugin of the
+   * same class is installed in the plugins directory, which then replaces the bundled one. Their
+   * errors are fatal, even with {@code --plugin-continue-on-error}.
    *
    * @throws IllegalStateException if the system is not in the UNINITIALIZED state.
    */
@@ -142,24 +152,32 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
         "Besu plugins have already been registered. Cannot register additional plugins.");
     state = Lifecycle.REGISTERING;
 
-    if (config.isExternalPluginsEnabled()) {
-      detectedPlugins = detectPlugins(config);
+    final List<BesuPlugin> externalPlugins =
+        config.isExternalPluginsEnabled() ? detectPlugins(config) : List.of();
+    final Set<String> externalClassNames =
+        externalPlugins.stream().map(plugin -> plugin.getClass().getName()).collect(toSet());
+    detectBundledPlugins(config).stream()
+        .filter(plugin -> !externalClassNames.contains(plugin.getClass().getName()))
+        .forEach(bundledPlugins::add);
+    detectedPlugins = Stream.concat(externalPlugins.stream(), bundledPlugins.stream()).toList();
 
-      if (config.getRequestedPlugins().isEmpty()) {
-        // If no plugins were specified, register all detected plugins
-        registerPlugins(detectedPlugins);
-      } else {
-        // Register only the plugins that were explicitly requested and validated
-        requestedPlugins = config.getRequestedPlugins();
-        // Match and validate the requested plugins against the detected plugins
-        List<BesuPlugin> registeringPlugins =
-            matchAndValidateRequestedPlugins(requestedPlugins, detectedPlugins);
-
-        registerPlugins(registeringPlugins);
-      }
+    final List<BesuPlugin> registeringPlugins = new ArrayList<>();
+    if (!config.isExternalPluginsEnabled()) {
+      LOG.debug("External plugins are disabled. Only bundled plugins are registered.");
+    } else if (config.getRequestedPlugins().isEmpty()) {
+      // If no plugins were specified, register all detected plugins
+      registeringPlugins.addAll(externalPlugins);
     } else {
-      LOG.debug("External plugins are disabled. Skipping plugins registration.");
+      // Register only the plugins that were explicitly requested and validated
+      requestedPlugins = config.getRequestedPlugins();
+      // Match and validate the requested plugins against the detected plugins
+      registeringPlugins.addAll(
+          matchAndValidateRequestedPlugins(requestedPlugins, detectedPlugins));
     }
+    bundledPlugins.stream()
+        .filter(plugin -> !registeringPlugins.contains(plugin))
+        .forEach(registeringPlugins::add);
+    registerPlugins(registeringPlugins);
     state = Lifecycle.REGISTERED;
   }
 
@@ -200,12 +218,13 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
   }
 
   private boolean registerPlugin(final BesuPlugin plugin) {
+    registeringPlugin = plugin;
     try {
       plugin.register(this);
       pluginVersions.put(plugin.getName(), plugin.getVersion());
       LOG.info("Registered plugin of type {}.", plugin.getClass().getName());
     } catch (final Exception e) {
-      if (config.isContinueOnPluginError()) {
+      if (continuesOnError(plugin)) {
         LOG.error(
             "Error registering plugin of type {}, start and stop will not be called.",
             plugin.getClass().getName(),
@@ -215,8 +234,28 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
             "Error registering plugin of type " + plugin.getClass().getName(), e);
       }
       return false;
+    } finally {
+      registeringPlugin = null;
     }
     return true;
+  }
+
+  /**
+   * Whether the plugin being registered, if any, is bundled with Besu. Only bundled plugins may
+   * register options under the legacy names of the features they took over from Besu (see {@link
+   * PicoCLIOptionsImpl}).
+   *
+   * @return true while a plugin bundled with Besu is registering
+   */
+  public boolean isRegisteringBundledPlugin() {
+    final BesuPlugin plugin = registeringPlugin;
+    return plugin != null && bundledPlugins.contains(plugin);
+  }
+
+  // Bundled plugins are part of Besu: their errors are fatal, as Besu's own would be, whatever
+  // --plugin-continue-on-error says.
+  private boolean continuesOnError(final BesuPlugin plugin) {
+    return config.isContinueOnPluginError() && !bundledPlugins.contains(plugin);
   }
 
   /** Before external services. */
@@ -238,8 +277,12 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
           LOG.debug(
               "beforeExternalServices called on plugin of type {}.", plugin.getClass().getName());
         }
+      } catch (final ParameterException e) {
+        // a plugin that rejects the values of its options fails the command line, as Besu's own
+        // option checks do
+        throw e;
       } catch (final Exception e) {
-        if (config.isContinueOnPluginError()) {
+        if (continuesOnError(plugin)) {
           LOG.error(
               "Error calling `beforeExternalServices` on plugin of type {}, start will not be called.",
               plugin.getClass().getName(),
@@ -276,15 +319,20 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
           LOG.debug("Started plugin of type {}.", plugin.getClass().getName());
         }
       } catch (final Exception e) {
-        if (config.isContinueOnPluginError()) {
+        if (continuesOnError(plugin)) {
           LOG.error(
               "Error starting plugin of type {}, stop will not be called.",
               plugin.getClass().getName(),
               e);
           pluginsIterator.remove();
         } else {
+          // with the cause, so that the reason, such as a port in use, is in Besu's startup error
           throw new RuntimeException(
-              "Error starting plugin of type " + plugin.getClass().getName(), e);
+              "Error starting plugin of type "
+                  + plugin.getClass().getName()
+                  + ": "
+                  + e.getMessage(),
+              e);
         }
       }
     }
@@ -307,7 +355,7 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
       try {
         plugin.afterExternalServicePostMainLoop();
       } catch (final Exception e) {
-        if (config.isContinueOnPluginError()) {
+        if (continuesOnError(plugin)) {
           LOG.error(
               "Error calling `afterExternalServicePostMainLoop` on plugin of type "
                   + plugin.getClass().getName()
@@ -333,6 +381,37 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
         state);
     state = Lifecycle.STOPPING;
 
+    stopRegisteredPlugins();
+
+    // Close the plugin classloaders to release file handles
+    for (final URLClassLoader classLoader : pluginClassLoaders) {
+      try {
+        classLoader.close();
+        LOG.debug("Closed plugin classloader");
+      } catch (final IOException e) {
+        LOG.debug("Error closing plugin classloader", e);
+      }
+    }
+
+    LOG.debug("Plugin shutdown complete.");
+    state = Lifecycle.STOPPED;
+  }
+
+  /**
+   * Stops the plugins for an Ephemery restart, which frees the ports of the listeners they own.
+   * Unlike {@link #stopPlugins()}, the registered plugins, with the options parsed into them, and
+   * their class loaders are kept, and the context goes back to the registered state, so that {@link
+   * #beforeExternalServices()} and {@link #startPlugins()} start the same plugins again.
+   */
+  public void stopPluginsForRestart() {
+    if (state == Lifecycle.BEFORE_MAIN_LOOP_STARTED
+        || state == Lifecycle.BEFORE_MAIN_LOOP_FINISHED) {
+      stopRegisteredPlugins();
+    }
+    state = Lifecycle.REGISTERED;
+  }
+
+  private void stopRegisteredPlugins() {
     for (final BesuPlugin plugin : registeredPlugins) {
       try {
         plugin.stop();
@@ -343,19 +422,6 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
         LOG.error("Error stopping plugin of type " + plugin.getClass().getName(), e);
       }
     }
-
-    // Close the plugin classloader to release file handles
-    if (pluginClassLoader != null) {
-      try {
-        pluginClassLoader.close();
-        LOG.debug("Closed plugin classloader");
-      } catch (final IOException e) {
-        LOG.debug("Error closing plugin classloader", e);
-      }
-    }
-
-    LOG.debug("Plugin shutdown complete.");
-    state = Lifecycle.STOPPED;
   }
 
   private static URL pathToURIOrNull(final Path p) {
@@ -367,38 +433,64 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
   }
 
   private List<BesuPlugin> detectPlugins(final PluginConfiguration config) {
-    final var pluginsDir = config.getPluginsDir();
-    if (pluginsDir != null && pluginsDir.toFile().isDirectory()) {
-      LOG.debug("Searching for plugins in {}", pluginsDir.toAbsolutePath());
-
-      try (final Stream<Path> pluginFilesList = Files.list(pluginsDir)) {
-        final URL[] pluginJarURLs =
-            pluginFilesList
-                .filter(p -> p.getFileName().toString().endsWith(".jar"))
-                .map(BesuPluginContextImpl::pathToURIOrNull)
-                .toArray(URL[]::new);
-        // The URLClassLoader must remain open for the entire application lifecycle
-        // as plugins may load classes lazily during their operation. The classloader
-        // will be closed in stopPlugins() during shutdown.
-        this.pluginClassLoader =
-            new URLClassLoader(pluginJarURLs, this.getClass().getClassLoader());
-        ServiceLoader<BesuPlugin> serviceLoader =
-            ServiceLoader.load(BesuPlugin.class, this.pluginClassLoader);
-        final var foundPlugins = StreamSupport.stream(serviceLoader.spliterator(), false).toList();
-        PluginVerifier.verify(
-            config.getPluginsVerificationMode(), this.pluginClassLoader, foundPlugins);
-
-        return foundPlugins;
-      } catch (final MalformedURLException e) {
-        LOG.error("Error converting files to URLs, could not load plugins", e);
-      } catch (final IOException e) {
-        LOG.error("Error enumerating plugins, could not load plugins", e);
-      }
-    } else {
-      LOG.debug("Plugin directory does not exist, skipping registration. - {}", pluginsDir);
+    final URLClassLoader pluginClassLoader = createPluginClassLoader(config.getPluginsDir());
+    if (pluginClassLoader == null) {
+      return List.of();
     }
+    final var foundPlugins = loadPlugins(pluginClassLoader);
+    try {
+      PluginVerifier.verify(config.getPluginsVerificationMode(), pluginClassLoader, foundPlugins);
+    } catch (final IOException e) {
+      LOG.error("Error enumerating plugins, could not load plugins", e);
+      return List.of();
+    }
+    return foundPlugins;
+  }
 
-    return List.of();
+  private List<BesuPlugin> detectBundledPlugins(final PluginConfiguration config) {
+    // a separate class loader, so that a plugin installed in the plugins directory can replace a
+    // bundled plugin of the same class. Bundled plugins are not verified: they are built
+    // separately, against an earlier Besu version, and Besu's build picks the version it bundles
+    // (the docker image tests check that the bundled GraphQL plugin serves requests).
+    final URLClassLoader classLoader = createPluginClassLoader(config.getBundledPluginsDir());
+    if (classLoader == null) {
+      return List.of();
+    }
+    // only the plugins in the bundled plugins directory, not those on Besu's own class path
+    return loadPlugins(classLoader).stream()
+        .filter(plugin -> plugin.getClass().getClassLoader() == classLoader)
+        .toList();
+  }
+
+  private static List<BesuPlugin> loadPlugins(final ClassLoader classLoader) {
+    return StreamSupport.stream(
+            ServiceLoader.load(BesuPlugin.class, classLoader).spliterator(), false)
+        .toList();
+  }
+
+  private URLClassLoader createPluginClassLoader(final Path pluginsDir) {
+    if (pluginsDir == null || !pluginsDir.toFile().isDirectory()) {
+      LOG.debug("Plugin directory does not exist, skipping registration. - {}", pluginsDir);
+      return null;
+    }
+    LOG.debug("Searching for plugins in {}", pluginsDir.toAbsolutePath());
+    try (final Stream<Path> pluginFilesList = Files.list(pluginsDir)) {
+      final URL[] pluginJarURLs =
+          pluginFilesList
+              .filter(p -> p.getFileName().toString().endsWith(".jar"))
+              .map(BesuPluginContextImpl::pathToURIOrNull)
+              .toArray(URL[]::new);
+      // The URLClassLoader must remain open for the entire application lifecycle
+      // as plugins may load classes lazily during their operation. The classloader
+      // will be closed in stopPlugins() during shutdown.
+      final URLClassLoader classLoader =
+          new URLClassLoader(pluginJarURLs, this.getClass().getClassLoader());
+      pluginClassLoaders.add(classLoader);
+      return classLoader;
+    } catch (final IOException e) {
+      LOG.error("Error enumerating plugins, could not load plugins", e);
+      return null;
+    }
   }
 
   @Override
@@ -468,8 +560,15 @@ public class BesuPluginContextImpl implements ServiceManager, PluginVersionsProv
     return summary;
   }
 
-  /** Resets the lifecycle state to uninitialized for Ephemery restart. */
-  public void resetState() {
-    state = Lifecycle.UNINITIALIZED;
+  /**
+   * Gets the simple class names of the registered plugins that are bundled with Besu.
+   *
+   * @return the names of the registered bundled plugins
+   */
+  public Set<String> getRegisteredBundledPlugins() {
+    return bundledPlugins.stream()
+        .filter(registeredPlugins::contains)
+        .map(plugin -> plugin.getClass().getSimpleName())
+        .collect(toSet());
   }
 }

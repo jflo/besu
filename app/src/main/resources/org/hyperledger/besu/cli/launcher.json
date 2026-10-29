@@ -86,32 +86,6 @@
     },
     {
       "prompt-type": "CONFIRM",
-      "question": "Do you want to enable GraphQL functionality ?",
-      "config-key": "graphql-http-enabled",
-      "default-option": "no",
-      "sub-questions": [
-        {
-          "prompt-type": "CONFIRM",
-          "question": "Do you want to configure the GraphQL options now ?",
-          "default-option": "yes",
-          "sub-questions": [
-            {
-              "prompt-type": "INPUT",
-              "question": "What is the GraphQL host address ?",
-              "config-key": "graphql-http-host"
-            },
-            {
-              "prompt-type": "INPUT",
-              "question": "What is the GraphQL port ?",
-              "config-key": "graphql-http-port",
-              "regex": "[0-9]+"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "prompt-type": "CONFIRM",
       "question": "Do you want to use Ethstats ?",
       "default-option": "no",
       "sub-questions": [

@@ -52,6 +52,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import org.hyperledger.besu.cli.config.EthNetworkConfig;
 import org.hyperledger.besu.cli.config.NativeRequirement;
@@ -64,7 +65,6 @@ import org.hyperledger.besu.datatypes.Hash;
 import org.hyperledger.besu.datatypes.Wei;
 import org.hyperledger.besu.ethereum.api.ApiConfiguration;
 import org.hyperledger.besu.ethereum.api.ImmutableApiConfiguration;
-import org.hyperledger.besu.ethereum.api.graphql.GraphQLConfiguration;
 import org.hyperledger.besu.ethereum.api.handlers.TimeoutOptions;
 import org.hyperledger.besu.ethereum.api.jsonrpc.JsonRpcConfiguration;
 import org.hyperledger.besu.ethereum.api.jsonrpc.websocket.WebSocketConfiguration;
@@ -106,6 +106,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -135,7 +136,6 @@ public class BesuCommandTest extends CommandTestAbstract {
   private static final String VALID_NODE_ID =
       "6f8a80d14311c39f35f516fa664deaaaa13e85b2f7493f37f6144d86991ec012937307647bd3b9a82abe2974e1407241d54947bbb39763a4cac9f77166ad92a0";
   private static final JsonRpcConfiguration DEFAULT_JSON_RPC_CONFIGURATION;
-  private static final GraphQLConfiguration DEFAULT_GRAPH_QL_CONFIGURATION;
   private static final WebSocketConfiguration DEFAULT_WEB_SOCKET_CONFIGURATION;
   private static final MetricsConfiguration DEFAULT_METRICS_CONFIGURATION;
   private static final ApiConfiguration DEFAULT_API_CONFIGURATION;
@@ -204,7 +204,6 @@ public class BesuCommandTest extends CommandTestAbstract {
 
   static {
     DEFAULT_JSON_RPC_CONFIGURATION = JsonRpcConfiguration.createDefault();
-    DEFAULT_GRAPH_QL_CONFIGURATION = GraphQLConfiguration.createDefault();
     DEFAULT_WEB_SOCKET_CONFIGURATION = WebSocketConfiguration.createDefault();
     DEFAULT_METRICS_CONFIGURATION = MetricsConfiguration.builder().build();
     DEFAULT_API_CONFIGURATION = ImmutableApiConfiguration.builder().build();
@@ -327,7 +326,6 @@ public class BesuCommandTest extends CommandTestAbstract {
     verify(mockRunnerBuilder).p2pAdvertisedHost(eq("127.0.0.1"));
     verify(mockRunnerBuilder).p2pListenPort(eq(30303));
     verify(mockRunnerBuilder).jsonRpcConfiguration(eq(DEFAULT_JSON_RPC_CONFIGURATION));
-    verify(mockRunnerBuilder).graphQLConfiguration(eq(DEFAULT_GRAPH_QL_CONFIGURATION));
     verify(mockRunnerBuilder).webSocketConfiguration(eq(DEFAULT_WEB_SOCKET_CONFIGURATION));
     verify(mockRunnerBuilder).metricsConfiguration(eq(DEFAULT_METRICS_CONFIGURATION));
     verify(mockRunnerBuilder).ethNetworkConfig(ethNetworkArg.capture());
@@ -1684,19 +1682,6 @@ public class BesuCommandTest extends CommandTestAbstract {
   }
 
   @Test
-  public void graphQLHttpEnabledPropertyDefaultIsFalse() {
-    parseCommand();
-
-    verify(mockRunnerBuilder).graphQLConfiguration(graphQLConfigArgumentCaptor.capture());
-    verify(mockRunnerBuilder).build();
-
-    assertThat(graphQLConfigArgumentCaptor.getValue().isEnabled()).isFalse();
-
-    assertThat(commandOutput.toString(UTF_8)).isEmpty();
-    assertThat(commandErrorOutput.toString(UTF_8)).isEmpty();
-  }
-
-  @Test
   public void rpcApisSupportsEngine() {
     parseCommand("--rpc-http-api", "ENGINE", "--rpc-http-enabled");
 
@@ -2521,8 +2506,45 @@ public class BesuCommandTest extends CommandTestAbstract {
     assertThat(commandErrorOutput.toString(UTF_8)).isEmpty();
   }
 
+  private static final String BUNDLED_GRAPHQL_WARNING =
+      "GraphQL is served by the besu-graphql-plugin bundled with Besu.";
+
+  @Test
+  public void servingGraphQLWithTheBundledPluginLogsTheDeprecationWarningOnce() {
+    when(getBesuPluginContext().getRegisteredBundledPlugins()).thenReturn(Set.of("GraphQLPlugin"));
+    registerPluginEndpointDuringPluginRegistration("graphQL", true, 8547);
+    parseCommand();
+    assertThat(commandErrorOutput.toString(UTF_8)).isEmpty();
+
+    verify(mockLogger, times(1)).warn(contains(BUNDLED_GRAPHQL_WARNING));
+  }
+
+  @Test
+  public void bundledGraphQLPluginThatDoesNotServeGraphQLLogsNoDeprecationWarning() {
+    when(getBesuPluginContext().getRegisteredBundledPlugins()).thenReturn(Set.of("GraphQLPlugin"));
+    registerPluginEndpointDuringPluginRegistration("graphQL", false, 8547);
+    parseCommand();
+    assertThat(commandErrorOutput.toString(UTF_8)).isEmpty();
+
+    verify(mockLogger, never()).warn(contains(BUNDLED_GRAPHQL_WARNING));
+  }
+
+  @Test
+  public void graphQLServedByAnInstalledPluginLogsNoDeprecationWarning() {
+    registerPluginEndpointDuringPluginRegistration("graphQL", true, 8547);
+    parseCommand();
+    assertThat(commandErrorOutput.toString(UTF_8)).isEmpty();
+
+    verify(mockLogger, never()).warn(contains(BUNDLED_GRAPHQL_WARNING));
+  }
+
   private void registerPluginEndpointDuringPluginRegistration(
       final boolean enabled, final int port) {
+    registerPluginEndpointDuringPluginRegistration("testService", enabled, port);
+  }
+
+  private void registerPluginEndpointDuringPluginRegistration(
+      final String serviceName, final boolean enabled, final int port) {
     final AtomicReference<NetworkEndpointService> service = new AtomicReference<>();
     lenient()
         .doAnswer(
@@ -2534,20 +2556,16 @@ public class BesuCommandTest extends CommandTestAbstract {
         .addService(eq(NetworkEndpointService.class), any());
     doAnswer(
             invocation -> {
-              service.get().registerEndpoint(new TestNetworkEndpoint(enabled, port));
+              service.get().registerEndpoint(new TestNetworkEndpoint(serviceName, enabled, port));
               return null;
             })
         .when(getBesuPluginContext())
         .registerPlugins();
   }
 
-  private record TestNetworkEndpoint(boolean isEnabled, int getConfiguredPort)
+  private record TestNetworkEndpoint(
+      String getServiceName, boolean isEnabled, int getConfiguredPort)
       implements NetworkEndpointService.NetworkEndpoint {
-
-    @Override
-    public String getServiceName() {
-      return "testService";
-    }
 
     @Override
     public String getPortsFileKey() {
@@ -2653,7 +2671,6 @@ public class BesuCommandTest extends CommandTestAbstract {
   public void assertThatAllPortsSpecifiedSucceeds() {
     parseCommand(
         "--p2p-port=9",
-        "--graphql-http-port=10",
         "--rpc-http-port=11",
         "--rpc-ws-port=12",
         "--metrics-port=13",
